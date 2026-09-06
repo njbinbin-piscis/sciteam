@@ -1,0 +1,40 @@
+id: round_robin_review
+name: Round Robin Review (example plugin paradigm)
+description: >
+  Reference paradigm shipped by sciteam-plugin-example — an author produces
+  the artifact, a reviewer critiques it each round, and a round_assessor
+  judges round completion. Deliberately shaped like a hand-written paradigm
+  under assets/teams/paradigms/ (see e.g. adversarial_pair.yaml) so that
+  "a plugin-registered paradigm dir behaves exactly like the built-in one"
+  is visibly true, not just asserted.
+members:
+  - key: author
+    agent_id: author
+    name: Author
+    role: author
+    emits_exit_artifact: true
+  - key: reviewer
+    agent_id: reviewer
+    name: Reviewer
+    role: reviewer
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority:
+      - may_assess_round
+coordination:
+  topology: loop
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 2
+  stopping:
+    kind: judgment
+    max_iterations: 50
+  charter:
+    standing_goal: >
+      The author delivers the mission artifact; the reviewer critiques each
+      round; round_assessor judges round completion from observation facts.
+      Fail-honest if no exit artifact by stagnation_max_rounds.
+    stagnation_max_rounds: 8

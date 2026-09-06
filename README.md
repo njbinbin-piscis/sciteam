@@ -117,6 +117,7 @@ not logic your engine owns.**
 | Amendment + rollback | Institution changes are append-only, hash-chained, and revertible | `sciteam/amendment.py` |
 | `RuntimePort` | The one seam between "institution" and "model" — plug in any LLM/agent backend | `sciteam/runtime.py`, `sciteam/llm_worker.py` |
 | Plan revision policy | How the campaign DAG grows/reopens in response to outcomes is itself a pluggable policy, not engine logic | `sciteam/adaptive_planner.py` (`PlanReviser`, `CompositeReviser`) |
+| Plugin engine | Discover/register third-party runtimes, tools, domain ports, paradigms, and institutional event hooks — without editing `sciteam/` | `sciteam/plugin_api.py` (see "Extending SciTeam" below) |
 
 ## Bring your own model
 
@@ -162,6 +163,68 @@ fan-out/gather, generator/critic, pipeline chain, planning council,
 retro council, standing watch, ...) — each is a manifest, none require
 touching engine code.
 
+## Extending SciTeam without touching the base
+
+`sciteam/` is meant to stop moving once its contracts are frozen; new
+backends, tools, domain integrations, and coordination templates are meant
+to arrive as **plugins** — ordinary, separately-installable Python packages
+discovered via standard `importlib.metadata` entry points (the same
+mechanism `pytest`/`coverage.py`/SQLAlchemy dialects use), never as PRs
+against this repo. Full design: `docs/25-sciteam-plugin-architecture.md`
+in the companion research repo.
+
+A plugin is one function:
+
+```python
+# my_plugin/__init__.py
+from sciteam.plugin_api import PLUGIN_API_VERSION, PluginAPI, PluginManifest
+from sciteam.tool_catalog import ToolSpec
+
+def register(api: PluginAPI) -> PluginManifest:
+    api.register_tool(
+        ToolSpec(name="patent_search", version="1.0", capability="patent.search", summary="..."),
+        handler=my_patent_search_handler,
+    )
+    api.register_paradigm_dir(my_paradigms_dir)      # new coordination templates
+    api.on("tool_call", my_audit_hook)                # observe, or veto (see docs)
+    return PluginManifest(id="my-plugin", version="1.0", sciteam_api_version=PLUGIN_API_VERSION)
+```
+
+```toml
+# my_plugin's own pyproject.toml
+[project.entry-points."sciteam.plugins"]
+my_plugin = "my_plugin:register"
+```
+
+`pip install my-plugin` and it is discovered automatically by
+`sciteam.plugin_api.load_all_plugins()` — never as an import side effect of
+`import sciteam` itself (a composition root calls this explicitly). Rules
+worth knowing before you write one:
+
+- **Plugins add, they never override.** A plugin cannot shadow a built-in
+  tool, paradigm, or role prompt — name conflicts are a hard, fail-closed
+  error at load time, not a silent "last one wins".
+- **Two hooks can veto, the rest only observe.** `tool_call` and
+  `artifact_submitted` are the two points where "does this action take
+  effect" is actually decided; every other lifecycle event (`mission_start`,
+  `round_end`, `veto_issued`, `amendment_applied`) already has its own
+  authority mechanism elsewhere and a plugin only gets to watch it.
+- **`PLUGIN_API_VERSION` is frozen independently of `sciteam.__version__`.**
+  Internal refactors that don't touch the registration surface never bump
+  it; a plugin targeting an incompatible major version is skipped
+  (fail-closed, per-plugin) rather than crashing the whole process.
+
+A complete, runnable reference plugin — one paradigm, one tool, one
+observing hook — lives in
+[`examples/plugins/sciteam-plugin-example/`](examples/plugins/sciteam-plugin-example/):
+
+```bash
+pip install -e .
+pip install -e examples/plugins/sciteam-plugin-example
+python3 -c "from sciteam.plugin_api import load_all_plugins; \
+             print([m.id for m in load_all_plugins(strict=True).loaded_plugins])"
+```
+
 ## What this is not
 
 - Not a benchmark. There is no leaderboard here, and the canonical demo
@@ -182,9 +245,10 @@ touching engine code.
 
 ## Status
 
-- 342 tests passing, 3 skipped, 0 failing on this export's test subset
+- 376 tests passing, 3 skipped, 0 failing on this export's test subset
   (`ruff check` / `ruff format --check` / `pytest` all clean in CI — see
-  the badge above).
+  the badge above), plus a separately-tested example plugin package
+  (`examples/plugins/sciteam-plugin-example/`).
 - MIT licensed.
 - Companion paper: *"Institution Engineering: [title TBD]"* (arXiv,
   forthcoming) — link will be added here on submission.
