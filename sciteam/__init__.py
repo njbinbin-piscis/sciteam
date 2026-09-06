@@ -46,6 +46,15 @@ from sciteam.models import (
     TeamRunState,
 )
 from sciteam.orchestrator import CreateSpec, DriveResult, TeamOrchestrator
+from sciteam.plugin_api import (
+    PLUGIN_API_VERSION,
+    HookResult,
+    PluginAPI,
+    PluginError,
+    PluginManifest,
+    PluginRegistry,
+    load_all_plugins,
+)
 from sciteam.ports import (
     ClaimSpan,
     ComputeJobResult,
@@ -152,6 +161,13 @@ __all__ = [
     "build_registry",
     "load_team_configs",
     "resolve_start_params",
+    "PLUGIN_API_VERSION",
+    "HookResult",
+    "PluginAPI",
+    "PluginError",
+    "PluginManifest",
+    "PluginRegistry",
+    "load_all_plugins",
 ]
 
 __version__ = "0.1.0"
