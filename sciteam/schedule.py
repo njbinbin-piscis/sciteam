@@ -39,9 +39,7 @@ def _prefer_handoff(run: TeamRun, candidates: list[Task]) -> list[Task]:
 
 def _round_terminal(current: list[Task]) -> bool:
     """True when every task in the round is done or failed (no pending/running)."""
-    return bool(current) and all(
-        t.state in {TaskState.DONE, TaskState.FAILED} for t in current
-    )
+    return bool(current) and all(t.state in {TaskState.DONE, TaskState.FAILED} for t in current)
 
 
 class BarrierSchedulePolicy:

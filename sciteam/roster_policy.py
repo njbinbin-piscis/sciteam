@@ -36,9 +36,7 @@ _BANNED_EXACT = frozenset(
         "stage-d",
     }
 )
-_BANNED_KEY_RE = re.compile(
-    r"(?i)^(stage[-_]?[a-z0-9]+|worker\d*|agent\d*|generic([-_].*)?)$"
-)
+_BANNED_KEY_RE = re.compile(r"(?i)^(stage[-_]?[a-z0-9]+|worker\d*|agent\d*|generic([-_].*)?)$")
 _PROFESSIONAL_KEY_RE = re.compile(r"^[a-z][a-z0-9_]{1,47}$")
 
 
@@ -78,9 +76,7 @@ def load_role_catalog(path: Path | str | None = None) -> dict[str, RoleSpec]:
             title=str(item.get("title") or rid),
             summary=str(item.get("summary") or ""),
             default_skills=tuple(str(s) for s in (item.get("default_skills") or [])),
-            preferred_paradigms=tuple(
-                str(s) for s in (item.get("preferred_paradigms") or [])
-            ),
+            preferred_paradigms=tuple(str(s) for s in (item.get("preferred_paradigms") or [])),
         )
     return out
 
@@ -170,9 +166,7 @@ def validate_roster(
     for item in agents:
         key = str(item.get("agent_key") or item.get("key") or "").strip()
         if key in seen:
-            issues.append(
-                RosterViolation("agent_key", key, "duplicate post id in roster")
-            )
+            issues.append(RosterViolation("agent_key", key, "duplicate post id in roster"))
         seen.add(key)
         issues.extend(
             validate_agent_identity(

@@ -24,11 +24,7 @@ INDEX_LINE = re.compile(r"^- ([a-z][a-z0-9_.]+)(?:\s+—.*)?$", re.M)
 
 
 def _disk_skill_dirs() -> set[str]:
-    return {
-        d.name
-        for d in SKILLS_DIR.iterdir()
-        if d.is_dir() and not d.name.startswith("_")
-    }
+    return {d.name for d in SKILLS_DIR.iterdir() if d.is_dir() and not d.name.startswith("_")}
 
 
 def _disk_skills_with_body() -> set[str]:
@@ -79,11 +75,8 @@ def _python_referenced() -> dict[str, set[str]]:
             src = str(path.relative_to(LAB_ROOT))
             for node in ast.walk(tree):
                 if isinstance(node, ast.Dict):
-                    for key, val in zip(node.keys, node.values):
-                        if (
-                            isinstance(key, ast.Constant)
-                            and key.value in SKILL_LIST_KEYS
-                        ):
+                    for key, val in zip(node.keys, node.values, strict=False):
+                        if isinstance(key, ast.Constant) and key.value in SKILL_LIST_KEYS:
                             note_list(val, src)
                 elif isinstance(node, ast.keyword) and node.arg == "skills_allowlist":
                     note_list(node.value, src)
@@ -109,19 +102,11 @@ def test_index_matches_disk_both_ways():
 
 def test_yaml_referenced_skills_are_materialized():
     ok = _disk_skills_with_body()
-    dangling = {
-        sid: sorted(srcs)
-        for sid, srcs in _yaml_referenced().items()
-        if sid not in ok
-    }
+    dangling = {sid: sorted(srcs) for sid, srcs in _yaml_referenced().items() if sid not in ok}
     assert not dangling, f"yaml-declared skills without body: {dangling}"
 
 
 def test_python_referenced_skills_are_materialized():
     ok = _disk_skills_with_body()
-    dangling = {
-        sid: sorted(srcs)
-        for sid, srcs in _python_referenced().items()
-        if sid not in ok
-    }
+    dangling = {sid: sorted(srcs) for sid, srcs in _python_referenced().items() if sid not in ok}
     assert not dangling, f"python-declared skills without body: {dangling}"

@@ -66,9 +66,7 @@ def test_co_scientist_tournament_six_institutional_posts():
     from sciteam import build_registry
 
     registry = build_registry(PARADIGMS_DIR)
-    agents, coordination = resolve_start_params(
-        "co_scientist_tournament", registry=registry
-    )
+    agents, coordination = resolve_start_params("co_scientist_tournament", registry=registry)
     keys = [a["agent_key"] for a in agents]
     assert keys[:6] == [
         "generation",
@@ -85,9 +83,7 @@ def test_co_scientist_tournament_six_institutional_posts():
     assert cfg is not None
     assert "meta_review" in cfg.artifact_emit_roles()
     assert "round_assessor" in cfg.assess_roles()
-    assert any(
-        m.agent_key == "meta_review" and m.emits_exit_artifact for m in cfg.members
-    )
+    assert any(m.agent_key == "meta_review" and m.emits_exit_artifact for m in cfg.members)
 
 
 @pytest.mark.parametrize("paradigm_id", sorted(EXPECTED_PARADIGMS))
@@ -111,10 +107,7 @@ async def test_every_paradigm_drives_to_completion(paradigm_id, tmp_path):
     production = [
         a
         for a in agents
-        if not (
-            a.get("may_assess_round")
-            or "may_assess_round" in (a.get("authority") or [])
-        )
+        if not (a.get("may_assess_round") or "may_assess_round" in (a.get("authority") or []))
     ]
     # Assessor seats are not planned into production waves.
     assert len(runtime.calls) == len(production)

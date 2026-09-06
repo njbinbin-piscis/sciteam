@@ -45,15 +45,11 @@ def max_tokens() -> int:
 
 
 def tool_result_visible_chars() -> int:
-    return _int_env(
-        "SCITEAM_TOOL_RESULT_VISIBLE_CHARS", TOOL_RESULT_VISIBLE_CHARS, minimum=1024
-    )
+    return _int_env("SCITEAM_TOOL_RESULT_VISIBLE_CHARS", TOOL_RESULT_VISIBLE_CHARS, minimum=1024)
 
 
 def tool_result_preview_chars() -> int:
-    return _int_env(
-        "SCITEAM_TOOL_RESULT_PREVIEW_CHARS", TOOL_RESULT_PREVIEW_CHARS, minimum=64
-    )
+    return _int_env("SCITEAM_TOOL_RESULT_PREVIEW_CHARS", TOOL_RESULT_PREVIEW_CHARS, minimum=64)
 
 
 def output_max_lines() -> int:

@@ -46,9 +46,7 @@ class ToolSpec:
         }
 
     def _haystack(self) -> str:
-        return " ".join(
-            [self.name, self.capability, self.summary, " ".join(self.keywords)]
-        ).lower()
+        return " ".join([self.name, self.capability, self.summary, " ".join(self.keywords)]).lower()
 
 
 class ToolCatalog:

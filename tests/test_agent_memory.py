@@ -55,7 +55,7 @@ def _runtime(responses: list[str]) -> tuple[LlmWorkerRuntime, _Client]:
 async def test_ordinary_success_also_commits_memory(tmp_path: Path) -> None:
     """P1-5: not just failure/repair — a clean success is worth remembering."""
     good = json.dumps({"summary": "clean run", "facts": [], "artifact": None})
-    runtime, _ = _runtime([good])
+    runtime, _ = _runtime([good, good])
     work_dir = tmp_path / "seat"
     await runtime.run_subagent(
         agent_id="analyst",
@@ -81,7 +81,7 @@ async def test_campaign_memory_carries_role_history_across_missions(tmp_path: Pa
 
     # Mission 1: analyst fails once with a distinctive counterexample.
     bad = "still garbage"
-    runtime1, _ = _runtime([bad, bad])
+    runtime1, _ = _runtime([bad, bad, bad])
     mission1_work_dir = tmp_path / "mission1" / "analyst"
     result1 = await runtime1.run_subagent(
         agent_id="analyst",
@@ -96,7 +96,7 @@ async def test_campaign_memory_carries_role_history_across_missions(tmp_path: Pa
     # seat_memory.jsonl starts empty, but campaign memory recall should
     # surface mission 1's failure via role-scoped lookup.
     good = json.dumps({"summary": "ok", "facts": [], "artifact": None})
-    runtime2, client2 = _runtime([good])
+    runtime2, client2 = _runtime([good, good])
     mission2_work_dir = tmp_path / "mission2" / "analyst"
     await runtime2.run_subagent(
         agent_id="analyst",
@@ -112,7 +112,15 @@ async def test_campaign_memory_carries_role_history_across_missions(tmp_path: Pa
 @pytest.mark.asyncio
 async def test_next_wave_prompt_recalls_same_seat_failure(tmp_path: Path) -> None:
     good = json.dumps({"summary": "changed method", "facts": [], "artifact": None})
-    client = _Client(["bad envelope one", "bad envelope two", good])
+    client = _Client(
+        [
+            "bad envelope one",  # tool round 0, unparsed
+            "bad envelope two",  # finalize, invalid -> triggers repair re-emit
+            "bad envelope two",  # repair re-emit, still invalid -> recoverable
+            "irrelevant tool round",  # 2nd call, tool round 0, unparsed
+            good,  # 2nd call finalize, valid
+        ]
+    )
     runtime = LlmWorkerRuntime(
         client=client,
         assets=PromptAssets(

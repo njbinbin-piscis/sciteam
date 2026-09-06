@@ -8,6 +8,7 @@ way; mission *kinds* are catalog labels carried as data, never branched on.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import os
 import time
@@ -460,7 +461,9 @@ class MissionRunner:
             role_issues = role_registry_preflight(agents, prompts_dir=self._prompts_dir)
             if role_issues:
                 detail = "; ".join(v.format() for v in role_issues)
-                detail_parts = [p for p in (hr_detail, f"role registry preflight failed: {detail}") if p]
+                detail_parts = [
+                    p for p in (hr_detail, f"role registry preflight failed: {detail}") if p
+                ]
                 return MissionOutcome(
                     mission_id=spec.id,
                     status="failed",
@@ -627,7 +630,7 @@ class MissionRunner:
             state = result.state
             elapsed = time.monotonic() - started
             if campaign_dir and (ticks_used == 1 or ticks_used % 5 == 0 or ticks_remaining <= 0):
-                try:
+                with contextlib.suppress(OSError):
                     write_schedule_meter(
                         campaign_dir,
                         mission_id=spec.id,
@@ -640,8 +643,6 @@ class MissionRunner:
                         n_agents=n_agents,
                         state=str(state.value if hasattr(state, "value") else state),
                     )
-                except OSError:
-                    pass
 
             if state in {TeamRunState.COMPLETED, TeamRunState.FAILED, TeamRunState.CANCELLED}:
                 break
@@ -666,7 +667,9 @@ class MissionRunner:
                     )
                     if campaign_dir:
                         clear_gate(campaign_dir)
-                    ticks_remaining = max(ticks_remaining, self._ticks_for_grant({}, n_agents=n_agents))
+                    ticks_remaining = max(
+                        ticks_remaining, self._ticks_for_grant({}, n_agents=n_agents)
+                    )
                     continue
                 # Budget exhaustion OR recoverable mechanical faults → human gate,
                 # not silent campaign death.
@@ -684,10 +687,10 @@ class MissionRunner:
                         "wall_fuse",
                     }
                 )
-                batch_worker_failure = (
-                    spec.kind == "evo_task"
-                    and gate_reason in {"worker_escalate", "worker_retry_exhausted"}
-                )
+                batch_worker_failure = spec.kind == "evo_task" and gate_reason in {
+                    "worker_escalate",
+                    "worker_retry_exhausted",
+                }
                 if awaitable_gate and gate_enabled() and campaign_dir and not batch_worker_failure:
                     raw_reason = (
                         "budget_exhausted"
@@ -791,7 +794,7 @@ class MissionRunner:
                 tick_budget += chunk
                 tick_refills += 1
                 if campaign_dir:
-                    try:
+                    with contextlib.suppress(OSError):
                         write_schedule_meter(
                             campaign_dir,
                             mission_id=spec.id,
@@ -804,8 +807,6 @@ class MissionRunner:
                             n_agents=n_agents,
                             state=f"tick_soft_refill#{tick_refills}",
                         )
-                    except OSError:
-                        pass
                 continue
 
             await asyncio.sleep(0)
@@ -1000,9 +1001,7 @@ class MissionRunner:
                 }
                 path = run_dir / "control" / "budget_gate.json"
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(
-                    json.dumps(gate, ensure_ascii=False, indent=2), encoding="utf-8"
-                )
+                path.write_text(json.dumps(gate, ensure_ascii=False, indent=2), encoding="utf-8")
                 await asyncio.sleep(poll)
                 continue
             if action == "abort":

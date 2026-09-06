@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from pathlib import Path
 from typing import Any
@@ -74,9 +75,7 @@ def promote_draft_to_exit(
         ordered.append(c)
 
     if not ordered:
-        raise FileNotFoundError(
-            f"no agent draft found under {root} for contract {exit_contract}"
-        )
+        raise FileNotFoundError(f"no agent draft found under {root} for contract {exit_contract}")
 
     errors: list[str] = []
     for src in ordered:
@@ -103,20 +102,13 @@ def promote_draft_to_exit(
                 else:
                     errs = []
             finally:
-                try:
+                with contextlib.suppress(OSError):
                     tmp.unlink(missing_ok=True)
-                except OSError:
-                    pass
             if errs:
                 errors.append(f"{src.name}: " + "; ".join(str(e) for e in errs))
                 continue
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
+        dest.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return dest
 
-    raise ValueError(
-        "no draft passed sanitize/schema; tried: "
-        + "; ".join(errors)[:2000]
-    )
+    raise ValueError("no draft passed sanitize/schema; tried: " + "; ".join(errors)[:2000])

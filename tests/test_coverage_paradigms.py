@@ -111,10 +111,7 @@ async def test_coverage_paradigm_drives_to_completion(paradigm_id, tmp_path):
     production = [
         a
         for a in agents
-        if not (
-            a.get("may_assess_round")
-            or "may_assess_round" in (a.get("authority") or [])
-        )
+        if not (a.get("may_assess_round") or "may_assess_round" in (a.get("authority") or []))
     ]
     assert len(runtime.calls) == len(production)
     assert "round_assessor" not in runtime.calls

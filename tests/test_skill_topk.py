@@ -154,7 +154,8 @@ class TestWiredIntoRunSubagent:
         skills_dir = tmp_path / "skills"
         allowlist = [f"skill_{i}" for i in range(_SKILL_TOPK_THRESHOLD + 3)]
         _make_skills(skills_dir, {sid: "kvcache eviction notes" for sid in allowlist})
-        client = _Client([json.dumps({"summary": "ok", "facts": [], "artifact": None})])
+        envelope = json.dumps({"summary": "ok", "facts": [], "artifact": None})
+        client = _Client([envelope, envelope])
         runtime = LlmWorkerRuntime(
             client=client,
             assets=PromptAssets(prompts_dir=LAB_ROOT / "assets" / "prompts", skills_dir=skills_dir),

@@ -21,7 +21,9 @@ def test_judgment_requires_assess_seat(tmp_path, monkeypatch):
         tmp_path,
         {
             "id": "no_assess",
-            "members": [{"key": "w", "agent_id": "w", "role": "writer", "emits_exit_artifact": True}],
+            "members": [
+                {"key": "w", "agent_id": "w", "role": "writer", "emits_exit_artifact": True}
+            ],
             "coordination": {"stopping": {"kind": "judgment", "max_iterations": 2}},
         },
     )

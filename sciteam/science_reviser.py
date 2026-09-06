@@ -32,10 +32,12 @@ def _read_build_success(
     success: bool | None = None
     for rec in completed:
         mid = str(rec.get("mission_id") or "")
-        if not (mid == build_stem or mid.startswith(f"{build_stem}_") or mid.startswith(build_stem)):
-            # Also honor explicit plan tag on completed records if present.
-            if str(rec.get("science_loop_role") or "") != "build":
-                continue
+        matches_stem = (
+            mid == build_stem or mid.startswith(f"{build_stem}_") or mid.startswith(build_stem)
+        )
+        # Also honor explicit plan tag on completed records if present.
+        if not matches_stem and str(rec.get("science_loop_role") or "") != "build":
+            continue
         latest_id = mid
         if "scientific_success" in rec:
             success = bool(rec.get("scientific_success"))
@@ -83,9 +85,7 @@ class ScienceLoopReviser:
     ) -> list[dict[str, Any]]:
         del kb
         self.calls += 1
-        build_id, success = _read_build_success(
-            completed, build_stem=self._build_stem
-        )
+        build_id, success = _read_build_success(completed, build_stem=self._build_stem)
         if not build_id or success is not False:
             return []
         unresolved_builds = [

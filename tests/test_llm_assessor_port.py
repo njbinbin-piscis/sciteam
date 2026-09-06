@@ -75,9 +75,7 @@ class _ExplodingAssessor:
     """Any consult proves the coordinator broke verification-kind semantics."""
 
     async def assess(self, facts, run):
-        raise AssertionError(
-            "LLM assessor must not be consulted for verification-kind stopping"
-        )
+        raise AssertionError("LLM assessor must not be consulted for verification-kind stopping")
 
 
 def _verification_run(tmp_path, *, artifact_path: str) -> TeamRun:
@@ -106,9 +104,7 @@ def _verification_run(tmp_path, *, artifact_path: str) -> TeamRun:
         ],
         work_root=str(tmp_path),
         metadata={
-            "coordination": {
-                "stopping": {"kind": "verification", "max_iterations": 4}
-            },
+            "coordination": {"stopping": {"kind": "verification", "max_iterations": 4}},
             "artifact_path": artifact_path,
         },
     )
@@ -126,9 +122,7 @@ def test_verification_kind_completes_from_verifier_artifact(tmp_path):
 
 def test_verification_kind_continues_without_artifact(tmp_path):
     coordinator = ContractCoordinator(assessor=_ExplodingAssessor())
-    run = _verification_run(
-        tmp_path, artifact_path=str(tmp_path / "results.json")
-    )
+    run = _verification_run(tmp_path, artifact_path=str(tmp_path / "results.json"))
     verdict = asyncio.run(coordinator.assess_round(run))
     assert verdict.decision.value == "continue"
     assert verdict.reason_code == "need_artifact"
@@ -140,7 +134,5 @@ def test_make_contract_coordinator_modes():
     assert isinstance(fake._assessor, ScriptedAssessor)
 
     runtime = _FakeRuntime("{}")
-    live = make_contract_coordinator(
-        live=True, runtime=runtime, assets_root=LAB_ROOT / "assets"
-    )
+    live = make_contract_coordinator(live=True, runtime=runtime, assets_root=LAB_ROOT / "assets")
     assert isinstance(live._assessor, LlmAssessorPort)

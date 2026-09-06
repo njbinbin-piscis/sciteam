@@ -28,9 +28,7 @@ from sciteam.models import Task, TaskState, TeamRun
 
 
 def _tasks_for_round(run: TeamRun) -> list[Task]:
-    return [
-        t for t in run.tasks if t.round_index == run.active_round and t.state == TaskState.DONE
-    ]
+    return [t for t in run.tasks if t.round_index == run.active_round and t.state == TaskState.DONE]
 
 
 def _token(task: Task) -> str:

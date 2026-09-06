@@ -116,6 +116,4 @@ def ensure_runnable_plan(
             # Defend against empty registries in broken checkouts
             _ = paradigms, contracts
         return out
-    return bind_plan_to_template_spine(
-        template_plan=template_plan, goal=goal, operator_plan=plan
-    )
+    return bind_plan_to_template_spine(template_plan=template_plan, goal=goal, operator_plan=plan)

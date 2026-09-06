@@ -114,19 +114,12 @@ class ScriptedCoordinator:
                 f"# Campaign topic (context only)\n{run.goal}",
             ]
             if pipeline:
-                parts.append(
-                    "# Pipeline position\n"
-                    f"You are «{role}» in: " + " → ".join(pipeline)
-                )
+                parts.append(f"# Pipeline position\nYou are «{role}» in: " + " → ".join(pipeline))
             if pred:
                 parts.append(pred)
-            tasks.append(
-                RoundTask(agent_key=agent.agent_key, prompt="\n\n".join(parts))
-            )
+            tasks.append(RoundTask(agent_key=agent.agent_key, prompt="\n\n".join(parts)))
         if not tasks:
-            raise ValueError(
-                "plan_round: no production seats (all agents have may_assess_round)"
-            )
+            raise ValueError("plan_round: no production seats (all agents have may_assess_round)")
         return RoundPlan(
             round_index=max(1, round_index),
             tasks=tasks,

@@ -257,7 +257,10 @@ class TestWorker:
         )
         runtime, _ = _runtime([envelope])
         result = await runtime.run_subagent(
-            agent_id="worker", task="t", work_dir=str(tmp_path), context=_context(tmp_path, "implementer")
+            agent_id="worker",
+            task="t",
+            work_dir=str(tmp_path),
+            context=_context(tmp_path, "implementer"),
         )
         # artifact_path parent is the mission dir (tmp_path here)
         assert (tmp_path / "candidate.py").read_text() == "NAME = 'x'\n"
@@ -277,7 +280,12 @@ class TestWorker:
                 "facts": [],
                 "artifact": None,
                 "files": {"candidate.py": "NAME='x'\n"},
-                "run_eval": {"problem_id": "p2", "candidate_file": "candidate.py", "out": "probe.json", "seed": 7},
+                "run_eval": {
+                    "problem_id": "p2",
+                    "candidate_file": "candidate.py",
+                    "out": "probe.json",
+                    "seed": 7,
+                },
             }
         )
         client = FakeLlmClient([envelope])
@@ -288,7 +296,10 @@ class TestWorker:
             eval_runner=fake_eval,
         )
         result = await runtime.run_subagent(
-            agent_id="worker", task="t", work_dir=str(tmp_path), context=_context(tmp_path, "evaluator")
+            agent_id="worker",
+            task="t",
+            work_dir=str(tmp_path),
+            context=_context(tmp_path, "evaluator"),
         )
         assert calls and calls[0][0] == "p2" and calls[0][3] == 7
         assert "frozen eval ran" in result.output
@@ -347,7 +358,11 @@ class TestWorker:
                 "facts": [],
                 "artifact": None,
                 "files": {"candidate.py": "NAME='x'\n"},
-                "run_eval": {"problem_id": "p2", "candidate_file": "candidate.py", "out": "probe.json"},
+                "run_eval": {
+                    "problem_id": "p2",
+                    "candidate_file": "candidate.py",
+                    "out": "probe.json",
+                },
             }
         )
         client = FakeLlmClient([envelope])
@@ -438,13 +453,17 @@ class TestWorker:
         assert json.loads(result.output)["decision"] == "completed"
 
     async def test_history_feeds_next_prompt(self, tmp_path):
-        first = json.dumps({"summary": "idea alpha from muse", "facts": ["fact-x"], "artifact": None})
+        first = json.dumps(
+            {"summary": "idea alpha from muse", "facts": ["fact-x"], "artifact": None}
+        )
         second = json.dumps({"summary": "done", "facts": [], "artifact": None})
         runtime, client = _runtime([first, second])
         ctx = _context(tmp_path, "muse_1")
         await runtime.run_subagent(agent_id="worker", task="t", work_dir=str(tmp_path), context=ctx)
         ctx2 = _context(tmp_path, "judge")
-        await runtime.run_subagent(agent_id="worker", task="t", work_dir=str(tmp_path), context=ctx2)
+        await runtime.run_subagent(
+            agent_id="worker", task="t", work_dir=str(tmp_path), context=ctx2
+        )
         user2 = client.requests[2][1]["content"]
         assert "idea alpha from muse" in user2  # compacted team context propagated
 
@@ -455,7 +474,9 @@ class TestCompaction:
             {"agent_key": "muse_1", "round_index": i, "state": "done", "result": f"r{i}" * 100}
             for i in range(20)
         ]
-        pack = build_working_pack(agent_key="judge", pins=["protocol: frozen"], task_history=history)
+        pack = build_working_pack(
+            agent_key="judge", pins=["protocol: frozen"], task_history=history
+        )
         text = pack.render()
         assert "protocol: frozen" in text
         assert len(pack.recent) <= DEFAULT_PROFILE.keep_last_results  # default profile cap

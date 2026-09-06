@@ -234,7 +234,9 @@ def _deterministic_staff(
         ],
     }
     report_path = session_dir / "staffing_report.json"
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     (session_dir / "transcript.jsonl").write_text(
         json.dumps(
             {
@@ -319,7 +321,7 @@ async def run_hr_staffing_session(
 
     system = (
         f"{role_text}\n\n"
-        f"<skill id=\"hr.recruit\">\n{skill_text}\n</skill>\n\n"
+        f'<skill id="hr.recruit">\n{skill_text}\n</skill>\n\n'
         "You are staffing ONE mission. Use HR tools to inspect templates and "
         "recruit/train pack instances for every requested seat. "
         "Never use worker/stage_* names. When done, emit ONLY JSON:\n"
@@ -328,7 +330,7 @@ async def run_hr_staffing_session(
         "Every requested seat must appear in roster after you have called recruit_agent."
     )
     seat_lines = "\n".join(
-        f"- { _seat_key(s) } (role={s.get('role') or _seat_key(s)}, name={s.get('name') or ''})"
+        f"- {_seat_key(s)} (role={s.get('role') or _seat_key(s)}, name={s.get('name') or ''})"
         for s in seats
         if _seat_key(s)
     )
@@ -510,7 +512,9 @@ async def run_hr_staffing_session(
         "tools_used": sorted({t["tool"] for t in tool_trace}),
     }
     report_path = session_dir / "staffing_report.json"
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     # refresh tool_trace file if auto-completed
     (session_dir / "tool_trace.jsonl").write_text(
         "\n".join(json.dumps(t, ensure_ascii=False) for t in tool_trace) + "\n",

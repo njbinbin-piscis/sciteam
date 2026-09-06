@@ -33,9 +33,7 @@ VALID_HYP = {
             "rationale": "Grounded in a placeholder literature note for ISA verification.",
         }
     ],
-    "rejected_ideas": [
-        {"statement": "unfalsifiable slogan", "reason": "no kill criterion"}
-    ],
+    "rejected_ideas": [{"statement": "unfalsifiable slogan", "reason": "no kill criterion"}],
 }
 
 
@@ -159,7 +157,9 @@ def test_tournament_pipeline_serializes_and_emits(tmp_path):
     ], first_wave
     # Reflection+ must have seen generation output via predecessor digest.
     assert any(
-        "prior:generation" in t for t, c in zip(runtime.tasks, runtime.calls) if c == "reflection"
+        "prior:generation" in t
+        for t, c in zip(runtime.tasks, runtime.calls, strict=False)
+        if c == "reflection"
     )
     # Emit only from meta_review (file appears after its call).
     assert runtime.calls.count("meta_review") >= 1

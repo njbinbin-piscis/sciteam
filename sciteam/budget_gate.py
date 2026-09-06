@@ -287,7 +287,10 @@ def write_schedule_meter(
         "n_agents": int(n_agents),
         "state": state,
         "updated_at": datetime.now(UTC).isoformat(timespec="seconds"),
-        "note": "调度油箱（tick）= 引擎内部步数（观测用）。默认软续杯，不因耗尽停实验；科学停机看协调轮/墙钟/契约。",
+        "note": (
+            "调度油箱（tick）= 引擎内部步数（观测用）。"
+            "默认软续杯，不因耗尽停实验；科学停机看协调轮/墙钟/契约。"
+        ),
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 

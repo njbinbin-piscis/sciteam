@@ -128,7 +128,7 @@ def test_blast_radius_containment_is_monotone():
     layers = [(role, by_role[role]) for role in order if role in by_role]
     assert len(layers) >= 3, layers
 
-    for (outer_role, outer), (inner_role, inner) in zip(layers, layers[1:]):
+    for (outer_role, outer), (inner_role, inner) in zip(layers, layers[1:], strict=False):
         assert inner <= outer, (outer_role, outer, inner_role, inner)
     # containment must actually narrow somewhere, not be uniformly flat
     assert layers[-1][1] < layers[0][1], layers

@@ -29,7 +29,9 @@ def _runtime() -> LlmWorkerRuntime:
         prompts_dir=LAB_ROOT / "assets" / "prompts",
         skills_dir=LAB_ROOT / "assets" / "skills",
     )
-    return LlmWorkerRuntime(client=_FakeLlmClient(), assets=assets, schemas_dir=LAB_ROOT / "schemas")
+    return LlmWorkerRuntime(
+        client=_FakeLlmClient(), assets=assets, schemas_dir=LAB_ROOT / "schemas"
+    )
 
 
 def _tc(call_id: str, name: str) -> dict:

@@ -30,9 +30,7 @@ def assert_assessor_authorized(agent_key: str, assess_roles: list[str]) -> None:
     key = str(agent_key or "").strip()
     roles = {str(r).strip() for r in assess_roles if str(r).strip()}
     if not key or (roles and key not in roles):
-        raise PermissionError(
-            f"assessor seat {key!r} not in assess_roles {sorted(roles)}"
-        )
+        raise PermissionError(f"assessor seat {key!r} not in assess_roles {sorted(roles)}")
 
 
 _ILLEGAL_HINT = (
@@ -175,8 +173,7 @@ def facts_only_verdict(
                 "reason_code": "gate_unsatisfied",
                 "summary": "artifact present but gate not satisfied",
                 "next_round_hint": (
-                    f"gate_unsatisfied: {json.dumps(gate)} "
-                    f"(observed: {json.dumps(observed)})"
+                    f"gate_unsatisfied: {json.dumps(gate)} (observed: {json.dumps(observed)})"
                 ),
                 "assessor_key": assessor_key,
             }
@@ -305,9 +302,7 @@ class LlmAssessorPort:
         meta = dict(run.metadata or {})
         meta["assessment_mode"] = True
         meta["skills_allowlist"] = list(
-            dict.fromkeys(
-                ["institution.round_assess", *list(meta.get("skills_allowlist") or [])]
-            )
+            dict.fromkeys(["institution.round_assess", *list(meta.get("skills_allowlist") or [])])
         )
         result = await self._runtime.run_subagent(
             agent_id=str(seat.profile.get("agent_id") or seat.agent_key),
@@ -365,9 +360,7 @@ def make_contract_coordinator(
         if runtime is None:
             raise ValueError("make_contract_coordinator(live=True) requires runtime")
         root = Path(assets_root) if assets_root else _LAB_ROOT / "assets"
-        return ContractCoordinator(
-            LlmAssessorPort(runtime=runtime, assets_root=root)
-        )
+        return ContractCoordinator(LlmAssessorPort(runtime=runtime, assets_root=root))
     return ContractCoordinator(ScriptedAssessor())
 
 

@@ -198,11 +198,7 @@ def load_team_config(path: Path) -> TeamConfig:
     if not isinstance(coordination_raw, dict):
         raise ValueError(f"{path}: coordination must be a mapping")
     coord = CoordinationSpec.from_dict(coordination_raw)
-    assess = [
-        m
-        for m in members
-        if m.may_assess_round
-    ]
+    assess = [m for m in members if m.may_assess_round]
     if coord.stopping.kind == StoppingKind.JUDGMENT and not assess:
         raise ValueError(
             f"{path}: stopping.kind=judgment requires at least one member "
@@ -240,7 +236,9 @@ def resolve_start_params(
         raise KeyError(f"unknown team template: {team_id}")
     resolved_agents = agents if agents is not None else cfg.agent_snapshots()
     # Expand replicas
-    spec = CoordinationSpec.from_dict(coordination if coordination is not None else cfg.coordination)
+    spec = CoordinationSpec.from_dict(
+        coordination if coordination is not None else cfg.coordination
+    )
     if spec.replicas:
         expanded: list[dict[str, Any]] = []
         for agent in resolved_agents:

@@ -73,7 +73,9 @@ class ArtifactWritingRuntime:
             )
         run = Run(
             run_id=f"worker_{key}_{len(self.calls)}",
-            spec=RunSpec(kind="team_worker", input=key, agent_id=agent_id, parent_run_id=parent_run_id),
+            spec=RunSpec(
+                kind="team_worker", input=key, agent_id=agent_id, parent_run_id=parent_run_id
+            ),
             state=RunState.SUCCEEDED,
             output=f"ok:{key}",
         )

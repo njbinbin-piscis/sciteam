@@ -66,15 +66,21 @@ MANDATORY_INSTITUTIONS = (
 # 2026-08-13 audit finding: MANDATORY_INSTITUTIONS is unconditionally injected
 # into every charter (see CoordinationSpec.from_dict below) and serialized
 # into every run's team_run.json as "institutions enabled for this run" —
-# but only I_STAGNATION_HALT has a real enforcement path (round_assessor's
-# stagnation-round check). I_PROCESS_AUDIT (non-production oversight seat +
-# veto) and I_DESIGN_FEEDBACK (auto REOPEN_UPSTREAM on downstream failure)
-# have no wired trigger anywhere in sciteam/ (ENGINE_ISA.md §... already
-# marks both ❌ at L1). Keeping the three names together in `institutions`
-# for backward compatibility with existing run archives/analysis scripts,
-# but also exposing which ones are actually backed by code so future
-# consumers do not mistake the label for delivered governance.
-IMPLEMENTED_INSTITUTIONS = ("I_STAGNATION_HALT",)
+# but at the time of that audit only I_STAGNATION_HALT had a real
+# enforcement path (round_assessor's stagnation-round check). I_PROCESS_AUDIT
+# and I_DESIGN_FEEDBACK had no wired trigger anywhere in sciteam/.
+#
+# 2026-09-07 follow-up: I_PROCESS_AUDIT is now backed by code —
+# `sciteam.audit_veto` gives an authorized seat (`may_veto_exit`) a
+# schema-validated veto signal that mechanically reopens the campaign via
+# `AdaptiveCampaignPlanner.reopen_upstream`, fail-closed on unauthorized or
+# malformed vetoes (see `tests/test_audit_veto.py`). I_DESIGN_FEEDBACK
+# (auto REOPEN_UPSTREAM on downstream failure, no explicit veto) still has
+# no wired trigger. Keeping the three names together in `institutions` for
+# backward compatibility with existing run archives/analysis scripts, but
+# also exposing which ones are actually backed by code so future consumers
+# do not mistake the label for delivered governance.
+IMPLEMENTED_INSTITUTIONS = ("I_STAGNATION_HALT", "I_PROCESS_AUDIT")
 
 
 @dataclass(frozen=True)

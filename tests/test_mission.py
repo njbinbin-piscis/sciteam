@@ -123,7 +123,9 @@ class TestMissionRunner:
         runtime = ArtifactWritingRuntime({"m_hyp_wave_01": VALID_HYPOTHESES})
         runner = make_runner(runtime)
         outcome = await runner.run(
-            _spec(roster=[{"agent_key": "analyst", "agent_id": "analyst", "name": "Problem Analyst"}])
+            _spec(
+                roster=[{"agent_key": "analyst", "agent_id": "analyst", "name": "Problem Analyst"}]
+            )
         )
         assert outcome.succeeded
         assert runtime.calls == ["analyst"]

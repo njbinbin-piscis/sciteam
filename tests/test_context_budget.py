@@ -252,7 +252,11 @@ class TestFitToContext:
             "working_pack:scale=0.25",
         ]
         undedegraded_total = (
-            1000 + 40_000 + 90_000 + 50_000 + len(build_working_pack(agent_key="tester", task_history=history).render())
+            1000
+            + 40_000
+            + 90_000
+            + 50_000
+            + len(build_working_pack(agent_key="tester", task_history=history).render())
         )
         assert fit["estimated_chars"] < undedegraded_total
 

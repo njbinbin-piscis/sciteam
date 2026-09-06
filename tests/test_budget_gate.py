@@ -167,9 +167,7 @@ class TestMissionBudgetGateResume:
                 "exit_contract": "candidate_hypotheses",
                 "skills_allowlist": ["hypothesis.formulate"],
                 "budget": {"max_rounds": 1},
-                "roster": [
-                    {"agent_key": "worker", "agent_id": "worker", "name": "Worker"}
-                ],
+                "roster": [{"agent_key": "worker", "agent_id": "worker", "name": "Worker"}],
             }
         )
 
@@ -224,9 +222,7 @@ class TestMissionBudgetGateResume:
                     "exit_contract": "candidate_hypotheses",
                     "skills_allowlist": ["hypothesis.formulate"],
                     "budget": {"max_rounds": 1},
-                    "roster": [
-                        {"agent_key": "worker", "agent_id": "worker", "name": "Worker"}
-                    ],
+                    "roster": [{"agent_key": "worker", "agent_id": "worker", "name": "Worker"}],
                 }
             )
         )
@@ -263,9 +259,7 @@ def test_tick_soft_refill_does_not_open_gate(tmp_path, monkeypatch):
             "exit_contract": "candidate_hypotheses",
             "skills_allowlist": ["hypothesis.formulate"],
             "budget": {"max_rounds": 1},
-            "roster": [
-                {"agent_key": "worker", "agent_id": "worker", "name": "Worker"}
-            ],
+            "roster": [{"agent_key": "worker", "agent_id": "worker", "name": "Worker"}],
         }
     )
     outcome = asyncio.run(asyncio.wait_for(runner.run(spec, max_ticks=None), timeout=20))
@@ -273,7 +267,13 @@ def test_tick_soft_refill_does_not_open_gate(tmp_path, monkeypatch):
     assert "tick budget exhausted" not in (outcome.detail or "")
     assert "tick hard-stop" not in (outcome.detail or "")
     # Real scientific stop (or contract path) — not an opaque tick fail.
-    assert outcome.status in {"budget_exhausted", "completed", "contract_failed", "waiting_user", "failed"}
+    assert outcome.status in {
+        "budget_exhausted",
+        "completed",
+        "contract_failed",
+        "waiting_user",
+        "failed",
+    }
 
 
 class TestBillingHoldAndSeedFuse:
@@ -312,9 +312,7 @@ class TestBillingHoldAndSeedFuse:
             check_seed_fuse(tokens=10, wall_seconds=10.0, token_cap=100, wall_cap_s=5.0)
             == "wall_fuse"
         )
-        assert (
-            check_seed_fuse(tokens=10, wall_seconds=1.0, token_cap=100, wall_cap_s=5.0) is None
-        )
+        assert check_seed_fuse(tokens=10, wall_seconds=1.0, token_cap=100, wall_cap_s=5.0) is None
 
     def test_token_fuse_gate_refuses_grant(self, tmp_path):
         open_gate(

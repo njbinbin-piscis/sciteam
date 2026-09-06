@@ -23,9 +23,7 @@ def test_bans_stage_and_worker_names():
 
 
 def test_validate_roster_rejects_generic():
-    issues = validate_roster(
-        [{"agent_key": "stage_a", "agent_id": "worker", "name": "Stage A"}]
-    )
+    issues = validate_roster([{"agent_key": "stage_a", "agent_id": "worker", "name": "Stage A"}])
     assert issues
     assert any("stage_a" in i.format() for i in issues)
 

@@ -10,6 +10,7 @@ carries an `artifact` object, it is written to the mission artifact path
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import json
 import os
@@ -122,7 +123,8 @@ exit-contract file. Apply the charter to the observation pack and decide.
 When finished, respond with a single JSON object (no markdown fences):
 {
   "decision": "continue" | "completed" | "failed",
-  "reason_code": "ok_complete" | "need_artifact" | "gate_unsatisfied" | "exit_stalled" | "integrity_fail" | "process_fail" | "all_workers_failed",
+  "reason_code": "ok_complete" | "need_artifact" | "gate_unsatisfied" | "exit_stalled" |
+    "integrity_fail" | "process_fail" | "all_workers_failed",
   "summary": "<short rationale>",
   "next_round_hint": "<guidance for production seats, or empty string>",
   "assessor_key": "<your seat key>",
@@ -282,7 +284,8 @@ class PromptAssets:
                 sections.append(f'<skill id="{skill_id}">\n{text}\n</skill>')
             else:
                 sections.append(
-                    f'<skill id="{skill_id}">(spec not found — follow the id semantics conservatively)</skill>'
+                    f'<skill id="{skill_id}">(spec not found — follow the id '
+                    "semantics conservatively)</skill>"
                 )
         return "\n\n".join(sections)
 
@@ -392,7 +395,7 @@ class LlmWorkerRuntime:
             "reason_code": reason_code,
         }
         self._task_history.setdefault(team_run_id, []).append(row)
-        try:
+        with contextlib.suppress(OSError):
             self._commit_memory_record(
                 work_dir=work_dir,
                 agent_key=agent_key,
@@ -410,8 +413,6 @@ class LlmWorkerRuntime:
                     reason_code=reason_code,
                 ),
             )
-        except OSError:
-            pass
 
     @property
     def usage(self):
@@ -1215,8 +1216,8 @@ class LlmWorkerRuntime:
         system_parts = [constitution_text, role_prompt_text]
         if skills_allowlist:
             system_parts.append(
-                "# Skills you MUST follow (free-form work is a policy violation when a skill applies)\n\n"
-                + fit["skill_text"]
+                "# Skills you MUST follow (free-form work is a policy violation "
+                "when a skill applies)\n\n" + fit["skill_text"]
             )
         system_parts.append(envelope_instructions)
         system = "\n\n---\n\n".join(part for part in system_parts if part.strip())
@@ -1319,7 +1320,10 @@ class LlmWorkerRuntime:
                 "Re-emit ONLY round_assessment JSON with keys decision, reason_code, "
                 "summary, next_round_hint, assessor_key. No markdown."
                 if assessment_mode
-                else "Your reply was not a single valid JSON object. Re-emit ONLY the JSON envelope now."
+                else (
+                    "Your reply was not a single valid JSON object. Re-emit ONLY "
+                    "the JSON envelope now."
+                )
             )
             repair = messages + [
                 {"role": "assistant", "content": response.content},
@@ -1447,7 +1451,7 @@ class LlmWorkerRuntime:
         mission_dir = Path(artifact_path).parent if artifact_path else Path(work_dir)
         mission_dir.mkdir(parents=True, exist_ok=True)
         if work_item_id and inner_loop:
-            try:
+            with contextlib.suppress(OSError):
                 append_inner_loop_trace(
                     work_dir,
                     work_item_id=work_item_id,
@@ -1463,8 +1467,6 @@ class LlmWorkerRuntime:
                     },
                     mission_dir=mission_dir if artifact_path else None,
                 )
-            except OSError:
-                pass
 
         written_files: list[str] = []
         files = envelope.get("files")

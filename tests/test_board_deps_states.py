@@ -10,8 +10,8 @@ from sciteam.models import DepEdge, DepKind, WorkItem, WorkItemState
 def test_role_pipeline_uses_waiting_deps_not_blocked():
     board = WorkBoard()
     deps = DepGraph()
-    a = board.post(WorkItem(id="a", prompt="gen", role_tags=["generation"]))
-    b = board.post(WorkItem(id="b", prompt="ref", role_tags=["reflection"]))
+    board.post(WorkItem(id="a", prompt="gen", role_tags=["generation"]))
+    board.post(WorkItem(id="b", prompt="ref", role_tags=["reflection"]))
     deps.add_edge(DepEdge(pred="a", succ="b", kind=DepKind.FS))
     deps.refresh_ready(board)
     assert board.get("a").state == WorkItemState.READY

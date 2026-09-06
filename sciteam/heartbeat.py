@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -61,10 +62,8 @@ def _pipeline_predecessor_digest(
 def _flush_board(run: TeamRun, board: WorkBoard, deps: DepGraph | None = None) -> None:
     """Persist board mid-tick so observatory can see ready/running before wave ends."""
     run.tasks = project_tasks(board, round_index=run.active_round)
-    try:
+    with contextlib.suppress(OSError):
         snapshot_team_run(run, board=board, deps=deps)
-    except OSError:
-        pass
 
 
 @dataclass

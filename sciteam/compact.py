@@ -103,7 +103,8 @@ class WorkingPack:
             sections.append("## Recent team results\n" + "\n\n".join(lines))
         if self.failures:
             lines = [
-                f"- round {item.get('round_index', '?')} · {item.get('agent_key', '?')}: {item.get('error', '')}"
+                f"- round {item.get('round_index', '?')} · {item.get('agent_key', '?')}: "
+                f"{item.get('error', '')}"
                 for item in self.failures
             ]
             sections.append("## Failure history (kept for debugging)\n" + "\n".join(lines))

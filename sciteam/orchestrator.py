@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -275,7 +276,7 @@ class TeamOrchestrator:
             work_root=str(root),
             metadata=metadata,
         )
-        board = self.board_for(run_id)
+        self.board_for(run_id)
         deps = self.deps_for(run_id)
         if coordination.work_graph.edges:
             deps.extend(list(coordination.work_graph.edges))
@@ -323,7 +324,7 @@ class TeamOrchestrator:
                 role = tags[0] if tags else ""
                 if role and role not in by_role:
                     by_role[role] = wid
-            for pred_role, succ_role in zip(pipe, pipe[1:]):
+            for pred_role, succ_role in zip(pipe, pipe[1:], strict=False):
                 pred_id = by_role.get(pred_role)
                 succ_id = by_role.get(succ_role)
                 if not pred_id or not succ_id:
@@ -425,10 +426,8 @@ class TeamOrchestrator:
             deps.refresh_ready(board)
             # Flush after posting so observatory sees new wave cards before heartbeats finish.
             run.tasks = project_tasks(board, round_index=run.active_round)
-            try:
+            with contextlib.suppress(OSError):
                 snapshot_team_run(run, board=board, deps=deps)
-            except OSError:
-                pass
 
         max_parallel = self._guard.effective_max_parallel(coordination)
         deps.refresh_ready(board)
@@ -609,9 +608,7 @@ class TeamOrchestrator:
                 # reports CONTINUE; it alone may eventually establish that
                 # the task has converged or is no longer informative.
                 stopping = dict(coordination.stopping.to_dict())
-                prior = int(
-                    stopping.get("max_total_rounds") or stopping.get("max_iterations") or 0
-                )
+                prior = int(stopping.get("max_total_rounds") or stopping.get("max_iterations") or 0)
                 extra = max(1, prior)
                 new_ceiling = prior + extra if prior else max(1, run.active_round + 1)
                 if int(stopping.get("max_total_rounds") or 0) > 0:
@@ -645,10 +642,8 @@ class TeamOrchestrator:
                 run.metadata["needs_round_plan"] = True
 
         self._store.save(run)
-        try:
+        with contextlib.suppress(OSError):
             snapshot_team_run(run, board=board, deps=deps)
-        except OSError:
-            pass
         return DriveResult(
             team_run_id=run.id,
             state=run.state,
@@ -664,10 +659,10 @@ class TeamOrchestrator:
                 break
             run = self._store.require(team_run_id)
             board = self.board_for(team_run_id)
-            if run.state == TeamRunState.RUNNING and not board.has_inflight():
-                if not run.metadata.get("needs_round_plan"):
-                    run.metadata["needs_round_plan"] = True
-                    self._store.save(run)
+            idle = run.state == TeamRunState.RUNNING and not board.has_inflight()
+            if idle and not run.metadata.get("needs_round_plan"):
+                run.metadata["needs_round_plan"] = True
+                self._store.save(run)
         return result
 
     async def drive_until_idle(self, team_run_id: str, *, max_ticks: int = 32) -> DriveResult:

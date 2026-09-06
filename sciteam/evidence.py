@@ -80,9 +80,7 @@ class EvidenceGraph:
             out = [v for v in out if v.get("claim_id") == claim_id]
         return out
 
-    def closure_status(
-        self, claim_id: str, required_gates: Iterable[str]
-    ) -> dict[str, Any]:
+    def closure_status(self, claim_id: str, required_gates: Iterable[str]) -> dict[str, Any]:
         """Which required gates have a passing verdict for this claim.
 
         Gate names are supplied by policy (e.g. from science_thresholds.yaml);

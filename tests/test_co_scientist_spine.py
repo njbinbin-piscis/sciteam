@@ -21,7 +21,7 @@ def test_co_scientist_spine_binds_registered_tournament_paradigm():
     paradigms = registered_paradigm_ids()
     contracts = registered_exit_contract_ids()
     hyp = next(
-        n["mission"] if "mission" in n else n
+        n.get("mission", n)
         for n in plan["missions"]
         if (n.get("mission") or n).get("id") == "m_hyp"
     )

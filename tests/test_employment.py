@@ -31,7 +31,9 @@ class _RT:
     def __init__(self) -> None:
         self.calls: list[str] = []
 
-    async def run_subagent(self, *, agent_id, task, work_dir, parent_run_id=None, depth=0, context=None):
+    async def run_subagent(
+        self, *, agent_id, task, work_dir, parent_run_id=None, depth=0, context=None
+    ):
         self.calls.append((context or {}).get("team_agent_key") or agent_id)
         # touch a file for merge tests
         Path(work_dir).mkdir(parents=True, exist_ok=True)
@@ -114,7 +116,7 @@ async def test_employment_idle_claim_without_barrier(tmp_path):
     board.post(WorkItem(id="w2", prompt="fast-b", role_tags=["b"], priority=1))
     board.post(WorkItem(id="w3", prompt="again-a", role_tags=["a"], priority=0))
     # Prevent auto plan from ScriptedCoordinator overwriting — seed needs_plan false by having items
-    r1 = await orch.tick(run.id)
+    await orch.tick(run.id)
     # Both a and b should have been able to act; a may finish w1 and later w3
     result = await orch.drive(run.id, max_ticks=16)
     assert result.state == TeamRunState.COMPLETED or board.by_state(WorkItemState.DONE)
@@ -233,10 +235,12 @@ async def test_fork_and_merge(tmp_path):
     )
     board = orch.board_for(run.id)
     board.post(WorkItem(id="main", prompt="main-work", role_tags=["implementer"]))
-    board.post(WorkItem(id="urg", prompt="urgent", role_tags=["implementer"], urgent=True, priority=99))
+    board.post(
+        WorkItem(id="urg", prompt="urgent", role_tags=["implementer"], urgent=True, priority=99)
+    )
     # Manually mark agent running on main to trigger fork path on next claim of urg
     agent = run.agents[0]
-    claimed = board.claim("main", agent.agent_key)
+    board.claim("main", agent.agent_key)
     board.mark_running("main")
     agent.state = AgentState.RUNNING
     agent.active_work_item_id = "main"

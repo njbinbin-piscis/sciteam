@@ -50,7 +50,7 @@ def test_lit_survey_declares_research_caps():
 
 
 def test_preflight_fails_when_capability_missing(tmp_path: Path):
-    skill_dir = tmp_path / "needs_data" 
+    skill_dir = tmp_path / "needs_data"
     skill_dir.mkdir()
     (skill_dir / "SKILL.md").write_text(
         "# x\n\n## Requires capabilities\n- dataset.materialize\n",

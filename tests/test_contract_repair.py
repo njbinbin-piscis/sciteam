@@ -191,7 +191,12 @@ class TestRepairWiredIntoRunSubagent:
         """A seat not on `artifact_emit_roles` never gets the repair
         round-trip even if it hands back a schema-violating artifact."""
         bad = _envelope(BAD_ARTIFACT)
-        runtime, client = _runtime([bad])
+        # Two calls even here: the tool-capable round-trip (proposal, then a
+        # tools-off finalize — see LlmWorkerRuntime._complete_with_tools)
+        # happens for every seat regardless of artifact duty. What must
+        # NOT happen is a *third*, schema-repair call — that is the
+        # behavior this test guards.
+        runtime, client = _runtime([bad, bad])
         ctx = _context(tmp_path)
         ctx["team_metadata"]["artifact_emit_roles"] = ["someone_else"]
         await runtime.run_subagent(
@@ -200,4 +205,4 @@ class TestRepairWiredIntoRunSubagent:
             work_dir=str(tmp_path / "seat"),
             context=ctx,
         )
-        assert len(client.requests) == 1
+        assert len(client.requests) == 2

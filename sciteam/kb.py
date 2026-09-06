@@ -15,9 +15,7 @@ class KBEntry:
     kind: str
     data: dict[str, Any]
     mission_id: str = ""
-    created_at: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds")
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -62,7 +60,9 @@ class CampaignKB:
         kind = kind.strip()
         if not kind:
             raise ValueError("kb entry kind must be non-empty")
-        entry = KBEntry(seq=len(self._entries) + 1, kind=kind, data=dict(data), mission_id=mission_id)
+        entry = KBEntry(
+            seq=len(self._entries) + 1, kind=kind, data=dict(data), mission_id=mission_id
+        )
         self._entries.append(entry)
         with self._path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry.to_dict(), ensure_ascii=False) + "\n")

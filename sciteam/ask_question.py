@@ -32,9 +32,10 @@ def normalize_question(raw: dict[str, Any]) -> dict[str, Any]:
     allow_multiple = bool(raw.get("allow_multiple"))
     if not kind:
         kind = "multi_select" if allow_multiple else "quick_pick"
-        if raw.get("multiline") or (not raw.get("options") and raw.get("allow_free_text", True)):
-            if not raw.get("options"):
-                kind = "text_input"
+        no_options = not raw.get("options")
+        wants_free_text = raw.get("multiline") or raw.get("allow_free_text", True)
+        if no_options and wants_free_text:
+            kind = "text_input"
     if kind not in _KINDS:
         raise ValueError(f"unsupported ask_question kind: {kind}")
 

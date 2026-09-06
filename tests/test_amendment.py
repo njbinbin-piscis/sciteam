@@ -220,7 +220,9 @@ def test_apply_remove(org_assets):
 def test_apply_refuses_g_layer(org_assets):
     (org_assets / "institutions").mkdir()
     (org_assets / "institutions" / "GRUNDNORM.md").write_text("g\n")
-    proposal = make_proposal(target_asset="institutions/GRUNDNORM.md", change_kind="remove", diff="")
+    proposal = make_proposal(
+        target_asset="institutions/GRUNDNORM.md", change_kind="remove", diff=""
+    )
     with pytest.raises(amendment.ApplyError):
         amendment.apply_amendment(org_assets, proposal)
 
@@ -280,7 +282,9 @@ def test_rollback_modify_restores_prior_content(org_dir):
     )
     assert entry["status"] == "rolled_back"
     assert "stagnation_max_rounds: 8" in target.read_text()
-    statuses = [e["status"] for e in amendment.read_ledger(org_dir) if e["amendment_id"] == "amd_rb1"]
+    statuses = [
+        e["status"] for e in amendment.read_ledger(org_dir) if e["amendment_id"] == "amd_rb1"
+    ]
     assert statuses[-1] == "rolled_back"
 
 

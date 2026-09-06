@@ -101,9 +101,7 @@ def _campaign(tmp_path, make_runner, runtime, playbook_dict, budget=None):
 
 class TestHappyPath:
     async def test_playbook_runs_to_completion(self, tmp_path, make_runner):
-        runtime = ArtifactWritingRuntime(
-            {"wave_one": VALID_HYPOTHESES, "stress": VALID_ATTACK}
-        )
+        runtime = ArtifactWritingRuntime({"wave_one": VALID_HYPOTHESES, "stress": VALID_ATTACK})
         campaign = _campaign(tmp_path, make_runner, runtime, _playbook())
         result = await campaign.run()
         assert result.stop_reason == "playbook complete"
@@ -117,9 +115,7 @@ class TestHappyPath:
         assert closure["missions"] == 2 and closure["contract_failed"] == 0
 
     async def test_trace_exports(self, tmp_path, make_runner):
-        runtime = ArtifactWritingRuntime(
-            {"wave_one": VALID_HYPOTHESES, "stress": VALID_ATTACK}
-        )
+        runtime = ArtifactWritingRuntime({"wave_one": VALID_HYPOTHESES, "stress": VALID_ATTACK})
         campaign = _campaign(tmp_path, make_runner, runtime, _playbook())
         await campaign.run()
         files = campaign.trace.export_summaries(tmp_path / "exports")
@@ -138,7 +134,10 @@ class TestFailurePolicies:
             }
         )
         campaign = _campaign(
-            tmp_path, make_runner, runtime, _playbook(on_fail_hyp={"action": "retry", "max_times": 2})
+            tmp_path,
+            make_runner,
+            runtime,
+            _playbook(on_fail_hyp={"action": "retry", "max_times": 2}),
         )
         result = await campaign.run()
         ids = [o.mission_id for o in result.outcomes]

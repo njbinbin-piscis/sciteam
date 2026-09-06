@@ -1,5 +1,7 @@
 # SciTeam
 
+[![CI](https://github.com/njbinbin-piscis/sciteam/actions/workflows/ci.yml/badge.svg)](https://github.com/njbinbin-piscis/sciteam/actions/workflows/ci.yml)
+
 **A small runtime for treating multi-agent coordination as an *institution*,
 not a prompt.**
 
@@ -180,8 +182,9 @@ touching engine code.
 
 ## Status
 
-- 816 tests passing on this export's test subset (see `CHANGELOG`/CI
-  badge once published).
+- 342 tests passing, 3 skipped, 0 failing on this export's test subset
+  (`ruff check` / `ruff format --check` / `pytest` all clean in CI — see
+  the badge above).
 - MIT licensed.
 - Companion paper: *"Institution Engineering: [title TBD]"* (arXiv,
   forthcoming) — link will be added here on submission.

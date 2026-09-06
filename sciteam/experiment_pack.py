@@ -430,7 +430,12 @@ def recruit_agent(
         else f"# Role: {key}\n\nSpecialist instance trained for this experiment.\n"
     )
     if train_notes.strip():
-        base_prompt = base_prompt.rstrip() + "\n\n## Training notes (this experiment)\n" + train_notes.strip() + "\n"
+        base_prompt = (
+            base_prompt.rstrip()
+            + "\n\n## Training notes (this experiment)\n"
+            + train_notes.strip()
+            + "\n"
+        )
 
     header = _agent_frontmatter(
         agent_key=key,
@@ -507,7 +512,10 @@ def materialize_pack(
         "staffing_policy": "all_rosters_via_hr_officer",
     }
     _write_manifest(run_dir, man)
-    append_hr_log(run_dir, {"action": "materialize", "agents": agents_created, "skills": skill_copied})
+    append_hr_log(
+        run_dir,
+        {"action": "materialize", "agents": agents_created, "skills": skill_copied},
+    )
     return man
 
 
@@ -532,7 +540,10 @@ def staff_roster_via_hr(
     """
     run_dir = Path(run_dir)
     if not pack_root(run_dir).is_dir():
-        materialize_pack(run_dir, role_ids=[m.get("agent_key") or m.get("key") for m in template_members])
+        materialize_pack(
+            run_dir,
+            role_ids=[m.get("agent_key") or m.get("key") for m in template_members],
+        )
 
     # Ensure HR officer exists
     if not (agents_dir(run_dir) / "hr_officer" / "AGENT.md").is_file():

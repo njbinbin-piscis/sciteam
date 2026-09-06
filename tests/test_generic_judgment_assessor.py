@@ -64,9 +64,7 @@ class EmitRuntime:
 def _schemas(tmp_path: Path) -> Path:
     root = tmp_path / "schemas"
     root.mkdir()
-    (root / "tiny_ok.schema.json").write_text(
-        json.dumps(TINY_SCHEMA), encoding="utf-8"
-    )
+    (root / "tiny_ok.schema.json").write_text(json.dumps(TINY_SCHEMA), encoding="utf-8")
     return root
 
 

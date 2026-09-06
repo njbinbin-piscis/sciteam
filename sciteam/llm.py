@@ -14,6 +14,7 @@ Token usage is accumulated on the client so campaign budget clocks can charge it
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import os
 import time
@@ -47,7 +48,8 @@ class LlmConfig:
         model = os.environ.get("SCITEAM_LLM_MODEL", "")
         if not (base_url and api_key and model):
             raise LlmError(
-                "missing LLM config: set SCITEAM_LLM_BASE_URL, SCITEAM_LLM_API_KEY, SCITEAM_LLM_MODEL"
+                "missing LLM config: set SCITEAM_LLM_BASE_URL, SCITEAM_LLM_API_KEY, "
+                "SCITEAM_LLM_MODEL"
             )
         timeout = float(os.environ.get("SCITEAM_LLM_TIMEOUT", "120"))
         return cls(
@@ -162,10 +164,8 @@ class LlmClient:
                     time.sleep(min(30.0, 2.0**attempt))
                     continue
                 detail = ""
-                try:
+                with contextlib.suppress(Exception):
                     detail = exc.read().decode("utf-8", errors="replace")[:500]
-                except Exception:  # noqa: BLE001
-                    pass
                 raise LlmError(f"HTTP {exc.code} from LLM API: {detail}") from exc
             except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
                 last_error = exc
