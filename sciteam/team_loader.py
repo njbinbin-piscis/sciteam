@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -213,15 +214,45 @@ def load_team_config(path: Path) -> TeamConfig:
     )
 
 
-def load_team_configs(root: Path | str) -> list[TeamConfig]:
-    base = Path(root)
-    if not base.is_dir():
-        return []
-    return [load_team_config(p) for p in sorted(base.glob("*.yaml"))]
+def load_team_configs(
+    root: Path | str,
+    *,
+    extra_roots: Sequence[Path | str] = (),
+) -> list[TeamConfig]:
+    """Load every ``*.yaml`` paradigm under ``root``, plus any additional
+    directories a plugin registered (``PluginRegistry.paradigm_dirs`` — see
+    ``docs/25-sciteam-plugin-architecture.md`` §3.3). ``root`` is always
+    searched first and alone reproduces the pre-plugin behavior exactly
+    (``extra_roots`` defaults to empty).
+
+    A paradigm id defined in more than one root is a hard error: plugins may
+    *add* paradigms, never override or shadow one already on disk — the same
+    fail-closed, no-silent-precedence rule the plugin hook system applies to
+    tool/port/runtime registrations (§7)."""
+    configs: list[TeamConfig] = []
+    seen: dict[str, Path] = {}
+    for base in (Path(root), *(Path(r) for r in extra_roots)):
+        if not base.is_dir():
+            continue
+        for p in sorted(base.glob("*.yaml")):
+            cfg = load_team_config(p)
+            if cfg.team_id in seen:
+                raise ValueError(
+                    f"duplicate team id {cfg.team_id!r}: defined in both "
+                    f"{seen[cfg.team_id]} and {p} — a plugin may add a new "
+                    "paradigm, not override an existing one"
+                )
+            seen[cfg.team_id] = p
+            configs.append(cfg)
+    return configs
 
 
-def build_registry(root: Path | str) -> TeamRegistry:
-    return TeamRegistry(load_team_configs(root))
+def build_registry(
+    root: Path | str,
+    *,
+    extra_roots: Sequence[Path | str] = (),
+) -> TeamRegistry:
+    return TeamRegistry(load_team_configs(root, extra_roots=extra_roots))
 
 
 def resolve_start_params(

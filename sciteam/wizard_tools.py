@@ -20,6 +20,7 @@ from sciteam import amendment as amendment_kernel
 from sciteam import fs_tools
 from sciteam.ask_question import execute_ask_question
 from sciteam.ask_question import tool_schema as ask_question_tool_schema
+from sciteam.plugin_api import PluginRegistry
 from sciteam.sandbox import LocalPythonSandbox, request_from_arguments
 from sciteam.tool_registry import ToolRegistry
 
@@ -588,9 +589,28 @@ _WIZARD_TOOL_DISPATCH: dict[str, Any] = {
 }
 
 
-def run_wizard_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
+def run_wizard_tool(
+    name: str,
+    arguments: dict[str, Any] | None,
+    *,
+    plugins: PluginRegistry | None = None,
+) -> dict[str, Any]:
+    """Dispatch one wizard tool call.
+
+    Built-in tools (``_WIZARD_TOOL_DISPATCH``) are always checked first and
+    can never be shadowed by a plugin (see
+    ``docs/25-sciteam-plugin-architecture.md`` §7 — plugins add, they don't
+    override). ``plugins`` is an explicit, caller-supplied
+    ``PluginRegistry`` (typically produced once by
+    ``sciteam.plugin_api.load_all_plugins()`` in the composition root and
+    threaded through) — never a module-level global, so a caller that never
+    asked for plugins gets byte-identical behavior to before this parameter
+    existed.
+    """
     args = arguments if isinstance(arguments, dict) else {}
     handler = _WIZARD_TOOL_DISPATCH.get(name)
+    if handler is None and plugins is not None:
+        handler = plugins.tool_handler(name)
     if handler is None:
         return {"ok": False, "error": f"unknown tool: {name}"}
     try:

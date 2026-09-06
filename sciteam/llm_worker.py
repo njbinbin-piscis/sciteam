@@ -200,6 +200,15 @@ class PromptAssets:
     ``prompt_modules/*.md`` under it is appended to each role prompt as an
     evolved-guidance section. ``None`` (the default) is byte-identical to the
     pre-genome behavior — the Line A arms never pass it.
+
+    ``extra_prompts_dirs``/``extra_skills_dirs`` (see
+    ``docs/25-sciteam-plugin-architecture.md`` §3.3,
+    ``PluginRegistry.role_prompts_dirs``/``skills_dirs``): additional search
+    directories consulted, in order, after ``prompts_dir``/``skills_dir`` and
+    ``pack_dir`` find no match. Empty tuples (the default) reproduce the
+    pre-plugin lookup order byte-for-byte — a plugin can *add* a role prompt
+    or skill body for an id the base assets don't define, never shadow one
+    that already resolves from ``prompts_dir``/``skills_dir``/``pack_dir``.
     """
 
     prompts_dir: Path
@@ -207,6 +216,8 @@ class PromptAssets:
     max_skill_chars: int = 16000
     pack_dir: Path | None = None
     genome_overlay_dir: Path | None = None
+    extra_prompts_dirs: tuple[Path, ...] = ()
+    extra_skills_dirs: tuple[Path, ...] = ()
     loaded_skill_versions: dict[str, dict[str, str]] = field(default_factory=dict, init=False)
 
     def constitution(self) -> str:
@@ -228,8 +239,19 @@ class PromptAssets:
                     if len(parts) >= 3:
                         text = parts[2].lstrip("\n")
                 return text
-        for name in (f"{role}.md", "worker.md"):
-            path = self.prompts_dir / "roles" / name
+        search_dirs = (self.prompts_dir, *self.extra_prompts_dirs)
+        # Pass 1: a role-specific file, in any search dir — a plugin's
+        # specific role must be found before falling through to the base's
+        # generic `worker.md` catch-all (pass 2), or a plugin-added role
+        # would never be reachable (the base ships a `worker.md`, so it
+        # would always win pass 1 of a single combined per-dir loop).
+        for prompts_dir in search_dirs:
+            path = Path(prompts_dir) / "roles" / f"{role}.md"
+            if path.is_file():
+                return path.read_text(encoding="utf-8")
+        # Pass 2: the legacy generic fallback, same search order.
+        for prompts_dir in search_dirs:
+            path = Path(prompts_dir) / "roles" / "worker.md"
             if path.is_file():
                 return path.read_text(encoding="utf-8")
         return f"You are the `{role}` specialist on a research team."
@@ -258,9 +280,10 @@ class PromptAssets:
             pack_skill = Path(self.pack_dir) / "skills" / skill_id / "SKILL.md"
             if pack_skill.is_file():
                 return pack_skill.read_text(encoding="utf-8"), str(pack_skill)
-        path = self.skills_dir / skill_id / "SKILL.md"
-        if path.is_file():
-            return path.read_text(encoding="utf-8"), str(path)
+        for skills_dir in (self.skills_dir, *self.extra_skills_dirs):
+            path = Path(skills_dir) / skill_id / "SKILL.md"
+            if path.is_file():
+                return path.read_text(encoding="utf-8"), str(path)
         return "", ""
 
     def skill_pack(self, allowlist: list[str], *, max_chars_override: int | None = None) -> str:
