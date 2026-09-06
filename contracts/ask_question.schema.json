@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sciteam.local/contracts/ask_question.schema.json",
+  "title": "ask_question",
+  "description": "Wizard asks the operator structured questions (quick_pick / multi_select / text_input).",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "prompt": { "type": "string", "minLength": 1 },
+    "kind": {
+      "type": "string",
+      "enum": ["quick_pick", "multi_select", "text_input"],
+      "default": "quick_pick"
+    },
+    "allow_multiple": { "type": "boolean", "default": false },
+    "allow_free_text": { "type": "boolean", "default": true },
+    "required": { "type": "boolean", "default": true },
+    "placeholder": { "type": "string" },
+    "multiline": { "type": "boolean", "default": false },
+    "min_length": { "type": "integer", "minimum": 0 },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" }
+        },
+        "required": ["id", "label"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["id", "prompt"],
+  "additionalProperties": true
+}

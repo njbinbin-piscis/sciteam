@@ -1,0 +1,34 @@
+id: brainstorm_swarm
+name: Brainstorm Swarm
+description: High-parallel eager ideation; replicas fan out, integrator condenses.
+members:
+- key: muse
+  agent_id: muse
+  name: Ideation Specialist
+  role: muse
+- key: integrator
+  agent_id: integrator
+  name: Synthesis Integrator
+  role: integrator
+  emits_exit_artifact: true
+- key: round_assessor
+  agent_id: round_assessor
+  name: Round Assessor
+  role: round_assessor
+  authority:
+  - may_assess_round
+coordination:
+  topology: parallel
+  scheduling:
+    employment: true
+    mode: eager
+    max_parallel: 6
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  replicas:
+    muse: 4
+  charter:
+    standing_goal: Production seats deliver the mission; round_assessor judges round
+      completion from observation facts. Fail-honest if no exit artifact by stagnation_max_rounds.
+    stagnation_max_rounds: 8

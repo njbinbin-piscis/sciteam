@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/retro_request.schema.json",
+  "title": "RetroRequest",
+  "description": "Line F O_RETRO_INVOKE signal (ENGINE_ISA.md §2.11): a mission worker's request that the campaign harness run a retrospective (m_retro) after this run. Written via the seat's always-on `fs.write` tool to a well-known filename in its own mission workspace — no new engine tool call surface, only a documented convention plus a harness-side detector (sciteam/retro_signal.py). Presence of a schema-valid file is the only thing that grants the request any effect; free-text narration elsewhere is never read for this purpose.",
+  "type": "object",
+  "required": ["requested_by", "reason", "requested_at"],
+  "additionalProperties": false,
+  "properties": {
+    "requested_by": { "type": "string", "description": "agent_key of the requesting seat." },
+    "reason": { "type": "string", "minLength": 1 },
+    "requested_at": { "type": "string" },
+    "target_asset_hint": {
+      "type": "string",
+      "description": "Optional: which incumbent asset the requester believes should be reviewed. Informational only — the retro mission still drafts and preflights its own proposals through the full amendment pipeline; this field carries no authority."
+    }
+  }
+}

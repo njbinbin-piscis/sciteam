@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/fitness_criteria.schema.json",
+  "title": "FitnessCriteria",
+  "description": "Line F (breeding/directed evolution) L-layer asset: the organization's directed-selection judgment held by the breeder seat and frozen outside the amendment-proposal loop. Declares which trait(s) the promotion gate selects on, how each is mechanically measured, and the held-in/held-out split used to detect performative selection (Goodhart drift). Data, not code; changing it is itself an L-layer amendment (sciteam/amendment.py LAYER_WHITELIST prefix 'breeding/') so the criteria cannot be silently moved by the agents being bred.",
+  "type": "object",
+  "required": ["criteria_id", "breeder_seat", "primary_trait", "created_at"],
+  "additionalProperties": false,
+  "properties": {
+    "criteria_id": { "type": "string", "pattern": "^fc_[a-z0-9_]+$" },
+    "breeder_seat": {
+      "type": "string",
+      "description": "agent_key (or role id) of the seat that holds this criteria and executes directional promotion. Informational + audit anchor; the structural guarantee that agents being bred cannot silently rewrite this file is that its path (breeding/) resolves to L layer, requiring the full cross-seat review + shadow + red-team procedure — not a self-serve P-layer edit."
+    },
+    "read_only_for": {
+      "type": "array",
+      "description": "Seats/roles whose proposals targeting this asset must be flagged for extra scrutiny in review (the 'bred' population). Declarative in v1; not yet mechanically enforced by a dedicated RBAC check (see lineF/plans/M-F1-plan.md §3).",
+      "items": { "type": "string" }
+    },
+    "primary_trait": { "$ref": "#/$defs/trait" },
+    "secondary_traits": {
+      "type": "array",
+      "description": "Monitored-only traits (correlated-response guard, F3 §2.3). Never used to compute selection differential; only tracked for drift.",
+      "items": { "$ref": "#/$defs/trait" }
+    },
+    "held_out_split_ref": {
+      "type": "string",
+      "description": "Path (relative to lab root) to the held-in/held-out task or audit-check split manifest used to compute Delta_k (performative-selection divergence, 03-research-design.md §2.3)."
+    },
+    "created_at": { "type": "string" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "engine_commit": { "type": "string" },
+        "amendment_id": { "type": "string", "description": "amd_* id of the amendment that last promoted this file, if any (empty for the seed/incumbent version)." }
+      }
+    },
+    "x-notes": { "type": "string" }
+  },
+  "$defs": {
+    "trait": {
+      "type": "object",
+      "required": ["name", "direction", "measurement"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "direction": {
+          "type": "string",
+          "enum": ["+", "-"],
+          "description": "'+': higher is fitter (e.g. audit pass-rate); '-': lower is fitter (e.g. tokens per completed mission)."
+        },
+        "measurement": {
+          "type": "object",
+          "required": ["source", "aggregation"],
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "type": "string",
+              "enum": ["audit_report.checks", "summary.usage", "summary.metrics"],
+              "description": "Which mechanical artifact the measurement script reads (scripts/measure_fitness_traits.py); never free-text narration."
+            },
+            "aggregation": {
+              "type": "string",
+              "enum": ["checks_pass_rate", "tokens_per_completed_mission", "custom"],
+              "description": "checks_pass_rate: mean(passed) over audit_report.checks across a campaign's missions (continuous [0,1], finer-grained than per-mission audit_clean boolean). tokens_per_completed_mission: usage.total_tokens / count(missions where status=='completed')."
+            },
+            "pointer": {
+              "type": "string",
+              "description": "Optional JSON-pointer-style refinement within the source artifact (e.g. restrict to a check 'kind' subset)."
+            }
+          }
+        }
+      }
+    }
+  }
+}

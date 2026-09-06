@@ -1,0 +1,3 @@
+# ScriptedAssessor protocol fixture (CI only). No paradigm ids.
+assessor_key: round_assessor
+promote_if_draft: false

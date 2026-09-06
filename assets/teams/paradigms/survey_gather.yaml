@@ -1,0 +1,35 @@
+id: survey_gather
+name: Survey Gather
+description: Parallel retrieval replicas with meta-analysis aggregation.
+members:
+- key: gatherer
+  agent_id: gatherer
+  name: Literature Gatherer
+  role: gatherer
+- key: curator
+  agent_id: curator
+  name: Evidence Curator
+  role: curator
+  emits_exit_artifact: true
+- key: round_assessor
+  agent_id: round_assessor
+  name: Round Assessor
+  role: round_assessor
+  authority:
+  - may_assess_round
+coordination:
+  topology: parallel
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 3
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  aggregation: meta_analysis
+  replicas:
+    gatherer: 3
+  charter:
+    standing_goal: Production seats deliver the mission; round_assessor judges round
+      completion from observation facts. Fail-honest if no exit artifact by stagnation_max_rounds.
+    stagnation_max_rounds: 8

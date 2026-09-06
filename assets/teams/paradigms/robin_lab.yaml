@@ -1,0 +1,54 @@
+id: robin_lab
+name: Robin Lab-in-the-Loop (pairwise + meta-analysis + human gate)
+description: >
+  Institutional expression of Robin (FutureHouse, arXiv:2505.13400, Nature 2026),
+  which pairs literature agents (Crow, Falcon) with a data-analysis agent (Finch)
+  in what its authors call an "iterative lab-in-the-loop" workflow. Here parallel
+  analysis replicas produce independent readings; a pairwise judge and a
+  meta-analysis integrator aggregate them; the lab-in-the-loop human gate is a
+  routine stage, not an exception. Robin ranks hypotheses and strategies with an
+  LLM-judged Bradley-Terry-Luce tournament — expressible as the aggregation
+  policy values pairwise_judge or elo_tournament without engine support, which is
+  why the judge seat here is a declared role rather than a ranking subsystem.
+  The human gate reuses the substrate escalate primitive
+  (ClaimActionKind.ESCALATE, target=human) via the gate.request_human skill —
+  no new engine code. human_gate is a policy flag consumed at the template
+  layer; the escalate/observe primitives already exist in the substrate.
+members:
+  - key: analyst
+    agent_id: analyst
+    name: Analysis Replica
+    role: analyst
+  - key: judge
+    agent_id: judge
+    name: Pairwise Judge
+    role: judge
+  - key: curator
+    agent_id: curator
+    name: Meta-analysis Integrator
+    role: curator
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: parallel
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 3
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  aggregation: meta_analysis
+  replicas:
+    analyst: 3
+  human_gate: true
+  charter:
+    standing_goal: >
+      Analysis replicas read independently; pairwise judge and meta-analysis
+      integrator aggregate; the human gate (escalate target=human) is a routine
+      approval stage before the curator emits. Fail-honest on stagnation.
+    stagnation_max_rounds: 8

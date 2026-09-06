@@ -1,0 +1,46 @@
+id: amendment_review
+name: Amendment Review
+description: 'Review chamber for amendment proposals (Grundnorm G7). The
+  reviewer must run the mechanical amendment_audit tool and embed its ledger
+  verbatim — no self-certified legality. The shadow verifier applies the
+  proposal''s frozen falsifier to the shadow ledger literally. C-layer
+  proposals cannot be promoted here: the verdict records that the human gate
+  is additionally required.
+
+  '
+members:
+- key: amendment_reviewer
+  agent_id: amendment_reviewer
+  name: Amendment Reviewer
+  role: amendment_reviewer
+  emits_exit_artifact: true
+- key: shadow_verifier
+  agent_id: shadow_verifier
+  name: Shadow Verifier
+  role: amendment_reviewer
+- key: red_team_reviewer
+  agent_id: red_team_reviewer
+  name: Red-Team Reviewer
+  role: red_team
+- key: round_assessor
+  agent_id: round_assessor
+  name: Round Assessor
+  role: round_assessor
+  authority:
+  - may_assess_round
+coordination:
+  topology: parallel
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 3
+  stopping:
+    kind: judgment
+    max_iterations: 100
+  replicas: {}
+  charter:
+    standing_goal: Verdicts quote the amendment_audit ledger and the shadow
+      ledger; any audit violation blocks advancement; separation of powers
+      holds (proposer, verifier, promoter are distinct seats). Fail-honest if
+      no exit artifact by stagnation_max_rounds.
+    stagnation_max_rounds: 6

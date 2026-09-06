@@ -1,0 +1,47 @@
+id: fan_out_gather
+name: Fan-Out/Gather (Collaboration x Parallel)
+description: >
+  Faithful institutional expression of Fan-Out/Gather as defined in the
+  two-dimensional pattern taxonomy (Huang & Zhou 2605.13850, S3.6; coordinates
+  C6 x T3 = Collaboration x Parallel): a coordinator fans subtasks out to n
+  workers running in parallel, each in an isolated context holding only its
+  subtask, then gathers and aggregates. All three ingredients are policy: parallel
+  topology (T3), replicas for the fan-out width, and aggregation for the gather
+  rule. Per-worker context isolation is the substrate's isolation primitive, not a
+  template addition. The taxonomy warns that "the aggregation step is the quality
+  bottleneck" - which is why aggregation is a first-class declarative field with
+  named kinds rather than concatenation hidden in engine code.
+members:
+  - key: gatherer
+    agent_id: gatherer
+    name: Parallel Worker
+    role: gatherer
+  - key: curator
+    agent_id: curator
+    name: Gather Coordinator
+    role: curator
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: parallel
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 4
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  aggregation: meta_analysis
+  replicas:
+    gatherer: 3
+  charter:
+    standing_goal: >
+      Workers process independent subtasks in isolated contexts; the coordinator
+      gathers and aggregates under the declared aggregation rule, then emits.
+      Fan-out width is a replicas field; the gather rule is an aggregation field.
+      Fail-honest on stagnation.
+    stagnation_max_rounds: 8

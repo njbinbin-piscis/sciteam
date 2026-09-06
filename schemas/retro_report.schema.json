@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/retro_report.schema.json",
+  "title": "RetroReport",
+  "description": "Exit contract of the m_retro (retrospective) mission: campaign post-mortem that turns execution evidence into failure patterns, lessons, and zero or more amendment proposals. Honest 'nothing to amend' is a legal terminal state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["campaign_id", "failure_patterns", "lessons", "proposal_ids"],
+  "properties": {
+    "mission_id": { "type": "string" },
+    "campaign_id": { "type": "string" },
+    "failure_patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pattern", "evidence_refs", "layer_hypothesis"],
+        "properties": {
+          "pattern": { "type": "string" },
+          "evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" },
+            "description": "Resolvable run-artifact paths; audited for alignment (G2/G7.4)."
+          },
+          "layer_hypothesis": {
+            "type": "string",
+            "enum": ["P", "L", "C", "engine", "environment"],
+            "description": "Where the fix likely belongs. 'engine' patterns must NOT become amendment proposals (E0 discipline); they are escalated to the human operator."
+          }
+        }
+      }
+    },
+    "lessons": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "proposal_ids": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^amd_[A-Za-z0-9_.-]+$" },
+      "description": "Amendment proposals drafted from this retrospective (may be empty)."
+    },
+    "single_loop_notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Improvements absorbed without rule change (skill usage, prompt discipline) — the single-loop residue, kept for double-loop event accounting."
+    },
+    "author_seat": { "type": "string" },
+    "metadata": { "type": "object" }
+  }
+}

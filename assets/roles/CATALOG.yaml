@@ -1,0 +1,303 @@
+# SciTeam role catalog — prefer these when composing mission teams.
+#
+# Rules (enforced by sciteam.roster_policy):
+# - Never use generic identities: worker, agent, generic, stage_*, solo.
+# - agent_key / name must be a professional post; create a new catalog entry
+#   when the task needs a specialty not listed here.
+# - default_skills are the preferred allowlist seeds for that post.
+# - preferred_paradigms: paradigms where this post is a first-class member.
+
+version: 1
+
+roles:
+  - id: hr_officer
+    title: HR Officer
+    summary: Recruits and trains experiment agent instances from templates; owns all team staffing.
+    default_skills: [hr.recruit]
+    preferred_paradigms: [planning_council, pipeline_chain, survey_gather, build_fix_loop, write_atelier, adversarial_pair, brainstorm_swarm, debate_elo, co_scientist_tournament]
+
+  - id: research_director
+    title: Research Director
+    summary: Integrates council input into a coherent plan; owns plan coherence.
+    default_skills: [plan.compose, plan.revise, rules.legislate, budget.report]
+    preferred_paradigms: [planning_council]
+
+  - id: literature_lead
+    title: Literature Lead
+    summary: Owns survey strategy, lit_map quality, and citation discipline.
+    default_skills: [lit.survey, lit.extract_claims, lit.citation_guard, evidence.claim_support]
+    preferred_paradigms: [planning_council, survey_gather]
+
+  - id: gatherer
+    title: Literature Gatherer
+    summary: Parallel retrieval specialist; tool-backed candidate collection.
+    default_skills: [lit.survey, lit.extract_claims]
+    preferred_paradigms: [survey_gather]
+
+  - id: curator
+    title: Evidence Curator
+    summary: Dedupes, scores, and assembles survey artifacts under contract.
+    default_skills: [lit.citation_guard, evidence.claim_support, memory.commit]
+    preferred_paradigms: [survey_gather]
+
+  - id: librarian
+    title: Citation Librarian
+    summary: Grounds claims in resolvable citations; quarantines the rest.
+    default_skills: [lit.citation_guard, evidence.claim_support, paper.related_work]
+    preferred_paradigms: [write_atelier]
+
+  - id: muse
+    title: Ideation Specialist
+    summary: Structured ideation lenses; produces falsifiable idea cards.
+    default_skills: [ideation.brainstorm, ideation.tension_hunt, hypothesis.formulate]
+    preferred_paradigms: [brainstorm_swarm]
+
+  - id: hypothesis_lead
+    title: Hypothesis Lead
+    summary: Turns ideas into falsifiable hypotheses bound to frozen metrics.
+    default_skills: [hypothesis.formulate, hypothesis.refine, evidence.claim_support]
+    preferred_paradigms: [debate_elo, brainstorm_swarm]
+
+  - id: analyst
+    title: Problem Analyst
+    summary: Frames mission inputs, constraints, and success predicates.
+    default_skills: [topic.select, protocol.register, ideation.brainstorm]
+    preferred_paradigms: [pipeline_chain]
+
+  - id: designer
+    title: Method Designer
+    summary: Derives implementable designs inside the frozen eval interface.
+    default_skills: [design.algorithm, design.ablation_plan]
+    preferred_paradigms: [pipeline_chain, build_fix_loop]
+
+  - id: implementer
+    title: Implementer
+    summary: Writes candidates that satisfy the frozen interface.
+    default_skills: [impl.scaffold, impl.debug_loop, domain.algo.repro_seed]
+    preferred_paradigms: [build_fix_loop]
+
+  - id: evaluator
+    title: Evaluation Specialist
+    summary: Runs and interprets verifier-owned eval only.
+    default_skills: [eval.run_frozen, eval.compare_baseline, repro.audit]
+    preferred_paradigms: [build_fix_loop]
+
+  - id: statistician
+    title: Statistics Lead
+    summary: Effect sizes, uncertainty, and honest comparison language.
+    default_skills: [eval.compare_baseline, review.epistemic_rigor, repro.audit]
+    preferred_paradigms: [planning_council, debate_elo]
+
+  - id: assembler
+    title: Artifact Assembler
+    summary: Assembles the mission exit-contract object from verified pieces.
+    default_skills: [package.arm, paper.checklist, repro.audit]
+    preferred_paradigms: [pipeline_chain]
+
+  - id: integrator
+    title: Synthesis Integrator
+    summary: Condenses parallel specialist outputs into one coherent artifact.
+    default_skills: [memory.commit, context.compact, plan.revise]
+    preferred_paradigms: [brainstorm_swarm]
+
+  - id: writer
+    title: Scientific Writer
+    summary: Drafts IMRaD sections with ledger-aligned numbers.
+    default_skills: [paper.write_imrad, paper.methods_reporting, paper.outline]
+    preferred_paradigms: [write_atelier]
+
+  - id: methods_writer
+    title: Methods Writer
+    summary: Audit-grade methods reporting.
+    default_skills: [paper.methods_reporting, paper.experiments, repro.audit]
+    preferred_paradigms: [write_atelier]
+
+  - id: proponent
+    title: Claim Proponent
+    summary: Argues for claims strictly within verifier and citation bounds.
+    default_skills: [hypothesis.refine, evidence.claim_support, paper.related_work]
+    preferred_paradigms: [adversarial_pair]
+
+  - id: adversary
+    title: Adversarial Reviewer
+    summary: Tries to falsify or narrow claims before promotion.
+    default_skills: [adversary.attack, review.epistemic_rigor, lit.citation_guard]
+    preferred_paradigms: [adversarial_pair]
+
+  - id: checklist_adversary
+    title: Checklist Adversary
+    summary: Closes paper/package checklists; blocks ship on P0 gaps.
+    default_skills: [paper.checklist, repro.audit, review.epistemic_rigor]
+    preferred_paradigms: [write_atelier]
+
+  - id: epistemic_reviewer
+    title: Epistemic Reviewer
+    summary: Six-dimension rigor review before external claims.
+    default_skills: [review.epistemic_rigor, evidence.claim_support, lit.citation_guard]
+    preferred_paradigms: [adversarial_pair, write_atelier]
+
+  - id: debater
+    title: Technical Debater
+    summary: Argues competing candidates under tournament aggregation.
+    default_skills: [hypothesis.refine, ideation.tension_hunt, evidence.claim_support]
+    preferred_paradigms: [debate_elo]
+
+  - id: judge
+    title: Debate Judge
+    summary: Ranks debate survivors against protocol criteria.
+    default_skills: [review.epistemic_rigor, eval.compare_baseline]
+    preferred_paradigms: [debate_elo]
+
+  # Co-Scientist tournament posts (institutional; not engine phase enums)
+  - id: generation
+    title: Generation Specialist
+    summary: Proposes new candidate hypotheses/mechanisms from literature seeds.
+    default_skills: [hypothesis.formulate, ideation.brainstorm, lit.extract_claims]
+    preferred_paradigms: [co_scientist_tournament]
+
+  - id: reflection
+    title: Reflection Critic
+    summary: Critiques candidates for mechanism gaps, overclaim, and missing falsifiers.
+    default_skills: [hypothesis.refine, ideation.tension_hunt, review.epistemic_rigor]
+    preferred_paradigms: [co_scientist_tournament]
+
+  - id: ranking
+    title: Ranking Specialist
+    summary: Ranks survivors against protocol rubric and directional concordance criteria.
+    default_skills: [eval.compare_baseline, review.epistemic_rigor, evidence.claim_support]
+    preferred_paradigms: [co_scientist_tournament]
+
+  - id: evolution
+    title: Evolution Specialist
+    summary: Mutates and recombines ranked candidates into improved variants.
+    default_skills: [hypothesis.refine, ideation.brainstorm, design.algorithm]
+    preferred_paradigms: [co_scientist_tournament]
+
+  - id: proximity
+    title: Proximity Auditor
+    summary: Checks novelty / near-duplicate clustering against the literature map.
+    default_skills: [lit.citation_guard, evidence.claim_support, lit.extract_claims]
+    preferred_paradigms: [co_scientist_tournament]
+
+  - id: meta_review
+    title: Meta-review Integrator
+    summary: Integrates the round into the exit artifact; owns honest concordance notes.
+    default_skills: [hypothesis.formulate, lit.citation_guard, memory.commit, paper.checklist]
+    preferred_paradigms: [co_scientist_tournament]
+
+  - id: round_assessor
+    title: Round Assessor
+    summary: >
+      Institutional seat that authors round_assessment verdicts from observation
+      packs; never emits the exit artifact.
+    default_skills: [institution.round_assess]
+    preferred_paradigms:
+      [
+        co_scientist_tournament,
+        pipeline_chain,
+        write_atelier,
+        debate_elo,
+        survey_gather,
+        brainstorm_swarm,
+        adversarial_pair,
+        planning_council,
+      ]
+
+  - id: red_team
+    title: Red-Team Reviewer
+    summary: Vetoes silent risk; forces honest-negative paths into plans.
+    default_skills: [adversary.attack, review.epistemic_rigor, rules.legislate]
+    preferred_paradigms: [planning_council]
+
+  - id: reviewer
+    title: Risk / Integrity Reviewer
+    summary: >
+      Holds deny/allow authority at an outer risk or containment boundary;
+      owns citation and process integrity when the material under review
+      names literature or prior results.
+    default_skills: [review.epistemic_rigor, lit.citation_guard, adversary.attack]
+    preferred_paradigms: [blast_radius, approval_gate]
+
+  - id: critic
+    title: Critic
+    summary: Independent critique seat in a generate-critique-revise chain; kills weak drafts before promotion.
+    default_skills: [review.epistemic_rigor, adversary.attack, evidence.claim_support]
+    preferred_paradigms: [generator_critic]
+
+  - id: medicinal_chemist
+    title: Medicinal Chemist
+    summary: Domain specialist for chem/ADME screening campaigns.
+    default_skills: [domain.algo.benchmark_io, hypothesis.formulate, lit.survey]
+    preferred_paradigms: [planning_council]
+
+  - id: ml_stats_lead
+    title: ML / Statistics Lead
+    summary: Model and statistical design under frozen endpoints.
+    default_skills: [design.algorithm, eval.compare_baseline, repro.audit]
+    preferred_paradigms: [planning_council]
+
+  - id: compute_lead
+    title: Compute / Resource Lead
+    summary: Budget, seeds, and compute feasibility.
+    default_skills: [budget.report, domain.algo.complexity_check, repro.audit]
+    preferred_paradigms: [planning_council]
+
+  - id: planner
+    title: Mission Planner
+    summary: DAG composition and on_fail wiring.
+    default_skills: [plan.compose, plan.revise, budget.report]
+    preferred_paradigms: [planning_council]
+
+  # --- Line D evolution-campaign seats (separation of powers; see lineD/03 §2) ---
+
+  - id: evo_proposer
+    title: Harness Evolution Engineer
+    summary: Mines failure traces and proposes bounded genome diffs; may not verify or promote its own proposals.
+    default_skills: [evo.propose]
+    preferred_paradigms: [evolution_campaign]
+
+  - id: evo_verifier
+    title: Evolution Verification Officer
+    summary: Holds the held-out task manifest; mechanically re-measures every candidate; never edits diffs.
+    default_skills: [evo.verify]
+    preferred_paradigms: [evolution_campaign]
+
+  - id: evo_promoter
+    title: Evolution Promotion Chair
+    summary: Writes append-only ledger decisions from proposal+verification artifacts only; may not modify either.
+    default_skills: [evo.promote]
+    preferred_paradigms: [evolution_campaign]
+
+  # --- Line G discovery-campaign seats (see lineG/03 §4) ---
+
+  - id: disc_constructor
+    title: Covering Constructor
+    summary: Proposes covering-design block lists; may not verify or write the discovery ledger.
+    default_skills: [impl.scaffold, impl.debug_loop, design.algorithm]
+    preferred_paradigms: [build_fix_loop]
+
+  - id: disc_verifier
+    title: Covering Verification Officer
+    summary: Holds dual checkers and the frozen snapshot; never edits candidate blocks.
+    default_skills: [eval.run_frozen]
+    preferred_paradigms: [build_fix_loop]
+
+  - id: disc_promoter
+    title: Discovery Promotion Chair
+    summary: Writes append-only discovery_ledger decisions from claim+verification only.
+    default_skills: [package.arm]
+    preferred_paradigms: [pipeline_chain]
+
+  # --- Line E organizational-evolution seats (Grundnorm G7; see lineE/03 §3.2) ---
+
+  - id: retro_moderator
+    title: Retrospective Moderator
+    summary: Chairs m_retro; builds retro_report from the mechanical record only; engine/environment findings escalate to humans, never into proposals.
+    default_skills: [org.retro, org.amend_draft]
+    preferred_paradigms: [retro_council]
+
+  - id: amendment_reviewer
+    title: Amendment Reviewer
+    summary: Reviews amendment proposals via the mechanical amendment_audit tool and the frozen shadow falsifier; cannot promote C-layer changes without the human gate.
+    default_skills: [org.amend_review, org.shadow_verify]
+    preferred_paradigms: [amendment_review]

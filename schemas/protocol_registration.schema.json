@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/protocol_registration.schema.json",
+  "title": "ProtocolRegistration",
+  "description": "Exit contract for the protocol mission: confirms the campaign protocol is frozen with real hashes before any official work.",
+  "type": "object",
+  "required": ["mission_id", "campaign_id", "protocol_path", "protocol_sha256", "eval_hashes", "registered_at"],
+  "additionalProperties": false,
+  "properties": {
+    "mission_id": { "type": "string", "minLength": 1 },
+    "campaign_id": { "type": "string", "minLength": 1 },
+    "protocol_path": { "type": "string", "minLength": 1 },
+    "protocol_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "eval_hashes": {
+      "type": "object",
+      "description": "problem_id -> sha256 of its frozen eval script",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    },
+    "baseline_hashes": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    },
+    "registered_at": { "type": "string" },
+    "notes": { "type": "string" }
+  }
+}

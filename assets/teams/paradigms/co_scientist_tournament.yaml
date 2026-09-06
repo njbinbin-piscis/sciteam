@@ -1,0 +1,76 @@
+id: co_scientist_tournament
+name: Co-Scientist Tournament (six institutional posts)
+description: >
+  Institutional expression of a multi-agent research tournament:
+  Generation → Reflection → Ranking → Evolution → Proximity → Meta-review.
+  Stage order is a work_graph.role_pipeline (FS edges compiled per wave),
+  not an engine phase enum. Inter-wave barrier still applies. Only meta_review
+  emits the exit artifact. Round completion is judged by round_assessor.
+members:
+  - key: generation
+    agent_id: generation
+    name: Generation Specialist
+    role: generation
+    task_brief: prompts/tasks/co_scientist_tournament_generation.md
+  - key: reflection
+    agent_id: reflection
+    name: Reflection Critic
+    role: reflection
+    task_brief: prompts/tasks/co_scientist_tournament_reflection.md
+  - key: ranking
+    agent_id: ranking
+    name: Ranking Specialist
+    role: ranking
+    task_brief: prompts/tasks/co_scientist_tournament_ranking.md
+  - key: evolution
+    agent_id: evolution
+    name: Evolution Specialist
+    role: evolution
+    task_brief: prompts/tasks/co_scientist_tournament_evolution.md
+  - key: proximity
+    agent_id: proximity
+    name: Proximity Auditor
+    role: proximity
+    task_brief: prompts/tasks/co_scientist_tournament_proximity.md
+  - key: meta_review
+    agent_id: meta_review
+    name: Meta-review Integrator
+    role: meta_review
+    task_brief: prompts/tasks/co_scientist_tournament_meta_review.md
+    # Sole seat allowed to write the mission exit-contract artifact.
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: loop
+  scheduling:
+    employment: true
+    mode: barrier
+    # Parallelism is capacity; role_pipeline serializes stage readiness.
+    max_parallel: 2
+  stopping:
+    kind: judgment
+    # Bound empty CONTINUE loops; raise only via human budget gate if needed.
+    max_iterations: 24
+  aggregation: meta_analysis
+  reflection_bias: conservative
+  work_graph:
+    # Institutional stage graph → FS within each coordination wave.
+    role_pipeline:
+      - generation
+      - reflection
+      - ranking
+      - evolution
+      - proximity
+      - meta_review
+  charter:
+    standing_goal: >
+      Produce 1–3 falsifiable, citation-grounded candidates; meta_review emits
+      candidate_hypotheses. Do not invent wet-lab numbers. If the benchmark
+      reference is unresolvable, package an honest negative in the artifact.
+      Round assessor completes only with a valid exit artifact; if none by
+      stagnation_max_rounds, fail-honest with exit_stalled.
+    stagnation_max_rounds: 12

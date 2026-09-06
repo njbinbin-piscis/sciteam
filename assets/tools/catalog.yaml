@@ -1,0 +1,179 @@
+# Typed tool catalog (data). The planner retrieves a small capability-matched
+# subset instead of seeing every tool. Each entry maps to a port/adapter.
+# permission: readonly | side_effect | privileged
+version: 1
+tools:
+  - name: literature_search
+    version: "1"
+    capability: literature.search
+    summary: "Search OpenAlex/Crossref/Europe PMC and return resolvable references."
+    permission: readonly
+    deterministic: true
+    cost_hint: low
+    data_license: mixed_public
+    keywords: [paper, reference, pubmed, openalex, crossref, citation, survey]
+    test_ref: tests/test_evidence_literature.py::test_fake_literature_search_and_locate
+
+  - name: citation_audit
+    version: "1"
+    capability: literature.audit
+    summary: "Resolve, cross-verify and check claim support for references."
+    permission: readonly
+    deterministic: true
+    cost_hint: low
+    keywords: [citation, verify, doi, support, integrity]
+    test_ref: tests/test_evidence_literature.py::test_citation_audit_flags_unresolvable
+
+  - name: web_search
+    version: "1"
+    capability: web.search
+    summary: "General web search for project pages and paper landing URLs."
+    permission: readonly
+    deterministic: false
+    cost_hint: low
+    keywords: [web, search, google, ddg]
+    test_ref: ""
+
+  - name: url_fetch
+    version: "1"
+    capability: web.fetch
+    summary: "Fetch http(s) URL text (truncated) for abstracts and docs."
+    permission: readonly
+    deterministic: false
+    cost_hint: low
+    keywords: [url, fetch, html, abstract]
+    test_ref: ""
+
+  - name: dataset_materialize
+    version: "1"
+    capability: dataset.materialize
+    summary: "Fetch a public dataset/split with content hash and license."
+    permission: side_effect
+    deterministic: true
+    cost_hint: medium
+    keywords: [chembl, tdc, lit-pcba, do-challenge, dataset, split]
+    test_ref: ""
+
+  - name: run_eval
+    version: "1"
+    capability: compute.eval
+    summary: "Run a hash-locked evaluation on the compute node (verifier-owned output)."
+    permission: side_effect
+    deterministic: true
+    cost_hint: high
+    keywords: [benchmark, metric, gpu, eval, holdout]
+    test_ref: ""
+
+  - name: compute_sandbox
+    version: "1"
+    capability: compute.sandbox
+    summary: "Run declared Python model inputs/outputs in a bounded, offline mission workspace."
+    permission: side_effect
+    deterministic: true
+    cost_hint: low
+    keywords: [model, simulation, backtest, python, sandbox]
+    test_ref: tests/test_problem_model_sandbox.py
+
+  - name: model_certify
+    version: "1"
+    capability: model.certify
+    summary: "Re-run a problem model and record hashes and environment provenance; never emits verifier-owned metrics."
+    permission: side_effect
+    deterministic: true
+    cost_hint: low
+    keywords: [model, certify, provenance, backtest]
+    test_ref: tests/test_problem_model_sandbox.py
+
+  - name: submit_job
+    version: "1"
+    capability: compute.submit
+    summary: "Submit a containerised compute job (idempotent job id) to a node."
+    permission: privileged
+    deterministic: false
+    cost_hint: high
+    keywords: [gpu, hpc, ssh, container, job]
+    test_ref: ""
+
+  # B4 (own-arm harness parity): workspace-confined file tools + controlled
+  # bash, granted the same way every seat gets them regardless of skill
+  # allowlist — see `sciteam.worker_common.FS_ALWAYS_CAPABILITIES` /
+  # `effective_tool_capabilities`. Mirrors pi's always-on native tools.
+  - name: read
+    version: "1"
+    capability: fs.read
+    summary: "Read a text file from the mission workspace."
+    permission: readonly
+    deterministic: false
+    cost_hint: low
+    keywords: [file, read, workspace]
+    test_ref: tests/test_fs_tools.py
+
+  - name: write
+    version: "1"
+    capability: fs.write
+    summary: "Write (create/overwrite) a text file in the mission workspace."
+    permission: side_effect
+    deterministic: false
+    cost_hint: low
+    keywords: [file, write, workspace]
+    test_ref: tests/test_fs_tools.py
+
+  - name: edit
+    version: "1"
+    capability: fs.edit
+    summary: "Exact-substring patch an existing mission-workspace file."
+    permission: side_effect
+    deterministic: false
+    cost_hint: low
+    keywords: [file, edit, patch, workspace]
+    test_ref: tests/test_fs_tools.py
+
+  - name: ls
+    version: "1"
+    capability: fs.list
+    summary: "List a mission-workspace directory's entries."
+    permission: readonly
+    deterministic: false
+    cost_hint: low
+    keywords: [file, list, directory, workspace]
+    test_ref: tests/test_fs_tools.py
+
+  - name: find
+    version: "1"
+    capability: fs.find
+    summary: "Find mission-workspace files by filename glob pattern."
+    permission: readonly
+    deterministic: false
+    cost_hint: low
+    keywords: [file, find, glob, workspace]
+    test_ref: tests/test_fs_tools.py
+
+  - name: grep
+    version: "1"
+    capability: fs.grep
+    summary: "Regex search mission-workspace files, returning path/line/text matches."
+    permission: readonly
+    deterministic: false
+    cost_hint: low
+    keywords: [file, search, grep, regex, workspace]
+    test_ref: tests/test_fs_tools.py
+
+  - name: bash
+    version: "1"
+    capability: compute.bash
+    summary: "Run a shell command cwd-confined to the mission workspace, bounded and output-truncated."
+    permission: side_effect
+    deterministic: false
+    cost_hint: medium
+    keywords: [shell, bash, command, workspace]
+    test_ref: tests/test_fs_tools.py
+
+  - name: amendment_audit
+    version: "1"
+    capability: institution.audit
+    summary: "Mechanically audit an amendment proposal: schema, layer whitelist, entrenchment, motivation-ref resolvability."
+    permission: readonly
+    deterministic: true
+    cost_hint: low
+    keywords: [amendment, institution, grundnorm, audit, ledger]
+    test_ref: tests/test_amendment_audit_tool.py

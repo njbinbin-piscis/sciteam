@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/round_assessment.schema.json",
+  "title": "RoundAssessment",
+  "description": "Institutional round verdict produced by a may_assess_round seat. Engine validates shape only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decision", "reason_code", "summary"],
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["continue", "completed", "failed"]
+    },
+    "reason_code": {
+      "type": "string",
+      "enum": [
+        "ok_complete",
+        "need_artifact",
+        "gate_unsatisfied",
+        "exit_stalled",
+        "integrity_fail",
+        "process_fail",
+        "all_workers_failed",
+        "illegal_assessment",
+        "promote_failed"
+      ]
+    },
+    "summary": { "type": "string" },
+    "next_round_hint": { "type": "string" },
+    "approve_promote_draft": { "type": "boolean" },
+    "preferred_agent": { "type": ["string", "null"] },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "assessor_key": {
+      "type": "string",
+      "description": "Seat key that authored this verdict; must be in assess_roles."
+    }
+  }
+}

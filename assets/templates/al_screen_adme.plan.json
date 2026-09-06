@@ -1,0 +1,225 @@
+{
+  "mission_id": "m_plan_seed",
+  "problem_choice": {
+    "chosen_problem_id": "E1_label_budgeted_al",
+    "rationale": "Frozen candidate-pack E1: label-budgeted active learning on public ADME screens. Prior sweep (sweep_al_v2) was NO-GO on built-in uncertainty/greedy; phase7_lipo showed margin/diversity candidates do not beat random EF1% under the frozen al_screen gate — next run must close build on any verifier-owned results.json and package an honest positive OR negative without thrashing for success=true.",
+    "grounding_citation_keys": [],
+    "scores": {
+      "E1_label_budgeted_al": 0.85,
+      "E2_debias_vs": 0.55,
+      "E3_prospective": 0.4
+    }
+  },
+  "hypotheses": [
+    {
+      "id": "h_eps_greedy_enrichment",
+      "statement": "An ε-greedy mix of uncertainty exploration and greedy enrichment raises EF1% over random acquisition under a fixed 10% label budget.",
+      "falsification": "After ≥5 seeds on Lipophilicity_AstraZeneca, candidate mean EF1 does not beat random with Holm-adjusted p<0.05 and Cohen's d≥0.5."
+    }
+  ],
+  "missions": [
+    {
+      "deps": [],
+      "on_fail": {
+        "action": "abort"
+      },
+      "mission": {
+        "id": "m_protocol",
+        "kind": "protocol",
+        "goal": "Register protocol hashes for the campaign.",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "protocol_registration",
+        "skills_allowlist": [
+          "protocol.register"
+        ],
+        "metadata": {
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_protocol"
+      ],
+      "on_fail": {
+        "action": "abort"
+      },
+      "mission": {
+        "id": "m_rules",
+        "kind": "legislation",
+        "goal": "Enact campaign_rules under GRUNDNORM G3: allowed/forbidden, audit_matrix (every promotable output audited), scoring mode. Bootstrap may mirror GRUNDNORM; council may revise later via ledger.",
+        "paradigm": "planning_council",
+        "exit_contract": "campaign_rules",
+        "skills_allowlist": [
+          "rules.legislate",
+          "plan.compose"
+        ],
+        "metadata": {
+          "artifact_gate": {
+            "pointer": "/grundnorm_ref",
+            "equals": "assets/institutions/GRUNDNORM.md"
+          },
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_rules"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_scout",
+        "kind": "literature",
+        "goal": "Map literature for label-budgeted AL in virtual screening; confirm E1 remains the working problem; record resolvable citations. Do NOT transfer EF multipliers from other datasets as promises.",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "lit_map",
+        "skills_allowlist": [
+          "topic.select",
+          "lit.survey",
+          "lit.citation_guard"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_scout"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_hyp",
+        "kind": "hypothesis",
+        "goal": "Propose falsifiable acquisition-function hypotheses grounded in lit_map. Calibrate effect sizes to THIS dataset/eval; cross-domain 2× claims are disallowed without local evidence.",
+        "paradigm": "debate_elo",
+        "exit_contract": "candidate_hypotheses",
+        "skills_allowlist": [
+          "hypothesis.formulate",
+          "hypothesis.refine"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_hyp"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 1
+      },
+      "mission": {
+        "id": "m_build",
+        "kind": "build_eval",
+        "goal": "Implement one acquisition module (acquire + NAME) and score it via run_eval problem_id=al_screen. Artifact is verifier-owned. Mission COMPLETE when a valid frozen results.json exists — whether success is true OR false. Do not thrash to force a win; an honest negative eval is a successful build deliverable.",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "results",
+        "skills_allowlist": [
+          "design.algorithm",
+          "impl.scaffold",
+          "impl.debug_loop",
+          "eval.run_frozen"
+        ],
+        "metadata": {
+          "artifact_source": "verifier",
+          "artifact_gate": {
+            "pointer": "/problem_id",
+            "equals": "al_screen"
+          },
+          "problem_id": "al_screen"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_build"
+      ],
+      "on_fail": {
+        "action": "continue"
+      },
+      "mission": {
+        "id": "m_stress",
+        "kind": "adversarial",
+        "goal": "Attack the current claim. If frozen success=false, verdict must be falsified or revise — never hunt promote on a negative result.",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "attack_report",
+        "skills_allowlist": [
+          "adversary.attack"
+        ],
+        "metadata": {
+          "artifact_gate": {
+            "pointer": "/mission_id",
+            "equals": "m_stress"
+          }
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_stress"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 1
+      },
+      "mission": {
+        "id": "m_write",
+        "kind": "writeup",
+        "goal": "Write an honest manuscript draft grounded only in frozen numbers. Negative results are first-class deliverables.",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "manuscript_checklist",
+        "skills_allowlist": [
+          "paper.write_imrad",
+          "paper.checklist",
+          "lit.citation_guard"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_write"
+      ],
+      "on_fail": {
+        "action": "abort"
+      },
+      "mission": {
+        "id": "m_package",
+        "kind": "package",
+        "goal": "Package the evidence bundle (ARM skeleton).",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "package_manifest",
+        "skills_allowlist": [
+          "package.arm"
+        ],
+        "metadata": {
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    }
+  ],
+  "locked_ids": [
+    "m_protocol",
+    "m_rules",
+    "m_build",
+    "m_stress",
+    "m_package"
+  ],
+  "risks": [
+    "Small ADME sets underpower EF1@1%; honest NO-GO must be acceptable.",
+    "LLM may invent results — blocked by artifact_source=verifier.",
+    "Conflating success=true with mission-complete causes build thrashing (phase7_lipo).",
+    "Narrative/ledger drift — mitigated by mandatory post-mission audits + scorecard."
+  ],
+  "fallback": "If build yields success=false, still package an honest-negative ARM.",
+  "budget": {
+    "max_revisions": 2,
+    "max_missions": 24
+  }
+}

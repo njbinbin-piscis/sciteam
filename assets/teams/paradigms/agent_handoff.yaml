@@ -1,0 +1,45 @@
+id: agent_handoff
+name: Agent Handoff (route by dispatch priority)
+description: >
+  Institutional expression of OpenAI Swarm / Magentic-One handoff: control
+  transfers between specialists by declaring a route topology and letting the
+  schedule primitive prefer the handed-off-to seat. The preference is carried
+  in run metadata (preferred_agent) and consumed by the existing
+  _prefer_handoff scheduling policy — a dispatch-priority reorder, NOT a new
+  primitive and NOT an engine branch (topology is declarative, COORD-8).
+  Declared stress test for SWARM-LAW-0: the pattern most likely to demand a
+  new engine capability; result is that it does not.
+members:
+  - key: analyst
+    agent_id: analyst
+    name: Triage Analyst
+    role: analyst
+  - key: designer
+    agent_id: designer
+    name: Specialist
+    role: designer
+  - key: assembler
+    agent_id: assembler
+    name: Closer
+    role: assembler
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: route
+  scheduling:
+    employment: true
+    mode: eager
+    max_parallel: 1
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  charter:
+    standing_goal: >
+      Triage routes to the specialist; the closer emits the exit artifact once
+      the handed-off work is done. Route order is a dispatch-priority policy
+      (preferred_agent), not an engine phase. Fail-honest on stagnation.
+    stagnation_max_rounds: 8

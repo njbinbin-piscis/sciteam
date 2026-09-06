@@ -1,0 +1,54 @@
+id: planning_council
+name: Planning Council
+description: 'Cross-disciplinary council that reads the charter, the literature evidence
+  graph, the mission/tool catalog, prior failures and the budget, then emits a schema-validated
+  ResearchPlan (problem choice + mission DAG). Specialists fan out; a research director
+  integrates; a red-team reviewer must not veto silently.
+
+  '
+members:
+- key: research_director
+  agent_id: research_director
+  name: Research Director
+  role: research_director
+  emits_exit_artifact: true
+- key: literature_lead
+  agent_id: literature_lead
+  name: Literature Lead
+  role: literature_lead
+- key: medicinal_chemist
+  agent_id: medicinal_chemist
+  name: Medicinal Chemist
+  role: medicinal_chemist
+- key: ml_stats_lead
+  agent_id: ml_stats_lead
+  name: ML / Statistics Lead
+  role: ml_stats_lead
+- key: compute_lead
+  agent_id: compute_lead
+  name: Compute / Resource Lead
+  role: compute_lead
+- key: red_team_reviewer
+  agent_id: red_team_reviewer
+  name: Red-Team Reviewer
+  role: red_team
+- key: round_assessor
+  agent_id: round_assessor
+  name: Round Assessor
+  role: round_assessor
+  authority:
+  - may_assess_round
+coordination:
+  topology: parallel
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 5
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  replicas: {}
+  charter:
+    standing_goal: Production seats deliver the mission; round_assessor judges round
+      completion from observation facts. Fail-honest if no exit artifact by stagnation_max_rounds.
+    stagnation_max_rounds: 8

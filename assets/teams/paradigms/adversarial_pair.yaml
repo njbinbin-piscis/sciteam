@@ -1,0 +1,32 @@
+id: adversarial_pair
+name: Adversarial Pair
+description: Generator versus adversary; claims must survive attack before promotion.
+members:
+- key: proponent
+  agent_id: proponent
+  name: Claim Proponent
+  role: proponent
+  emits_exit_artifact: true
+- key: adversary
+  agent_id: adversary
+  name: Adversarial Reviewer
+  role: adversary
+- key: round_assessor
+  agent_id: round_assessor
+  name: Round Assessor
+  role: round_assessor
+  authority:
+  - may_assess_round
+coordination:
+  topology: loop
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 2
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  charter:
+    standing_goal: Production seats deliver the mission; round_assessor judges round
+      completion from observation facts. Fail-honest if no exit artifact by stagnation_max_rounds.
+    stagnation_max_rounds: 8

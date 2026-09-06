@@ -1,0 +1,156 @@
+{
+  "mission_id": "m_plan_seed_mini",
+  "problem_choice": {
+    "chosen_problem_id": "p2_kvcache",
+    "rationale": "Smallest frozen benchmark with a clear candidate interface (Policy.on_access / evict) and local CPU eval — ideal for institution-stack smoke before another pharma run.",
+    "grounding_citation_keys": [
+      "kwon2023pagedattention"
+    ],
+    "scores": {
+      "p2_kvcache": 0.9
+    }
+  },
+  "hypotheses": [
+    {
+      "id": "h_prefix_protect",
+      "statement": "Preferentially retaining tenant-shared prefix KV blocks raises hit_rate ≥ 1.05× max(LRU, LFU) on the frozen trace.",
+      "falsification": "Frozen p2_kvcache eval reports success=false for the candidate."
+    }
+  ],
+  "missions": [
+    {
+      "deps": [],
+      "on_fail": {
+        "action": "abort"
+      },
+      "mission": {
+        "id": "m_protocol",
+        "kind": "protocol",
+        "goal": "Register protocol hashes.",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "protocol_registration",
+        "skills_allowlist": [
+          "protocol.register"
+        ],
+        "metadata": {
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_protocol"
+      ],
+      "on_fail": {
+        "action": "abort"
+      },
+      "mission": {
+        "id": "m_rules",
+        "kind": "legislation",
+        "goal": "Enact campaign_rules under GRUNDNORM (allowed/forbidden, audit_matrix, scoring). Bootstrap OK.",
+        "paradigm": "planning_council",
+        "exit_contract": "campaign_rules",
+        "skills_allowlist": [
+          "rules.legislate"
+        ],
+        "metadata": {
+          "artifact_gate": {
+            "pointer": "/grundnorm_ref",
+            "equals": "assets/institutions/GRUNDNORM.md"
+          },
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_rules"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 1
+      },
+      "mission": {
+        "id": "m_hyp",
+        "kind": "hypothesis",
+        "goal": "Propose 1–3 falsifiable KV-cache eviction hypotheses for p2_kvcache. Calibrate to the frozen success predicate (≥1.05× best baseline). No invented metrics.",
+        "paradigm": "debate_elo",
+        "exit_contract": "candidate_hypotheses",
+        "skills_allowlist": [
+          "hypothesis.formulate",
+          "hypothesis.refine",
+          "lit.citation_guard"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_hyp"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 1
+      },
+      "mission": {
+        "id": "m_build",
+        "kind": "build_eval",
+        "goal": "Implement one Policy module (on_access + evict + NAME) and score via run_eval problem_id=p2_kvcache. Mission COMPLETE when verifier-owned results.json exists — success true OR false. Do not thrash after the first valid eval.",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "results",
+        "skills_allowlist": [
+          "design.algorithm",
+          "impl.scaffold",
+          "impl.debug_loop",
+          "eval.run_frozen"
+        ],
+        "metadata": {
+          "artifact_source": "verifier",
+          "artifact_gate": {
+            "pointer": "/problem_id",
+            "equals": "p2_kvcache"
+          },
+          "problem_id": "p2_kvcache"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_build"
+      ],
+      "on_fail": {
+        "action": "abort"
+      },
+      "mission": {
+        "id": "m_package",
+        "kind": "package",
+        "goal": "Package evidence bundle (honest positive or negative).",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "package_manifest",
+        "skills_allowlist": [
+          "package.arm"
+        ],
+        "metadata": {
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    }
+  ],
+  "locked_ids": [
+    "m_protocol",
+    "m_rules",
+    "m_build",
+    "m_package"
+  ],
+  "risks": [
+    "Small frozen trace may underpower policies — honest NO-GO is success.",
+    "Narrative/ledger drift — audits required at finalize."
+  ],
+  "fallback": "Package honest-negative ARM if build success=false.",
+  "budget": {
+    "max_revisions": 1,
+    "max_missions": 10
+  }
+}

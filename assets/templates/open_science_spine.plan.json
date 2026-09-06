@@ -1,0 +1,228 @@
+{
+  "mission_id": "m_plan_seed_open",
+  "problem_choice": {
+    "chosen_problem_id": "open_operator_goal",
+    "rationale": "Open profile: problem identity comes from the operator goal, not a pre-registered benchmark pack. The team must reframe the goal, declare sandbox-verifiable vs external-lab work, and keep narrative aligned with the ledger.",
+    "grounding_citation_keys": [],
+    "scores": {
+      "open_operator_goal": 1.0
+    }
+  },
+  "hypotheses": [],
+  "missions": [
+    {
+      "deps": [],
+      "on_fail": {
+        "action": "abort"
+      },
+      "mission": {
+        "id": "m_protocol",
+        "kind": "protocol",
+        "goal": "Register an open-research protocol: operator goal is authoritative; no domain frozen eval is assumed. Goal: {{OPERATOR_GOAL}}",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "protocol_registration",
+        "skills_allowlist": [
+          "protocol.register"
+        ],
+        "metadata": {
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_protocol"
+      ],
+      "on_fail": {
+        "action": "abort"
+      },
+      "mission": {
+        "id": "m_rules",
+        "kind": "legislation",
+        "goal": "Enact campaign_rules under GRUNDNORM for open research: no fabricated wet-lab results; mark unverifiable claims; honest negative / partial packaging allowed.",
+        "paradigm": "planning_council",
+        "exit_contract": "campaign_rules",
+        "skills_allowlist": [
+          "rules.legislate"
+        ],
+        "metadata": {
+          "artifact_gate": {
+            "pointer": "/grundnorm_ref",
+            "equals": "assets/institutions/GRUNDNORM.md"
+          },
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_rules"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_frame",
+        "kind": "problem_frame",
+        "goal": "Reframe the operator goal into a research problem frame: domain, success criteria, what this sandbox can verify, what requires external labs (e.g. field breeding), and an honesty note. Operator goal:\n{{OPERATOR_GOAL}}",
+        "paradigm": "planning_council",
+        "exit_contract": "problem_frame",
+        "skills_allowlist": [
+          "hypothesis.formulate",
+          "lit.citation_guard",
+          "budget.report"
+        ],
+        "metadata": {
+          "artifact_gate": {
+            "pointer": "/mission_id",
+            "equals": "m_frame"
+          }
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_frame"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_scout",
+        "kind": "literature",
+        "goal": "Survey literature relevant to the framed problem. Prefer real sources; mark uncertain citations. Operator goal:\n{{OPERATOR_GOAL}}",
+        "paradigm": "survey_gather",
+        "exit_contract": "lit_map",
+        "skills_allowlist": [
+          "lit.survey",
+          "lit.extract_claims",
+          "lit.citation_guard"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_scout"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_hyp",
+        "kind": "hypothesis",
+        "goal": "Propose 1–3 falsifiable hypotheses for the framed problem. Each must state how it could be falsified (sandbox proxy or external lab). Do not invent experimental numbers.",
+        "paradigm": "debate_elo",
+        "exit_contract": "candidate_hypotheses",
+        "skills_allowlist": [
+          "hypothesis.formulate",
+          "hypothesis.refine",
+          "lit.citation_guard"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_hyp"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 1
+      },
+      "mission": {
+        "id": "m_method",
+        "kind": "method",
+        "goal": "Produce a method/experimental plan implementing the top hypothesis. Mark which steps are sandbox-executable vs external. Do not claim wet-lab completion inside the sandbox.",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "method_plan",
+        "skills_allowlist": [
+          "design.algorithm",
+          "design.ablation_plan",
+          "paper.method"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_method"
+      ],
+      "on_fail": {
+        "action": "continue"
+      },
+      "mission": {
+        "id": "m_stress",
+        "kind": "adversarial",
+        "goal": "Attack the frame, hypotheses, and method: overclaim risk, missing controls, sandbox/external conflation.",
+        "paradigm": "adversarial_pair",
+        "exit_contract": "attack_report",
+        "skills_allowlist": [
+          "adversary.attack",
+          "lit.citation_guard"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_stress"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 1
+      },
+      "mission": {
+        "id": "m_write",
+        "kind": "write",
+        "goal": "Write an honest research report. Separate sandbox-supported claims from external-lab requirements. No fabricated yields or field trial numbers.",
+        "paradigm": "write_atelier",
+        "exit_contract": "manuscript_checklist",
+        "skills_allowlist": [
+          "paper.outline",
+          "paper.related_work",
+          "paper.method",
+          "paper.checklist"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_write"
+      ],
+      "on_fail": {
+        "action": "abort"
+      },
+      "mission": {
+        "id": "m_package",
+        "kind": "package",
+        "goal": "Package evidence bundle (positive, partial, or honest-negative).",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "package_manifest",
+        "skills_allowlist": [
+          "package.arm"
+        ],
+        "metadata": {
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    }
+  ],
+  "locked_ids": [
+    "m_protocol",
+    "m_rules",
+    "m_package"
+  ],
+  "risks": [
+    "Operator goals that require wet-lab / field work cannot be fully closed in-sandbox.",
+    "Without a plugged-in domain verifier pack, scientific 'win' is process+honesty, not yield metrics.",
+    "Insufficient operator max_iterations (console overrides paradigm YAML) aborts late stages such as write_atelier; grant extra budget at the human gate or launch with >=200."
+  ],
+  "fallback": "Package partial/honest-negative with explicit external-resource gaps.",
+  "budget": {
+    "max_revisions": 2,
+    "max_missions": 16
+  }
+}

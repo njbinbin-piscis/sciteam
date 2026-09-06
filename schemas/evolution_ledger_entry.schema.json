@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/evolution_ledger_entry.schema.json",
+  "title": "EvolutionLedgerEntry",
+  "description": "One append-only entry in evolution_ledger.jsonl, written exclusively by the evo_promoter seat after artifact_audit clears the proposal and verification artifacts. Entries are hash-chained (prev_entry_hash) so post-hoc edits are mechanically detectable. The ledger file itself is inside every genome's constitutional_core.frozen_paths.",
+  "type": "object",
+  "required": ["entry_id", "round", "candidate_id", "genome_diff_ref", "claimed", "verified", "decision", "audit", "prev_entry_hash"],
+  "additionalProperties": false,
+  "properties": {
+    "entry_id": { "type": "string", "pattern": "^evo_[0-9]{4}$" },
+    "round": { "type": "integer", "minimum": 0 },
+    "candidate_id": { "type": "string" },
+    "genome_diff_ref": { "type": "string" },
+    "claimed": {
+      "type": "object",
+      "required": ["mechanism", "predicted_gain_pp", "proposal_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "mechanism": { "type": "string" },
+        "predicted_gain_pp": { "type": "number" },
+        "proposal_ref": { "type": "string", "description": "Path to the evo_proposal artifact this entry summarizes; summaries never replace the source artifact." }
+      }
+    },
+    "verified": {
+      "type": "object",
+      "required": ["held_in_gain_pp", "held_out_gain_pp", "regressions", "verification_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "held_in_gain_pp": { "type": "number" },
+        "held_out_gain_pp": { "type": "number" },
+        "regressions": { "type": "array", "items": { "type": "string" } },
+        "verification_ref": { "type": "string" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": ["promote", "reason_code", "decided_by"],
+      "additionalProperties": false,
+      "properties": {
+        "promote": { "type": "boolean" },
+        "reason_code": {
+          "type": "string",
+          "enum": [
+            "GAIN_CONFIRMED",
+            "NO_GAIN",
+            "HELD_OUT_REGRESSION",
+            "FROZEN_PATH_TOUCH",
+            "EVIDENCE_UNRESOLVABLE",
+            "CLAIM_MISMATCH",
+            "AUDIT_FAILED",
+            "BUDGET_DENIED",
+            "SELF_REPORTED_GAIN",
+            "NO_CLAIMED_GAIN"
+          ]
+        },
+        "decided_by": { "type": "string", "description": "seat:<agent_key> — must hold the evo_promoter role; must differ from proposer and verifier seats." },
+        "note": { "type": "string" },
+        "bound_on": {
+          "type": "string",
+          "enum": ["claimed", "verified"],
+          "description": "U arm must be claimed (PREREG D appendix B). verified on a U decision voids the arm."
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "required": ["verdict", "checks"],
+      "additionalProperties": false,
+      "properties": {
+        "verdict": { "type": "string", "enum": ["pass", "fail"] },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["evidence_resolvable", "numbers_match_runs", "no_core_touch", "seats_distinct", "schema_valid"]
+          }
+        }
+      }
+    },
+    "prev_entry_hash": { "type": ["string", "null"], "description": "sha256 of the previous ledger line's canonical JSON; null only for the first entry of a campaign." },
+    "engine_commit": { "type": "string", "description": "paper/lab git commit for the batch (03 §11.1)." },
+    "x-notes": { "type": "string" }
+  }
+}

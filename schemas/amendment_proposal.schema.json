@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/amendment_proposal.schema.json",
+  "title": "AmendmentProposal",
+  "description": "Grundnorm G7: a proposed persistent change to C/L/P institutional assets. Engine validates shape; layer is derived from target_asset by the fail-closed path whitelist in sciteam/amendment.py, never trusted from this document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "amendment_id",
+    "target_asset",
+    "change_kind",
+    "diff",
+    "motivation",
+    "prediction",
+    "rollback",
+    "proposer",
+    "status"
+  ],
+  "properties": {
+    "amendment_id": {
+      "type": "string",
+      "pattern": "^amd_[A-Za-z0-9_.-]+$"
+    },
+    "target_asset": {
+      "type": "string",
+      "description": "Path relative to the organization asset root (e.g. teams/paradigms/debate_elo.yaml). Layer P/L/C/G is derived from this path by whitelist; G or off-whitelist paths are rejected at preflight."
+    },
+    "declared_layer": {
+      "type": "string",
+      "enum": ["P", "L", "C"],
+      "description": "Proposer's belief about the layer. Informational only; mismatch with the derived layer is recorded as a review flag."
+    },
+    "change_kind": {
+      "type": "string",
+      "enum": ["add", "modify", "remove"]
+    },
+    "diff": {
+      "type": "string",
+      "description": "Unified diff against the incumbent asset (or full content for add). Applied verbatim by apply_amendment; no free-form edits outside this diff."
+    },
+    "motivation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["failure_refs", "pattern"],
+      "properties": {
+        "failure_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "Resolvable run-artifact paths (runs/...) evidencing the failure pattern. Audited by amendment_audit; unresolvable refs fail alignment per G7.4."
+        },
+        "pattern": { "type": "string" }
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "direction", "scope", "falsifier"],
+      "properties": {
+        "metric": { "type": "string" },
+        "direction": { "type": "string", "enum": ["+", "-", "0"] },
+        "scope": { "type": "string" },
+        "falsifier": {
+          "type": "string",
+          "description": "Shadow-ledger condition under which the proposal must be withdrawn (G7.4 falsifiability duty)."
+        }
+      }
+    },
+    "rollback": {
+      "type": "string",
+      "description": "How to restore the incumbent asset if the amendment is rolled back after promotion."
+    },
+    "proposer": {
+      "type": "string",
+      "description": "agent_key of the drafting seat. For P layer must differ from verifier and promoter keys recorded in the ledger."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "drafted",
+        "shadow_pass",
+        "shadow_fail",
+        "rejected",
+        "promoted",
+        "rolled_back",
+        "entrenchment_blocked",
+        "ungoverned_applied"
+      ]
+    },
+    "review_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths to review/red-team/shadow-ledger artifacts accumulated as the proposal advances."
+    },
+    "human_approval": {
+      "type": ["string", "null"],
+      "description": "For C-layer promotions: budget_gate decision reference (G7.2). Null otherwise."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Free-form extension slot (mission id, campaign id, series position, etc.)."
+    }
+  }
+}

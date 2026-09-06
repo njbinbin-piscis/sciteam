@@ -1,0 +1,41 @@
+id: debate
+name: Symmetric Multi-Agent Debate (majority)
+description: >
+  Symmetric debate after Du et al. (2305.14325): homogeneous debater replicas
+  argue in parallel rounds; the shared answer is the majority vote over their
+  positions. Unlike debate_elo this is symmetric — no privileged judge ranks
+  survivors; an integrator seals the majority outcome as the exit artifact.
+  Aggregation kind majority is a policy field; no engine branch decides it.
+members:
+  - key: debater
+    agent_id: debater
+    name: Debater
+    role: debater
+  - key: integrator
+    agent_id: integrator
+    name: Consensus Integrator
+    role: integrator
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: parallel
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 4
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  aggregation: majority
+  replicas:
+    debater: 3
+  charter:
+    standing_goal: >
+      Homogeneous debaters argue the same question; the integrator emits the
+      majority position as the exit artifact. Fail-honest if no majority forms
+      by stagnation_max_rounds.
+    stagnation_max_rounds: 8

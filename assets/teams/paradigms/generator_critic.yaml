@@ -1,0 +1,55 @@
+id: generator_critic
+name: Generator-Critic (Reflection x Chain)
+description: >
+  Faithful institutional expression of Generator-Critic as defined in the
+  two-dimensional pattern taxonomy (Huang & Zhou 2605.13850, S3.5; coordinates
+  C5 x T1 = Reflection x Chain): generate -> critique -> revise as a bounded
+  short chain that exits on a subjective quality judgment. The taxonomy states
+  that Generator-Critic and Self-Heal Loop "differ structurally by stopping
+  condition" - judgment versus deterministic verification. That distinction is
+  exactly the substrate's StoppingKind field: this template sets
+  stopping.kind=judgment while build_fix_loop (the Self-Heal Loop, C5 x T5) sets
+  stopping.kind=verification with verifier=frozen_eval. The taxonomy's structural
+  axis is therefore a single policy value, not two engine paths. Cross-model
+  critique is expressed by giving the critic its own seat rather than reusing the
+  generator, honouring Huang et al.'s finding that self-correction needs external
+  feedback.
+members:
+  - key: writer
+    agent_id: writer
+    name: Generator
+    role: writer
+  - key: critic
+    agent_id: critic
+    name: Critic
+    role: critic
+  - key: assembler
+    agent_id: assembler
+    name: Reviser
+    role: assembler
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: chain
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 1
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  work_graph:
+    role_pipeline:
+      - writer
+      - critic
+      - assembler
+  charter:
+    standing_goal: >
+      Generate, critique with an independent seat, then revise and emit. Exit is
+      a quality judgment, not a verifier pass - the one field that separates this
+      pattern from the Self-Heal Loop. Fail-honest on stagnation.
+    stagnation_max_rounds: 8

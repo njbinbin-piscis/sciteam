@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/discovery_ledger_entry.schema.json",
+  "title": "DiscoveryLedgerEntry",
+  "description": "One append-only entry in discovery_ledger.jsonl (Line G). Written only by disc_promoter after dual-checker verification. Hash-chained like evolution_ledger_entry.",
+  "type": "object",
+  "required": ["entry_id", "param", "claimed", "verified", "decision", "audit", "prev_entry_hash"],
+  "additionalProperties": false,
+  "properties": {
+    "entry_id": { "type": "string", "pattern": "^disc_[0-9]{4}$" },
+    "param": {
+      "type": "object",
+      "required": ["v", "k", "t"],
+      "additionalProperties": false,
+      "properties": {
+        "v": { "type": "integer", "minimum": 4 },
+        "k": { "type": "integer", "minimum": 2 },
+        "t": { "type": "integer", "minimum": 2 }
+      }
+    },
+    "claimed": {
+      "type": "object",
+      "required": ["size", "method_family", "evidence_ptr"],
+      "additionalProperties": false,
+      "properties": {
+        "size": { "type": "integer", "minimum": 1 },
+        "method_family": { "type": "string" },
+        "evidence_ptr": { "type": "string" }
+      }
+    },
+    "verified": {
+      "type": "object",
+      "required": ["checker_a", "checker_b", "size", "snapshot_size"],
+      "additionalProperties": false,
+      "properties": {
+        "checker_a": { "type": "boolean" },
+        "checker_b": { "type": "boolean" },
+        "size": { "type": "integer", "minimum": 0 },
+        "snapshot_size": { "type": "integer", "minimum": 1 },
+        "live_repo_size": { "type": ["integer", "null"] }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": ["promote", "reason_code", "decided_by"],
+      "additionalProperties": false,
+      "properties": {
+        "promote": { "type": "boolean" },
+        "reason_code": {
+          "type": "string",
+          "enum": [
+            "RECORD_IMPROVED",
+            "VALID_NOT_BETTER",
+            "CHECKER_FAIL",
+            "CLAIM_MISMATCH",
+            "DUPLICATE_BLOCKS",
+            "PARAM_OUT_OF_POOL",
+            "AUDIT_FAILED"
+          ]
+        },
+        "decided_by": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "required": ["verdict", "checks"],
+      "additionalProperties": false,
+      "properties": {
+        "verdict": { "type": "string", "enum": ["pass", "fail"] },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "evidence_resolvable",
+              "sizes_match",
+              "seats_distinct",
+              "no_core_touch",
+              "schema_valid",
+              "checkers_agree"
+            ]
+          }
+        }
+      }
+    },
+    "prev_entry_hash": { "type": ["string", "null"] },
+    "engine_commit": { "type": "string" }
+  }
+}

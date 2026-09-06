@@ -1,0 +1,39 @@
+id: pipeline_chain
+name: Pipeline Chain
+description: 'Ordered specialist handoff under a barrier — analyst frames, designer
+  proposes, assembler seals the exit contract. No anonymous stage labels.
+
+  '
+members:
+- key: analyst
+  agent_id: analyst
+  name: Problem Analyst
+  role: analyst
+- key: designer
+  agent_id: designer
+  name: Method Designer
+  role: designer
+- key: assembler
+  agent_id: assembler
+  name: Artifact Assembler
+  role: assembler
+  emits_exit_artifact: true
+- key: round_assessor
+  agent_id: round_assessor
+  name: Round Assessor
+  role: round_assessor
+  authority:
+  - may_assess_round
+coordination:
+  topology: chain
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 1
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  charter:
+    standing_goal: Production seats deliver the mission; round_assessor judges round
+      completion from observation facts. Fail-honest if no exit artifact by stagnation_max_rounds.
+    stagnation_max_rounds: 8

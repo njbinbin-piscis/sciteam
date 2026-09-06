@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/audit_veto.schema.json",
+  "title": "AuditVeto",
+  "description": "Line A Institution Engineering close-loop gap #2 (I_PROCESS_AUDIT + I_DESIGN_FEEDBACK): a non-production oversight seat's mechanical veto of a specific upstream mission node, written via the seat's always-on `fs.write` tool to a well-known filename in its own mission workspace (same convention as retro_request.schema.json / O_RETRO_INVOKE) — no new engine tool call surface. Presence of a schema-valid, *authorized* signal is what mechanically reopens `target` (see sciteam/audit_veto.py::VetoUpstreamReviser); an unauthorized seat's veto file is scanned but never honored (fail-closed authority check, mirrors artifact_emit_roles).",
+  "type": "object",
+  "required": ["target", "reason_code", "vetoed_by", "vetoed_at"],
+  "additionalProperties": false,
+  "properties": {
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Mission/node id in the campaign's DAG to mechanically reopen (AdaptiveCampaignPlanner.reopen_upstream target)."
+    },
+    "reason_code": {
+      "type": "string",
+      "enum": [
+        "late_test_failure",
+        "integrity_fail",
+        "process_mismatch",
+        "unauthorized_submission",
+        "benchmark_unresolvable"
+      ]
+    },
+    "vetoed_by": { "type": "string", "description": "agent_key of the vetoing oversight seat." },
+    "vetoed_at": { "type": "string" },
+    "detail": { "type": "string", "description": "Optional free-text context; carries no authority." }
+  }
+}

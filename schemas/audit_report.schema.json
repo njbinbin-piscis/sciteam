@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/audit_report.schema.json",
+  "title": "AuditReport",
+  "description": "Per-mission integrity audit (schema + narrative/ledger alignment).",
+  "type": "object",
+  "required": ["mission_id", "passed", "checks", "violations", "audited_at"],
+  "additionalProperties": false,
+  "properties": {
+    "mission_id": { "type": "string" },
+    "passed": { "type": "boolean" },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "passed"],
+        "properties": {
+          "kind": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "agent_key", "message"],
+        "properties": {
+          "code": { "type": "string" },
+          "agent_key": { "type": "string" },
+          "message": { "type": "string" },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "audited_at": { "type": "string" },
+    "citations": {
+      "type": "array",
+      "description": "Structured, resolvable-identifier record of every named paper the audited process cited. Populated by the emit-duty seat so a declared artifact_audit (citation_audit) can mechanically verify each identifier resolves and its title matches — free-text mentions inside checks/violations are not machine-checkable.",
+      "items": {
+        "type": "object",
+        "required": ["claim"],
+        "additionalProperties": false,
+        "properties": {
+          "claim": { "type": "string" },
+          "citation_key": { "type": "string" },
+          "arxiv_id": { "type": "string" },
+          "doi": { "type": "string" },
+          "title": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/lit_map.schema.json",
+  "title": "LiteratureMap",
+  "description": "Exit contract for survey/topic missions: a claims-grounded literature map plus (optionally) a scored problem choice.",
+  "type": "object",
+  "required": ["mission_id", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "mission_id": { "type": "string", "minLength": 1 },
+    "topic": { "type": "string" },
+    "queries": {
+      "type": "array",
+      "description": "Search log: the exact queries issued to each source (reproducibility).",
+      "items": {
+        "type": "object",
+        "required": ["text"],
+        "additionalProperties": false,
+        "properties": {
+          "text": { "type": "string", "minLength": 1 },
+          "sources": { "type": "array", "items": { "type": "string" } },
+          "filters": { "type": "object" },
+          "retrieved_at": { "type": "string" },
+          "raw_hash": { "type": "string" },
+          "n_results": { "type": "integer" }
+        }
+      }
+    },
+    "inclusion_criteria": { "type": "array", "items": { "type": "string" } },
+    "exclusion_criteria": { "type": "array", "items": { "type": "string" } },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["citation_key", "title", "claims"],
+        "additionalProperties": false,
+        "properties": {
+          "citation_key": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "year": { "type": "integer" },
+          "source": { "type": "string" },
+          "source_url": { "type": "string" },
+          "doi": { "type": "string" },
+          "pmid": { "type": "string" },
+          "arxiv_id": { "type": "string", "pattern": "^\\d{4}\\.\\d{4,5}$" },
+          "authors": { "type": "array", "items": { "type": "string" } },
+          "retrieved_at": { "type": "string" },
+          "content_hash": { "type": "string" },
+          "resolvable": { "type": "boolean" },
+          "claims": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 5 }
+          },
+          "claim_spans": {
+            "type": "array",
+            "description": "Located support for each claim: a snippet plus where it was found.",
+            "items": {
+              "type": "object",
+              "required": ["claim", "locator", "span_text", "support"],
+              "additionalProperties": false,
+              "properties": {
+                "claim": { "type": "string", "minLength": 5 },
+                "locator": { "type": "string", "minLength": 1 },
+                "span_text": { "type": "string", "minLength": 1 },
+                "support": { "type": "string", "enum": ["supports", "refutes", "partial", "unverified"] },
+                "verified_by": { "type": "string" }
+              }
+            }
+          },
+          "relevance": { "type": "string" }
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "problem_choice": {
+      "type": "object",
+      "description": "Present when the mission also scores the registered problem pool.",
+      "required": ["chosen_problem_id", "scores"],
+      "additionalProperties": false,
+      "properties": {
+        "chosen_problem_id": { "type": "string" },
+        "scores": {
+          "type": "object",
+          "description": "Per-problem score: either a single number or a breakdown of named numeric criteria.",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "number" },
+              { "type": "object", "additionalProperties": { "type": "number" }, "minProperties": 1 }
+            ]
+          }
+        },
+        "rationale": { "type": "string" }
+      }
+    }
+  }
+}

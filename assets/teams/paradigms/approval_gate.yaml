@@ -1,0 +1,53 @@
+id: approval_gate
+name: Approval Gate (Governance x Route)
+description: >
+  Faithful institutional expression of Approval Gate as defined in the
+  two-dimensional pattern taxonomy (Huang & Zhou 2605.13850, S3.7; coordinates
+  C7 x T2 = Governance x Route): every action is routed through a three-stage
+  evaluation - deny rules at absolute priority, allow rules that auto-approve
+  low-risk actions, and a residual human gate for whatever is neither denied nor
+  allowed. The routing is the substrate's guard primitive (declared authority per
+  seat, deny taking precedence) and the residual stage is human_gate=true, which
+  reuses the escalate primitive with target=human. No new primitive and no engine
+  branch: the taxonomy's governance-by-routing pattern is two policy fields.
+  Note the layering claim this supports - governance here is a template over the
+  substrate's guard, so a template may tighten the gate but never remove it
+  (governance monotonicity).
+members:
+  - key: analyst
+    agent_id: analyst
+    name: Risk Classifier
+    role: analyst
+    authority: [may_classify_risk]
+  - key: reviewer
+    agent_id: reviewer
+    name: Deny/Allow Adjudicator
+    role: reviewer
+    authority: [may_deny, may_allow]
+  - key: assembler
+    agent_id: assembler
+    name: Action Closer
+    role: assembler
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: route
+  scheduling:
+    employment: true
+    mode: eager
+    max_parallel: 1
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  human_gate: true
+  charter:
+    standing_goal: >
+      Classify each action by reversibility and impact; deny rules win
+      unconditionally, allow rules auto-approve low-risk actions, and everything
+      residual escalates to the human gate before the closer emits. Deny
+      precedence is a guard policy, not an engine special case.
+    stagnation_max_rounds: 8

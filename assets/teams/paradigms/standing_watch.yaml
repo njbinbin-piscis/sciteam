@@ -1,0 +1,44 @@
+id: standing_watch
+name: Standing Watch (continuous mandate)
+description: >
+  Institutional expression of a continuous / standing-mandate team (loop
+  engineering at organizational scale): a watcher seat is employed under a
+  charter with wake conditions and a wake interval; an integrator emits when a
+  wake produces a reportable finding. Continuity is a charter policy
+  (standing_goal + wake_on + wake_interval_seconds) over the employment loop —
+  no Redis bus, no leader election, no new primitive. SWARM-LAW-0 live case:
+  standing autonomy expressed without touching the seven primitives.
+members:
+  - key: watcher
+    agent_id: watcher
+    name: Standing Watcher
+    role: analyst
+  - key: integrator
+    agent_id: integrator
+    name: Findings Integrator
+    role: integrator
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: loop
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 1
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  charter:
+    standing_goal: >
+      Stay employed and watch the shared board; on a wake condition, produce a
+      finding and let the integrator emit. Stopping is a budget clamp, not task
+      exhaustion.
+    wake_on:
+      - board_change
+      - interval
+    wake_interval_seconds: 3600
+    stagnation_max_rounds: 8

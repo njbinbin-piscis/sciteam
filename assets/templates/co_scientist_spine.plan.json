@@ -1,0 +1,244 @@
+{
+  "mission_id": "m_plan_seed_co_scientist",
+  "problem_choice": {
+    "chosen_problem_id": "open_operator_goal",
+    "rationale": "Line-A anchor spine: operator goal is authoritative; hypothesis work uses the registered co_scientist_tournament paradigm (six institutional posts), not debate_elo replicas. Domain identity stays in the operator goal.",
+    "grounding_citation_keys": [],
+    "scores": {
+      "open_operator_goal": 1.0
+    }
+  },
+  "hypotheses": [],
+  "missions": [
+    {
+      "deps": [],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_protocol",
+        "kind": "protocol",
+        "goal": "Register an open-research protocol: operator goal is authoritative; no domain frozen eval is assumed. Goal: {{OPERATOR_GOAL}}",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "protocol_registration",
+        "skills_allowlist": [
+          "protocol.register"
+        ],
+        "metadata": {
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_protocol"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_rules",
+        "kind": "legislation",
+        "goal": "Enact campaign_rules under GRUNDNORM: no fabricated wet-lab results; define tournament rubric for the six institutional posts (generation, reflection, ranking, evolution, proximity, meta_review); honest negative / partial packaging allowed. Operator goal:\n{{OPERATOR_GOAL}}",
+        "paradigm": "planning_council",
+        "exit_contract": "campaign_rules",
+        "skills_allowlist": [
+          "rules.legislate"
+        ],
+        "metadata": {
+          "artifact_gate": {
+            "pointer": "/grundnorm_ref",
+            "equals": "assets/institutions/GRUNDNORM.md"
+          },
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_rules"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_frame",
+        "kind": "problem_frame",
+        "goal": "Reframe the operator goal into a research problem frame: domain, success criteria (including how tournament outputs will be judged), sandbox vs external boundary, honesty note. Operator goal:\n{{OPERATOR_GOAL}}",
+        "paradigm": "planning_council",
+        "exit_contract": "problem_frame",
+        "skills_allowlist": [
+          "hypothesis.formulate",
+          "lit.citation_guard",
+          "budget.report"
+        ],
+        "metadata": {
+          "artifact_gate": {
+            "pointer": "/mission_id",
+            "equals": "m_frame"
+          }
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_frame"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_scout",
+        "kind": "literature",
+        "goal": "Survey literature relevant to the framed problem; seed the tournament candidate pool. Prefer real sources; mark uncertain citations. Operator goal:\n{{OPERATOR_GOAL}}",
+        "paradigm": "survey_gather",
+        "exit_contract": "lit_map",
+        "skills_allowlist": [
+          "lit.survey",
+          "lit.extract_claims",
+          "lit.citation_guard"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_scout"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 2
+      },
+      "mission": {
+        "id": "m_hyp",
+        "kind": "hypothesis",
+        "goal": "Run the registered co_scientist_tournament: six posts (generation, reflection, ranking, evolution, proximity, meta_review) iterate under barrier rounds until 1–3 falsifiable candidates are assembled. Do not invent experimental numbers. Operator goal:\n{{OPERATOR_GOAL}}",
+        "paradigm": "co_scientist_tournament",
+        "exit_contract": "candidate_hypotheses",
+        "skills_allowlist": [
+          "hypothesis.formulate",
+          "hypothesis.refine",
+          "lit.citation_guard",
+          "ideation.brainstorm",
+          "ideation.tension_hunt",
+          "evidence.claim_support",
+          "review.epistemic_rigor",
+          "eval.compare_baseline",
+          "memory.commit"
+        ],
+        "metadata": {
+          "artifact_gate": {
+            "pointer": "/mission_id",
+            "equals": "m_hyp"
+          }
+        }
+      }
+    },
+    {
+      "deps": [
+        "m_hyp"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 1
+      },
+      "mission": {
+        "id": "m_method",
+        "kind": "method",
+        "goal": "Produce a method/experimental plan for the top tournament survivors. Mark sandbox-executable vs external steps. Do not claim wet-lab completion inside the sandbox. Operator goal:\n{{OPERATOR_GOAL}}",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "method_plan",
+        "skills_allowlist": [
+          "design.algorithm",
+          "design.ablation_plan",
+          "paper.method"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_method"
+      ],
+      "on_fail": {
+        "action": "continue"
+      },
+      "mission": {
+        "id": "m_stress",
+        "kind": "adversarial",
+        "goal": "Attack frame, tournament survivors, and method: overclaim, missing controls, sandbox/external conflation, false concordance. Operator goal:\n{{OPERATOR_GOAL}}",
+        "paradigm": "adversarial_pair",
+        "exit_contract": "attack_report",
+        "skills_allowlist": [
+          "adversary.attack",
+          "lit.citation_guard"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_stress"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 1
+      },
+      "mission": {
+        "id": "m_write",
+        "kind": "write",
+        "goal": "Write an honest research report covering tournament architecture (six institutional posts), results, and concordance/divergence notes. No fabricated yields. Operator goal:\n{{OPERATOR_GOAL}}",
+        "paradigm": "write_atelier",
+        "exit_contract": "manuscript_checklist",
+        "skills_allowlist": [
+          "paper.outline",
+          "paper.related_work",
+          "paper.method",
+          "paper.checklist"
+        ]
+      }
+    },
+    {
+      "deps": [
+        "m_write"
+      ],
+      "on_fail": {
+        "action": "retry",
+        "max_times": 1
+      },
+      "mission": {
+        "id": "m_package",
+        "kind": "package",
+        "goal": "Package evidence bundle (positive, partial, or honest-negative).",
+        "paradigm": "pipeline_chain",
+        "exit_contract": "package_manifest",
+        "skills_allowlist": [
+          "package.arm"
+        ],
+        "metadata": {
+          "runtime": "harness",
+          "artifact_source": "harness"
+        }
+      }
+    }
+  ],
+  "locked_ids": [
+    "m_protocol",
+    "m_rules",
+    "m_hyp",
+    "m_package"
+  ],
+  "risks": [
+    "Operator goals that require wet-lab / field work cannot be fully closed in-sandbox.",
+    "Scientific concordance with an external reference paper is a C-side judgment; Line A success is institutional (six posts staffed, contracts closed, E0=0).",
+    "Insufficient operator max_iterations aborts late stages; launch with >=200 or grant at the human budget gate."
+  ],
+  "fallback": "Package partial/honest-negative with explicit external-resource gaps and tournament ledger notes.",
+  "budget": {
+    "max_revisions": 2,
+    "max_missions": 16
+  }
+}

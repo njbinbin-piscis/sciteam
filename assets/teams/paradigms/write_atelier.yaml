@@ -1,0 +1,37 @@
+id: write_atelier
+name: Write Atelier
+description: Writer plus librarian with a checklist adversary; barrier rounds until
+  checklist closes.
+members:
+- key: writer
+  agent_id: writer
+  name: Scientific Writer
+  role: writer
+  emits_exit_artifact: true
+- key: librarian
+  agent_id: librarian
+  name: Citation Librarian
+  role: librarian
+- key: checklist_adversary
+  agent_id: checklist_adversary
+  name: Checklist Adversary
+  role: checklist_adversary
+- key: round_assessor
+  agent_id: round_assessor
+  name: Round Assessor
+  role: round_assessor
+  authority:
+  - may_assess_round
+coordination:
+  topology: orchestrate
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 3
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  charter:
+    standing_goal: Production seats deliver the mission; round_assessor judges round
+      completion from observation facts. Fail-honest if no exit artifact by stagnation_max_rounds.
+    stagnation_max_rounds: 8

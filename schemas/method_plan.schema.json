@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/method_plan.schema.json",
+  "title": "MethodPlan",
+  "description": "Domain-agnostic experimental / engineering method plan (not tied to a frozen code eval).",
+  "type": "object",
+  "required": ["mission_id", "hypothesis_ids", "summary", "steps", "verification_plan", "limitations"],
+  "additionalProperties": false,
+  "properties": {
+    "mission_id": { "type": "string", "minLength": 1 },
+    "hypothesis_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "summary": { "type": "string", "minLength": 30 },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["step_id", "action", "expected_output"],
+        "additionalProperties": false,
+        "properties": {
+          "step_id": { "type": "string" },
+          "action": { "type": "string", "minLength": 10 },
+          "expected_output": { "type": "string", "minLength": 5 },
+          "sandbox_executable": { "type": "boolean" }
+        }
+      }
+    },
+    "verification_plan": { "type": "string", "minLength": 20 },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "resources_needed": { "type": "array", "items": { "type": "string" } },
+    "citations": {
+      "type": "array",
+      "description": "Structured, resolvable-identifier record for any paper named in the plan (e.g. a method the steps are adapted from). Free-text mentions inside summary/steps are not machine-checkable.",
+      "items": {
+        "type": "object",
+        "required": ["claim"],
+        "additionalProperties": false,
+        "properties": {
+          "claim": { "type": "string" },
+          "citation_key": { "type": "string" },
+          "arxiv_id": { "type": "string" },
+          "doi": { "type": "string" },
+          "title": { "type": "string" }
+        }
+      }
+    }
+  }
+}

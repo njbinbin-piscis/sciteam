@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/mission_spec.schema.json",
+  "title": "MissionSpec",
+  "description": "Declarative unit of team work: one goal, one paradigm, one exit contract. Mission kinds are catalog labels, never engine enums.",
+  "type": "object",
+  "required": ["id", "goal", "paradigm", "exit_contract"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9_.-]*$"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Free-form catalog label (e.g. hypothesis_atelier, build_fix). Informational only; the engine must not branch on it."
+    },
+    "goal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "paradigm": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Coordination template id resolved from the paradigm/team registry."
+    },
+    "roster": {
+      "type": "array",
+      "description": "Optional roster override; when absent the paradigm template members are used.",
+      "items": {
+        "type": "object",
+        "required": ["agent_key"],
+        "additionalProperties": true,
+        "properties": {
+          "agent_key": { "type": "string", "minLength": 1 },
+          "agent_id": { "type": "string" },
+          "name": { "type": "string" },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "skills_allowlist": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "exit_contract": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Schema id or path of the artifact contract that must validate for the mission to complete."
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_rounds": { "type": "integer", "minimum": 1 },
+        "max_wall_clock_seconds": { "type": "integer", "minimum": 1 },
+        "max_llm_tokens": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "description": "KB references or literal inputs handed to the team (e.g. prior mission artifacts)."
+    },
+    "coordination_overrides": {
+      "type": "object",
+      "description": "Tightening-only overrides applied on top of the paradigm template coordination."
+    },
+    "on_fail": {
+      "type": "string",
+      "default": "return_to_campaign_planner"
+    },
+    "metadata": { "type": "object" }
+  }
+}

@@ -1,0 +1,53 @@
+id: software_sop_chain
+name: Software SOP Chain (MetaGPT-style)
+description: >
+  Institutional expression of MetaGPT (2308.00352): a standard-operating-
+  procedure chain in which each role hands a role-specific artifact to the
+  next. Stage order is a work_graph.role_pipeline compiled to FS edges, not an
+  engine chain dispatcher (COORD-8: topology chain is declarative). The closest
+  prior art to "human institutions as templates," minus the substrate/template
+  separation and the governance layer — here it is one template among many.
+members:
+  - key: analyst
+    agent_id: analyst
+    name: Requirements Analyst
+    role: analyst
+  - key: designer
+    agent_id: designer
+    name: Architect
+    role: designer
+  - key: implementer
+    agent_id: implementer
+    name: Engineer
+    role: implementer
+  - key: assembler
+    agent_id: assembler
+    name: QA / Release Assembler
+    role: assembler
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: chain
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 1
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  work_graph:
+    role_pipeline:
+      - analyst
+      - designer
+      - implementer
+      - assembler
+  charter:
+    standing_goal: >
+      Each role delivers its SOP artifact to the next; the assembler seals the
+      exit contract. Stage order is a role_pipeline, not an engine phase.
+      Fail-honest on stagnation.
+    stagnation_max_rounds: 8

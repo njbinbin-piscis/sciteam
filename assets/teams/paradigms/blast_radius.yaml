@@ -1,0 +1,71 @@
+id: blast_radius
+name: Blast Radius Control (Governance x Hierarchy)
+description: >
+  Faithful institutional expression of Blast Radius Control as defined in the
+  two-dimensional pattern taxonomy (Huang & Zhou 2605.13850, S3.8; coordinates
+  C7 x T6 = Governance x Hierarchy): nested containment layers bound the maximum
+  damage of any single action, where "each level constrains the child" and the
+  outermost layer is the organizational risk boundary.
+  This template is the sharpest external test of Proposition 2 (governance
+  monotonicity), because the taxonomy states our proposition independently: a
+  containment hierarchy is exactly a chain of nested guards in which every inner
+  layer may only tighten what the outer layer already permits. Here the nesting is
+  declared by hierarchy topology (T6, already a TopologyKind value) plus
+  progressively narrower per-seat authority - outer seats hold the widest
+  authority and each inner seat a strict subset. The nesting is a declaration the
+  monotonicity test checks over the artifact; the authority tokens named here
+  (may_deny / may_allow / may_set_budget / may_grant_network) are not yet
+  consumed by the SciTeam engine — only may_assess_round and human_gate are.
+  The test shows the institution as declared narrows monotonically, not that the
+  runtime contains a misbehaving agent. Three-questions result: expressible /
+  no new schema field / no engine change.
+members:
+  - key: reviewer
+    agent_id: reviewer
+    name: L0 Organizational Risk Boundary
+    role: reviewer
+    authority: [may_deny, may_allow, may_set_budget, may_grant_network]
+  - key: analyst
+    agent_id: analyst
+    name: L1 Sandbox Boundary
+    role: analyst
+    authority: [may_deny, may_allow, may_set_budget]
+  - key: implementer
+    agent_id: implementer
+    name: L2 Contained Actor
+    role: implementer
+    authority: [may_deny]
+  - key: assembler
+    agent_id: assembler
+    name: Containment Reporter
+    role: assembler
+    emits_exit_artifact: true
+    authority: [may_deny]
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: hierarchy
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 1
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  work_graph:
+    role_pipeline:
+      - reviewer
+      - analyst
+      - implementer
+      - assembler
+  charter:
+    standing_goal: >
+      Each containment level constrains its child: the organizational boundary
+      sets the widest authority, the sandbox layer a subset, the contained actor
+      the narrowest. No inner layer may widen an outer layer's authority - the
+      monotonicity that makes bounded-damage autonomy safe. Fail-honest on
+      stagnation.
+    stagnation_max_rounds: 8

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/evo_verification.schema.json",
+  "title": "EvoVerification",
+  "description": "Exit contract for m_evo_verify: the verifier seat's mechanical re-measurement of one candidate. All numbers must be recomputable from verify_run_ref; a declared artifact_audit re-derives held_in/held_out counts from the referenced run and fails the mission if they disagree. The verifier holds the held-out manifest; its content never appears here beyond aggregate counts.",
+  "type": "object",
+  "required": ["candidate_id", "verify_run_ref", "held_in", "held_out", "regressions", "verdict"],
+  "additionalProperties": false,
+  "properties": {
+    "candidate_id": { "type": "string" },
+    "verify_run_ref": { "type": "string", "description": "Run directory (relative to runs/) containing the raw evaluation outputs backing every number below." },
+    "held_in": { "$ref": "#/$defs/split_result" },
+    "held_out": { "$ref": "#/$defs/split_result" },
+    "regressions": {
+      "type": "array",
+      "description": "Task ids that passed under the base genome but fail under the candidate.",
+      "items": { "type": "string" }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["confirmed", "not_confirmed", "regression"],
+      "description": "confirmed: held-in gain > 0 and no held-out regression; not_confirmed: no measurable gain; regression: any held-out regression. Thresholds per PREREG."
+    },
+    "verified_by": { "type": "string", "description": "seat:<agent_key> — must hold the evo_verifier role and must differ from the proposer seat; RBAC-checked." },
+    "x-notes": { "type": "string" }
+  },
+  "$defs": {
+    "split_result": {
+      "type": "object",
+      "required": ["tasks_total", "passed_base", "passed_candidate", "gain_pp"],
+      "additionalProperties": false,
+      "properties": {
+        "tasks_total": { "type": "integer", "minimum": 1 },
+        "passed_base": { "type": "integer", "minimum": 0 },
+        "passed_candidate": { "type": "integer", "minimum": 0 },
+        "gain_pp": { "type": "number", "description": "v2: 100 * (passed_candidate - passed_base) / tasks_total. v3 continuous: 100 * (fitness_candidate - fitness_base). Recomputed by audit." },
+        "fitness_base": { "type": "number", "description": "v3 only: mean baseline-centered score of in_fitness tasks." },
+        "fitness_candidate": { "type": "number" },
+        "scoring": { "type": "string", "enum": ["binary", "continuous"] }
+      }
+    }
+  }
+}

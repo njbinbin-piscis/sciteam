@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/scorecard.schema.json",
+  "title": "Scorecard",
+  "description": "Campaign integrity scorecard (G4).",
+  "type": "object",
+  "required": ["campaign_id", "mode", "agents", "produced_at"],
+  "additionalProperties": false,
+  "properties": {
+    "campaign_id": { "type": "string" },
+    "mode": {
+      "type": "string",
+      "enum": ["record_only", "soft", "hard"]
+    },
+    "agents": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["integrity_score", "violations", "bonuses"],
+        "properties": {
+          "integrity_score": { "type": "integer" },
+          "violations": { "type": "integer" },
+          "bonuses": { "type": "integer" },
+          "notes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "mission_audits": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "produced_at": { "type": "string" },
+    "summary": { "type": "string" }
+  }
+}

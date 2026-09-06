@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/results.schema.json",
+  "title": "FrozenEvalResults",
+  "description": "Exit contract for build/eval missions. This file must be produced ONLY by the hash-locked eval script; agents never hand-write it.",
+  "type": "object",
+  "required": ["problem_id", "eval_script_sha256", "seed", "baseline", "candidate", "success_predicate", "success", "produced_at"],
+  "additionalProperties": false,
+  "properties": {
+    "problem_id": { "type": "string", "minLength": 1 },
+    "result_id": { "type": "string" },
+    "mission_id": { "type": "string" },
+    "eval_script_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Self-reported hash of the eval script that produced this file; must match the protocol freeze."
+    },
+    "candidate_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "seed": { "type": "integer" },
+    "baseline": {
+      "type": "object",
+      "required": ["name", "metrics"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["name", "metrics"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        }
+      }
+    },
+    "correctness": {
+      "type": "object",
+      "required": ["checked", "passed"],
+      "additionalProperties": true,
+      "properties": {
+        "checked": { "type": "boolean" },
+        "passed": { "type": "boolean" },
+        "detail": { "type": "string" }
+      }
+    },
+    "success_predicate": {
+      "type": "string",
+      "description": "Human-readable restatement of the frozen predicate applied."
+    },
+    "success": { "type": "boolean" },
+    "produced_at": { "type": "string" },
+    "environment": { "type": "object" }
+  }
+}

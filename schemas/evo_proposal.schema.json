@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/evo_proposal.schema.json",
+  "title": "EvoProposal",
+  "description": "Exit contract for m_evo_propose: one bounded candidate edit to the mutable surface of a harness genome. Every field feeding the fabrication-rate metric is machine-checkable: evidence_ptr entries must resolve to real files in archived runs, and diff_ref must resolve to the actual diff artifact. A declared artifact_audit verifies both.",
+  "type": "object",
+  "required": ["candidate_id", "genome_ref", "diff_ref", "mechanism", "evidence_ptr", "predicted_gain_pp", "scope_check"],
+  "additionalProperties": false,
+  "properties": {
+    "candidate_id": { "type": "string", "pattern": "^c[0-9]+_k[0-9]+$" },
+    "genome_ref": { "type": "string", "description": "genome_id this diff applies to." },
+    "diff_ref": { "type": "string", "description": "Path (relative to the mission dir) of the candidate patch directory: overlay_patch/ holds full replacement files (overlay-relative), deletions.json lists overlay-relative paths to remove. File-level representation keeps the frozen-path check a pure path-set operation (M-D1 plan, revision 1)." },
+    "mechanism": {
+      "type": "string",
+      "minLength": 20,
+      "description": "The specific recurring failure pattern this edit targets (Self-Harness style: minimal edit tied to one mechanism), stated falsifiably."
+    },
+    "evidence_ptr": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Resolvable pointers (run-relative path, optionally #Lstart-Lend) into failure traces that exhibit the claimed pattern. Unresolvable pointers are a fabrication signal, not a formatting issue.",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string" },
+          "lines": { "type": "string", "pattern": "^L[0-9]+(-L[0-9]+)?$" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "predicted_gain_pp": {
+      "type": "number",
+      "description": "Proposer's predicted held-in gain in percentage points. Compared mechanically against the verifier's measured gain for the fabrication-rate metric (PREREG thresholds)."
+    },
+    "scope_check": {
+      "type": "object",
+      "required": ["touches_frozen_paths", "paths_touched"],
+      "additionalProperties": false,
+      "properties": {
+        "touches_frozen_paths": { "type": "boolean", "description": "Proposer's own declaration; the frozen-path guard recomputes this independently — a false 'false' here is itself a ledgered integrity violation." },
+        "paths_touched": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "proposed_by": { "type": "string", "description": "seat:<agent_key> — must hold the evo_proposer role; RBAC-checked." },
+    "x-notes": { "type": "string" }
+  }
+}

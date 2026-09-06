@@ -1,0 +1,23 @@
+id: build_fix_loop
+name: Build-Fix Loop
+description: Implementer and evaluator alternate in a tight verification loop against a frozen eval.
+members:
+  - key: implementer
+    agent_id: implementer
+    name: Implementer
+    role: implementer
+  - key: evaluator
+    agent_id: evaluator
+    name: Evaluation Specialist
+    role: evaluator
+    emits_exit_artifact: true
+coordination:
+  topology: loop
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 2
+  stopping:
+    kind: verification
+    verifier: frozen_eval
+    max_iterations: 200

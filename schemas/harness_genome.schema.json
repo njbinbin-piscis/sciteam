@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/harness_genome.schema.json",
+  "title": "HarnessGenome",
+  "description": "Line D evolvable-object declaration for one worker harness: the mutable surface an evo_proposer may edit, and the constitutional core no proposal may touch. Data, not code; applied as overlay over baseline assets (never in-place).",
+  "type": "object",
+  "required": ["genome_id", "arm", "mutable_surface", "constitutional_core"],
+  "additionalProperties": false,
+  "properties": {
+    "genome_id": { "type": "string", "pattern": "^g_[a-z0-9_]+$" },
+    "arm": { "type": "string", "enum": ["own", "pi"] },
+    "parent": { "type": ["string", "null"], "description": "genome_id of the parent in the lineage chain; null for g0 baselines." },
+    "created_at": { "type": "string" },
+    "mutable_surface": {
+      "type": "object",
+      "required": ["prompt_modules", "skills"],
+      "additionalProperties": false,
+      "properties": {
+        "prompt_modules": {
+          "type": "array",
+          "description": "Overlay prompt-module files (relative to the genome overlay dir). Baseline prompt assets are never edited in place.",
+          "items": { "type": "string" }
+        },
+        "skills": {
+          "type": "array",
+          "description": "Skill directories active for this genome: baseline skill ids and/or overlay-local skill dirs.",
+          "items": { "type": "string" }
+        },
+        "tool_policy": {
+          "type": "object",
+          "description": "Bounded numeric/boolean knobs only; keys outside this set are a schema violation.",
+          "additionalProperties": false,
+          "properties": {
+            "max_readonly_parallel": { "type": "integer", "minimum": 1, "maximum": 8 },
+            "retry_budget": { "type": "integer", "minimum": 0, "maximum": 5 }
+          }
+        },
+        "loop_knobs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "compaction": { "type": "string", "enum": ["none", "summary", "sliding_window"] },
+            "memory_injection": { "type": "string", "enum": ["on", "off"] }
+          }
+        }
+      }
+    },
+    "constitutional_core": {
+      "type": "object",
+      "required": ["frozen_paths", "touch_policy"],
+      "additionalProperties": false,
+      "properties": {
+        "frozen_paths": {
+          "type": "array",
+          "description": "Path globs (relative to lab root) that no candidate diff may create, modify, or delete. Must include at minimum: schemas/, sciteam audit/assessor modules, the evolution ledger, roster/RBAC files, and the fitness task-set manifests.",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "touch_policy": {
+          "type": "string",
+          "enum": ["auto_reject_and_ledger"],
+          "description": "v1 fixes the AgentCity-style semantics: a diff touching frozen_paths is rejected mechanically before verification (impossible, not merely punishable), and the attempt is ledgered."
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "engine_commit": { "type": "string", "description": "paper/lab git commit hash this genome was created under (03 §11.1 pinning discipline)." },
+        "batch_tag": { "type": "string" }
+      }
+    },
+    "x-notes": { "type": "string" }
+  }
+}

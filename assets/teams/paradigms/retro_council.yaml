@@ -1,0 +1,47 @@
+id: retro_council
+name: Retrospective Council
+description: 'Campaign post-mortem (m_retro, Grundnorm G7 double-loop entry).
+  The retro moderator turns the mechanical record — ledgers, audits, round
+  assessments, scorecards, usage — into a schema-validated retro_report with
+  resolvable evidence refs; an amendment drafter turns confirmed patterns into
+  0..N amendment proposals; the red team must not veto silently. Honest
+  "nothing to amend" is a legal terminal state.
+
+  '
+members:
+- key: retro_moderator
+  agent_id: retro_moderator
+  name: Retrospective Moderator
+  role: retro_moderator
+  emits_exit_artifact: true
+- key: amendment_drafter
+  agent_id: amendment_drafter
+  name: Amendment Drafter
+  role: retro_moderator
+- key: red_team_reviewer
+  agent_id: red_team_reviewer
+  name: Red-Team Reviewer
+  role: red_team
+- key: round_assessor
+  agent_id: round_assessor
+  name: Round Assessor
+  role: round_assessor
+  authority:
+  - may_assess_round
+coordination:
+  topology: parallel
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 3
+  stopping:
+    kind: judgment
+    max_iterations: 100
+  replicas: {}
+  charter:
+    standing_goal: Produce a retro_report grounded in the mechanical record
+      only; engine/environment findings escalate to the human operator and
+      never become amendment proposals; single-loop notes stay separate from
+      rule-change proposals. Fail-honest if no exit artifact by
+      stagnation_max_rounds.
+    stagnation_max_rounds: 6

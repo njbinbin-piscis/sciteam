@@ -1,0 +1,54 @@
+id: plan_and_execute
+name: Plan-and-Execute (Action x Orchestrate)
+description: >
+  Faithful institutional expression of Plan-and-Execute as defined in the
+  two-dimensional pattern taxonomy (Huang & Zhou 2605.13850, S3.4; coordinates
+  C4 x T4 = Action x Orchestrate). Strategy is separated from tactics: a planner
+  seat decomposes the task into a DAG of subtasks and an executor pool carries
+  them out. The DAG is declared as work_graph policy, so "the planner emits a
+  plan" is a template field rather than an engine planning phase; topology
+  orchestrate is the taxonomy's T4 archetype and is already a TopologyKind
+  value. Three-questions result: expressible / no new schema field / no engine
+  change.
+members:
+  - key: planner
+    agent_id: planner
+    name: Planner
+    role: planner
+  - key: implementer
+    agent_id: implementer
+    name: Executor
+    role: implementer
+  - key: assembler
+    agent_id: assembler
+    name: Transaction Closer
+    role: assembler
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: orchestrate
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 3
+  stopping:
+    kind: judgment
+    max_iterations: 200
+  replicas:
+    implementer: 2
+  work_graph:
+    role_pipeline:
+      - planner
+      - implementer
+      - assembler
+  charter:
+    standing_goal: >
+      The planner decomposes into subtasks; executor replicas run them under the
+      declared dependency order; the closer seals the exit contract once the
+      plan is discharged. Plan structure is work_graph policy, not an engine
+      phase. Fail-honest on stagnation.
+    stagnation_max_rounds: 8
