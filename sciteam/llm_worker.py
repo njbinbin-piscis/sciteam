@@ -9,13 +9,10 @@ carries an `artifact` object, it is written to the mission artifact path
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
-import hashlib
 import json
+import logging
 import os
-import re
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -25,12 +22,20 @@ from sciteam.compact import build_working_pack
 from sciteam.experiment_pack import PackError, ensure_skills_in_pack
 from sciteam.llm import LlmClient
 from sciteam.memory import CampaignMemoryStore, MemoryRecord, SeatMemoryStore
-from sciteam.output_truncation import persist_full_text
 from sciteam.persist import (
     append_agent_log,
     write_agent_result_file,
 )
+from sciteam.prompt_assets import (
+    _BASH_TOOL_CLAUSE,
+    _SKILL_TOPK_K,
+    _SKILL_TOPK_THRESHOLD,
+    ASSESS_ENVELOPE_INSTRUCTIONS,
+    ENVELOPE_INSTRUCTIONS,
+    PromptAssets,
+)
 from sciteam.runtime import AgentOutcome, AgentRunResult, Run, RunSpec, RunState
+from sciteam.tool_loop import ToolLoopMixin
 from sciteam.worker_common import extract_json as _extract_json
 from sciteam.worker_common import role_key as _role_key
 from sciteam.worker_common import sanitize_artifact_payload
@@ -38,6 +43,9 @@ from sciteam.worker_common import sanitize_artifact_payload
 # Inner-loop tool rounds per work item (LLM↔tools until final envelope).
 # Override with SCITEAM_MAX_TOOL_ROUNDS. Five was a scaffold cap and is far too low
 # for literature / research work items. The default supports research-grade iteration.
+logger = logging.getLogger(__name__)
+
+
 _DEFAULT_MAX_TOOL_ROUNDS = 500
 
 # P0-3: readonly tool calls in the same round (e.g. several literature_search
@@ -45,17 +53,12 @@ _DEFAULT_MAX_TOOL_ROUNDS = 500
 # always run serially and in order. Override with SCITEAM_MAX_PARALLEL_READONLY.
 _DEFAULT_MAX_PARALLEL_READONLY = 4
 
-# P1-7: max schema-validator-guided repair round-trips for a contract
-# ("artifact") violation before giving up and letting the engine's own
-# downstream ContractValidator reject the artifact as before.
-_MAX_CONTRACT_REPAIR_ATTEMPTS = 2
-_JSON_OBJECT_RESPONSE_FORMAT = {"type": "json_object"}
 
 # P1-6: once accumulated `role: "tool"` message content in a single work
 # item's inner loop exceeds this many chars, older tool results are folded
 # into a one-line digest and their full JSON is persisted to
 # `<mission_workspace>/tool_history/*.json`. The most recent
-# `_TOOL_HISTORY_KEEP_RECENT` tool messages are always kept verbatim so the
+# `tool_loop._TOOL_HISTORY_KEEP_RECENT` tool messages are always kept verbatim so the
 # model can still reason about what it just did. This is a *within-turn*
 # analogue of the working-pack compaction in `compact.py`, for the raw
 # tool-calling transcript that `_fit_to_context` does not see (it only sizes
@@ -68,85 +71,6 @@ _JSON_OBJECT_RESPONSE_FORMAT = {"type": "json_object"}
 # capability-gated read tool and is tracked as a fast-follow, not silently
 # implied here.
 _DEFAULT_TOOL_HISTORY_BUDGET_CHARS = 20_000
-_TOOL_HISTORY_KEEP_RECENT = 3
-
-# P1-8: full-allowlist skill injection (every id, each capped at
-# `max_skill_chars`) doesn't scale — once a role's allowlist grows past this
-# many skills, only the top-`_SKILL_TOPK_K` by deterministic lexical overlap
-# with the task card get their body text injected into the prompt. This is
-# strictly a *prompt-injection* selection: `_required_tool_capabilities`
-# still derives from the FULL allowlist (see `run_subagent`), so which
-# capabilities/tools a seat is granted never shrinks because a skill's text
-# wasn't shown this round (capability surface unchanged, per audit).
-_SKILL_TOPK_THRESHOLD = 6
-_SKILL_TOPK_K = 6
-
-ENVELOPE_INSTRUCTIONS = """\
-You may call research tools (literature_search, web_search, url_fetch, citation_audit)
-before finishing. When the mission needs literature or external facts, you MUST
-use tools — do not invent DOIs, titles, or metrics.
-
-You also have workspace-confined file tools, always available: read, write, edit,
-ls, find, grep. Use `read`/`grep`/`find`/`ls` to inspect existing files (a problem
-spec, another seat's output, prior code) before acting — never assume or invent
-their contents. Use `write`/`edit` for incremental work you want on disk *now*
-(these take effect immediately, unlike the round-end "files" key below).
-For source code or any long content, you MUST use `write`/`edit`. Do not place
-source code in the JSON `files` value; after writing it with a tool, emit
-`"files": null`.
-
-When finished, respond with a single JSON object (no markdown fences, no commentary outside JSON):
-{
-  "summary": "<what you concluded / produced, concise but complete>",
-  "facts": ["<atomic reusable finding>", ...],
-  "artifact": <the exit-contract JSON object if YOU are finalizing it this round, else null>,
-  "files": {"<relative filename>": "<full file content>", ...} | null,
-  "run_eval": {"problem_id": "<registered id>", "candidate_file": "<file you wrote>"} | null,
-  "tool_notes": ["<optional: which tools you used and why>"] | null
-}
-Only emit "artifact" when your role is responsible for assembling the final
-mission artifact and the content is ready; partial work belongs in summary/facts.
-Inside the artifact, OMIT optional fields you cannot fill — never emit null
-for them, and never add fields the schema does not declare.
-"files" is only for a short text note that cannot be written through the
-workspace tools. Candidate code and manuscripts must be written with
-`write`/`edit`. "run_eval" invokes the FROZEN eval script on a candidate file
-you wrote; its results.json is written to the mission artifact path
-automatically — this is the ONLY way official numbers come to exist. Use these
-only when the mission calls for them; otherwise emit null.
-"""
-
-ASSESS_ENVELOPE_INSTRUCTIONS = """\
-You are a round-assessment seat (may_assess_round). You do NOT write the mission
-exit-contract file. Apply the charter to the observation pack and decide.
-
-When finished, respond with a single JSON object (no markdown fences):
-{
-  "decision": "continue" | "completed" | "failed",
-  "reason_code": "ok_complete" | "need_artifact" | "gate_unsatisfied" | "exit_stalled" |
-    "integrity_fail" | "process_fail" | "all_workers_failed",
-  "summary": "<short rationale>",
-  "next_round_hint": "<guidance for production seats, or empty string>",
-  "assessor_key": "<your seat key>",
-  "approve_promote_draft": false,
-  "facts": []
-}
-"artifact" must be null. Do not invent science content.
-"""
-
-# B4: appended to whichever envelope-instructions block is active, only for
-# seats whose declared capabilities already justify process-level access
-# (`worker_common.BASH_GATING_CAPABILITIES`) — mirrors the pi arm's
-# capability-gated `bash` (see `pi_runtime._PI_ARTIFACT_INSTRUCTIONS`'s
-# `bash_clause`), so a skill allowlist grants the same shell access on
-# either arm.
-_BASH_TOOL_CLAUSE = """
-You also have `bash`: a shell command cwd-confined to the mission workspace,
-bounded in time/CPU/memory with truncated output. Use it for build/test/compute
-steps your other tools cannot do (running a build, invoking a CLI, inspecting an
-environment) — never to fetch URLs when literature_search/web_search/url_fetch
-already cover that, and never to work around the workspace confinement.
-"""
 
 
 def _assessment_envelope_ok(envelope: dict[str, Any] | None) -> bool:
@@ -189,131 +113,7 @@ def _render_inputs_budgeted(data: dict[str, Any], budget: int) -> str:
     return "\n\n".join(f"## {key}\n{rendered[key]}" for key, _ in entries)
 
 
-@dataclass
-class PromptAssets:
-    """Filesystem-backed prompt/skill lookup.
-
-    When ``pack_dir`` is set (experiment instance root), role prompts and skills
-    are loaded from the pack first; system ``assets/`` remain templates.
-
-    ``genome_overlay_dir`` (Line D, lineD/03 §11): when set, every
-    ``prompt_modules/*.md`` under it is appended to each role prompt as an
-    evolved-guidance section. ``None`` (the default) is byte-identical to the
-    pre-genome behavior — the Line A arms never pass it.
-
-    ``extra_prompts_dirs``/``extra_skills_dirs`` (see
-    ``docs/25-sciteam-plugin-architecture.md`` §3.3,
-    ``PluginRegistry.role_prompts_dirs``/``skills_dirs``): additional search
-    directories consulted, in order, after ``prompts_dir``/``skills_dir`` and
-    ``pack_dir`` find no match. Empty tuples (the default) reproduce the
-    pre-plugin lookup order byte-for-byte — a plugin can *add* a role prompt
-    or skill body for an id the base assets don't define, never shadow one
-    that already resolves from ``prompts_dir``/``skills_dir``/``pack_dir``.
-    """
-
-    prompts_dir: Path
-    skills_dir: Path
-    max_skill_chars: int = 16000
-    pack_dir: Path | None = None
-    genome_overlay_dir: Path | None = None
-    extra_prompts_dirs: tuple[Path, ...] = ()
-    extra_skills_dirs: tuple[Path, ...] = ()
-    loaded_skill_versions: dict[str, dict[str, str]] = field(default_factory=dict, init=False)
-
-    def constitution(self) -> str:
-        path = self.prompts_dir / "constitution.md"
-        return path.read_text(encoding="utf-8") if path.is_file() else ""
-
-    def role_prompt(self, agent_key: str) -> str:
-        return self._base_role_prompt(agent_key) + self._genome_modules()
-
-    def _base_role_prompt(self, agent_key: str) -> str:
-        role = _role_key(agent_key)
-        if self.pack_dir is not None:
-            pack_agent = Path(self.pack_dir) / "agents" / role / "AGENT.md"
-            if pack_agent.is_file():
-                text = pack_agent.read_text(encoding="utf-8")
-                # Strip YAML frontmatter for the model-facing prompt body.
-                if text.startswith("---"):
-                    parts = text.split("---", 2)
-                    if len(parts) >= 3:
-                        text = parts[2].lstrip("\n")
-                return text
-        search_dirs = (self.prompts_dir, *self.extra_prompts_dirs)
-        # Pass 1: a role-specific file, in any search dir — a plugin's
-        # specific role must be found before falling through to the base's
-        # generic `worker.md` catch-all (pass 2), or a plugin-added role
-        # would never be reachable (the base ships a `worker.md`, so it
-        # would always win pass 1 of a single combined per-dir loop).
-        for prompts_dir in search_dirs:
-            path = Path(prompts_dir) / "roles" / f"{role}.md"
-            if path.is_file():
-                return path.read_text(encoding="utf-8")
-        # Pass 2: the legacy generic fallback, same search order.
-        for prompts_dir in search_dirs:
-            path = Path(prompts_dir) / "roles" / "worker.md"
-            if path.is_file():
-                return path.read_text(encoding="utf-8")
-        return f"You are the `{role}` specialist on a research team."
-
-    def _genome_modules(self) -> str:
-        if self.genome_overlay_dir is None:
-            return ""
-        mod_dir = Path(self.genome_overlay_dir) / "prompt_modules"
-        if not mod_dir.is_dir():
-            return ""
-        parts = [
-            body
-            for path in sorted(mod_dir.glob("*.md"))
-            if (body := path.read_text(encoding="utf-8").strip())
-        ]
-        if not parts:
-            return ""
-        return "\n\n## Evolved guidance (genome overlay)\n\n" + "\n\n".join(parts)
-
-    def skill_raw_text(self, skill_id: str) -> tuple[str, str]:
-        """`(text, source_path)` for one skill id, pack override first, then
-        the system `skills_dir` — the same lookup `skill_pack` uses per
-        entry, factored out so P1-8 top-k scoring can read skill bodies
-        without duplicating (and risking drifting from) this lookup order."""
-        if self.pack_dir is not None:
-            pack_skill = Path(self.pack_dir) / "skills" / skill_id / "SKILL.md"
-            if pack_skill.is_file():
-                return pack_skill.read_text(encoding="utf-8"), str(pack_skill)
-        for skills_dir in (self.skills_dir, *self.extra_skills_dirs):
-            path = Path(skills_dir) / skill_id / "SKILL.md"
-            if path.is_file():
-                return path.read_text(encoding="utf-8"), str(path)
-        return "", ""
-
-    def skill_pack(self, allowlist: list[str], *, max_chars_override: int | None = None) -> str:
-        max_chars = self.max_skill_chars if max_chars_override is None else max_chars_override
-        sections: list[str] = []
-        for skill_id in allowlist:
-            text, source = self.skill_raw_text(skill_id)
-            if text:
-                version_match = re.search(r"(?m)^(?:version:\s*|##\s+Version\s*\n)([^\n]+)", text)
-                self.loaded_skill_versions[skill_id] = {
-                    "version": (
-                        version_match.group(1).strip().strip("\"'")
-                        if version_match
-                        else "unversioned"
-                    ),
-                    "source": source,
-                    "sha256": hashlib.sha256(text.encode()).hexdigest(),
-                }
-                if len(text) > max_chars:
-                    text = text[:max_chars] + "\n...[truncated]"
-                sections.append(f'<skill id="{skill_id}">\n{text}\n</skill>')
-            else:
-                sections.append(
-                    f'<skill id="{skill_id}">(spec not found — follow the id '
-                    "semantics conservatively)</skill>"
-                )
-        return "\n\n".join(sections)
-
-
-class LlmWorkerRuntime:
+class LlmWorkerRuntime(ToolLoopMixin):
     """RuntimePort implementation running each task as an LLM call."""
 
     def __init__(
@@ -326,6 +126,9 @@ class LlmWorkerRuntime:
         max_tokens: int | None = None,
         max_tool_rounds: int | None = None,
         eval_runner: Any = None,
+        session_store: Any = None,
+        plugin_registry: Any = None,
+        sandbox_profile: str | None = None,
     ) -> None:
         """`eval_runner` is an injected verifier callable
         (problem_id, candidate_path | None, out_path, seed | None) -> None;
@@ -334,9 +137,22 @@ class LlmWorkerRuntime:
         Exit-artifact duty is NOT a hardcoded role list here. MissionRunner
         injects ``metadata.artifact_emit_roles`` from the paradigm YAML
         (``emits_exit_artifact: true`` on member seats).
+
+        `session_store` (docs/SESSION-KERNEL.md) is optional and additive:
+        when a composition root supplies a `sciteam.session.SessionStore`,
+        every inner-loop turn/tool call is also recorded as a hash-chained
+        SessionEvent. `None` (the default) preserves this class's exact
+        prior behavior — no new required argument, no behavior change for
+        any existing caller that does not opt in.
         """
         self._client = client
         self._assets = assets
+        self._session_store = session_store
+        self._plugin_registry = plugin_registry
+        # docs/28 阶段4: `None` defers to `sandbox.resolve_sandbox_profile()`
+        # (env > product default `unattended`); explicit callers (tests,
+        # CLI `--sandbox-profile development`) may opt into weaker isolation.
+        self._sandbox_profile = sandbox_profile
         self._schemas_dir = Path(schemas_dir)
         self._temperature = temperature
         if max_tokens is None:
@@ -506,467 +322,6 @@ class LlmWorkerRuntime:
         # the way the paradigm author declared it.
         selected = [skill_id for idx, skill_id in enumerate(allowlist) if idx in selected_idx]
         return selected, True, [(skill_id, score) for score, _, skill_id in top]
-
-    @staticmethod
-    def _parse_tool_call(tc: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-        fn = tc.get("function") or {}
-        name = str(fn.get("name") or "")
-        raw_args = fn.get("arguments") or "{}"
-        try:
-            args = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
-        except json.JSONDecodeError:
-            args = {}
-        if not isinstance(args, dict):
-            args = {}
-        return name, args
-
-    async def _invoke_tool(
-        self,
-        tc: dict[str, Any],
-        *,
-        tool_context: dict[str, Any],
-        semaphore: asyncio.Semaphore | None,
-        cache: dict[tuple[str, str], dict[str, Any]] | None = None,
-    ) -> tuple[dict[str, Any], str, dict[str, Any], dict[str, Any], bool]:
-        name, args = self._parse_tool_call(tc)
-        from sciteam.wizard_tools import run_research_tool, tool_deterministic
-
-        # P1-7: reuse a same-work-item (tool, args) result instead of
-        # re-invoking — only for catalog `deterministic: true` tools (e.g.
-        # literature_search, run_eval), never for web_search/submit_job
-        # where a repeat call may legitimately return something different.
-        # This is the concrete fix for "thinking loops in place": a model
-        # that re-issues an identical query gets the same answer instantly
-        # rather than burning a tool round (and, for side-effect-adjacent
-        # deterministic tools, re-triggering real work).
-        cache_key: tuple[str, str] | None = None
-        if cache is not None and tool_deterministic(name):
-            cache_key = (name, json.dumps(args, sort_keys=True, ensure_ascii=False))
-            existing = cache.get(cache_key)
-            if existing is not None:
-                # Single-flight: if the *first* identical call is still
-                # in-flight (e.g. two identical calls dispatched together
-                # in the same concurrent `readonly` batch), await its
-                # future instead of racing a duplicate invocation — the
-                # get/set below has no `await` between them, so this check
-                # is race-free on asyncio's single-threaded event loop.
-                result = await existing if isinstance(existing, asyncio.Future) else existing
-                return tc, name, args, result, True
-            pending: asyncio.Future = asyncio.get_event_loop().create_future()
-            cache[cache_key] = pending
-
-        if semaphore is not None:
-            async with semaphore:
-                result = await asyncio.to_thread(
-                    run_research_tool, name, args, context=tool_context
-                )
-        else:
-            result = await asyncio.to_thread(run_research_tool, name, args, context=tool_context)
-        if cache_key is not None:
-            cache[cache_key] = result
-            if not pending.done():
-                pending.set_result(result)
-        return tc, name, args, result, False
-
-    async def _run_tool_calls(
-        self,
-        calls: list[dict[str, Any]],
-        *,
-        tool_context: dict[str, Any],
-        cache: dict[tuple[str, str], dict[str, Any]] | None = None,
-    ) -> list[tuple[dict[str, Any], str, dict[str, Any], dict[str, Any], bool]]:
-        """Execute one round's tool calls: consecutive `readonly` calls run
-        concurrently (bounded by `_max_parallel_readonly`); every other
-        permission class (`side_effect`, `privileged`, unknown) runs
-        serially, in the model's original order. Results are always
-        returned in the original call order regardless of execution order,
-        so the trace/messages stay deterministic and replayable. The final
-        tuple element is `cache_hit` (P1-7 dedup cache).
-        """
-        from sciteam.wizard_tools import tool_permission
-
-        results: list[tuple[dict[str, Any], str, dict[str, Any], dict[str, Any], bool]] = []
-        i = 0
-        n = len(calls)
-        while i < n:
-            name0, _ = self._parse_tool_call(calls[i])
-            readonly = tool_permission(name0) == "readonly"
-            j = i + 1
-            while j < n:
-                namej, _ = self._parse_tool_call(calls[j])
-                if (tool_permission(namej) == "readonly") != readonly:
-                    break
-                j += 1
-            group = calls[i:j]
-            if readonly and len(group) > 1:
-                semaphore = asyncio.Semaphore(self._max_parallel_readonly)
-                group_results = await asyncio.gather(
-                    *[
-                        self._invoke_tool(
-                            tc, tool_context=tool_context, semaphore=semaphore, cache=cache
-                        )
-                        for tc in group
-                    ]
-                )
-            else:
-                group_results = [
-                    await self._invoke_tool(
-                        tc, tool_context=tool_context, semaphore=None, cache=cache
-                    )
-                    for tc in group
-                ]
-            results.extend(group_results)
-            i = j
-        return results
-
-    def _archive_tool_result(
-        self,
-        tool_context: dict[str, Any],
-        *,
-        tool_round: int,
-        call_id: str,
-        content: str,
-    ) -> str:
-        workspace = Path(str(tool_context.get("mission_workspace") or "."))
-        safe_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", call_id)[:80] or "tool"
-        try:
-            path = persist_full_text(
-                workspace / "tool_history", f"{tool_round}_{safe_id}.json", content
-            )
-            return str(path)
-        except OSError:
-            return "<disk write failed>"
-
-    def _compact_tool_history(
-        self,
-        messages: list[dict[str, Any]],
-        *,
-        tool_context: dict[str, Any],
-        inner_loop: list[dict[str, Any]],
-        tool_round: int,
-    ) -> None:
-        """P1-6: fold older `role: "tool"` messages into a one-line digest
-        once their combined size passes `_tool_history_budget_chars`, so a
-        long research loop does not resend megabytes of stale tool JSON on
-        every remaining round. The most recent `_TOOL_HISTORY_KEEP_RECENT`
-        tool messages are left untouched (still directly usable); the rest
-        get their full content persisted to disk and replaced in-place with
-        a short pointer. Mutates `messages` in place; deterministic (order
-        and selection depend only on message count/size, not on content).
-        """
-        tool_indices = [i for i, m in enumerate(messages) if m.get("role") == "tool"]
-        total_chars = sum(len(str(messages[i].get("content") or "")) for i in tool_indices)
-        if total_chars <= self._tool_history_budget_chars:
-            return
-        compactable = tool_indices[:-_TOOL_HISTORY_KEEP_RECENT] if tool_indices else []
-        compactable = [
-            i
-            for i in compactable
-            if not str(messages[i].get("content") or "").startswith("[compacted]")
-        ]
-        if not compactable:
-            return
-        workspace = Path(str(tool_context.get("mission_workspace") or "."))
-        history_dir = workspace / "tool_history"
-        chars_saved = 0
-        n_compacted = 0
-        for i in compactable:
-            msg = messages[i]
-            content = str(msg.get("content") or "")
-            if len(content) < 500:
-                continue  # not worth a disk round-trip
-            call_id = str(msg.get("tool_call_id") or f"msg{i}")
-            digest_path = history_dir / f"{tool_round}_{call_id}.json"
-            try:
-                history_dir.mkdir(parents=True, exist_ok=True)
-                digest_path.write_text(content, encoding="utf-8")
-                pointer = str(digest_path)
-            except OSError:
-                pointer = "<disk write failed>"
-            summary = content[:160].replace("\n", " ")
-            msg["content"] = (
-                f"[compacted] {len(content)} chars folded (audit copy: {pointer}) — head: {summary}"
-            )
-            chars_saved += len(content) - len(msg["content"])
-            n_compacted += 1
-        if n_compacted:
-            inner_loop.append(
-                {
-                    "kind": "tool_history_compact",
-                    "tool_round": tool_round,
-                    "messages_compacted": n_compacted,
-                    "chars_saved": chars_saved,
-                    "kept_recent": _TOOL_HISTORY_KEEP_RECENT,
-                    "budget_chars": self._tool_history_budget_chars,
-                }
-            )
-
-    async def _complete_with_tools(
-        self,
-        messages: list[dict[str, Any]],
-        *,
-        tool_definitions: list[dict[str, Any]],
-        tool_context: dict[str, Any],
-        tool_trace: list[dict[str, Any]],
-        inner_loop: list[dict[str, Any]],
-        max_tool_rounds: int | None = None,
-    ):
-        """LLM↔tool cycle for one work item (agent inner loop).
-
-        ``inner_loop`` records every LLM turn and tool call for Observatory replay.
-        ``tool_trace`` keeps the legacy tool-only list for summary notes.
-        """
-        if max_tool_rounds is None:
-            max_tool_rounds = self._max_tool_rounds
-        max_tool_rounds = max(1, int(max_tool_rounds))
-        # P1-7: scoped to this one work item's inner loop only (fresh per
-        # call, never an instance attribute) so concurrent work items never
-        # share or race on cached tool results.
-        tool_result_cache: dict[tuple[str, str], dict[str, Any]] = {}
-
-        if not tool_definitions:
-            resp = await self._client.acomplete(
-                messages,
-                temperature=self._temperature,
-                max_tokens=self._max_tokens,
-                response_format=_JSON_OBJECT_RESPONSE_FORMAT,
-            )
-            inner_loop.append(
-                {
-                    "kind": "llm_turn",
-                    "tool_round": 0,
-                    "n_tool_calls": 0,
-                    "content_preview": str(resp.content or "")[:800],
-                    "finish_reason": "final_no_tools",
-                }
-            )
-            return resp
-
-        for tool_round in range(max_tool_rounds + 1):
-            resp = await self._client.acomplete(
-                messages,
-                temperature=self._temperature,
-                max_tokens=self._max_tokens,
-                tools=tool_definitions,
-                tool_choice="auto",
-            )
-            n_calls = len(resp.tool_calls or [])
-            inner_loop.append(
-                {
-                    "kind": "llm_turn",
-                    "tool_round": tool_round,
-                    "n_tool_calls": n_calls,
-                    "content_preview": str(resp.content or "")[:800],
-                    "finish_reason": "final" if not resp.tool_calls else "tool_calls",
-                }
-            )
-            if not resp.tool_calls:
-                messages.append({"role": "assistant", "content": resp.content or ""})
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": "Use no more tools. Return the final JSON envelope only.",
-                    }
-                )
-                final = await self._client.acomplete(
-                    messages,
-                    temperature=0.2,
-                    max_tokens=self._max_tokens,
-                    response_format=_JSON_OBJECT_RESPONSE_FORMAT,
-                )
-                inner_loop.append(
-                    {
-                        "kind": "llm_turn",
-                        "tool_round": tool_round,
-                        "n_tool_calls": 0,
-                        "content_preview": str(final.content or "")[:800],
-                        "finish_reason": "structured_final",
-                    }
-                )
-                return final
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": resp.content or None,
-                    "tool_calls": resp.tool_calls,
-                }
-            )
-            calls = [tc for tc in resp.tool_calls if isinstance(tc, dict)]
-            for tc, name, args, result, cache_hit in await self._run_tool_calls(
-                calls, tool_context=tool_context, cache=tool_result_cache
-            ):
-                full_text = json.dumps(result, ensure_ascii=False)
-                call_id = str(tc.get("id") or name)
-                archive_path = self._archive_tool_result(
-                    tool_context, tool_round=tool_round, call_id=call_id, content=full_text
-                )
-                preview = full_text[: self._tool_result_preview_chars]
-                visible = full_text
-                if len(full_text) > self._tool_result_visible_chars:
-                    visible = (
-                        full_text[: self._tool_result_visible_chars]
-                        + f"\n[truncated {len(full_text)} chars; audit copy: {archive_path}]"
-                    )
-                tool_row = {
-                    "kind": "tool_call",
-                    "tool_round": tool_round,
-                    "tool": name,
-                    "arguments": args,
-                    "result_preview": preview,
-                    "result_chars": len(full_text),
-                    "result_archived": archive_path,
-                    "cache_hit": cache_hit,
-                }
-                tool_trace.append(
-                    {
-                        "tool": name,
-                        "arguments": args,
-                        "result_preview": preview,
-                        "result_archived": archive_path,
-                    }
-                )
-                inner_loop.append(tool_row)
-                messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": call_id,
-                        "content": visible,
-                    }
-                )
-            self._compact_tool_history(
-                messages,
-                tool_context=tool_context,
-                inner_loop=inner_loop,
-                tool_round=tool_round,
-            )
-        messages.append(
-            {
-                "role": "user",
-                "content": "Stop calling tools. Emit the final JSON envelope only.",
-            }
-        )
-        final = await self._client.acomplete(
-            messages,
-            temperature=0.2,
-            max_tokens=self._max_tokens,
-            response_format=_JSON_OBJECT_RESPONSE_FORMAT,
-        )
-        inner_loop.append(
-            {
-                "kind": "llm_turn",
-                "tool_round": max_tool_rounds + 1,
-                "n_tool_calls": 0,
-                "content_preview": str(final.content or "")[:800],
-                "finish_reason": "forced_final",
-            }
-        )
-        return final
-
-    async def _repair_contract_violations(
-        self,
-        messages: list[dict[str, Any]],
-        *,
-        envelope: dict[str, Any],
-        exit_contract: str,
-        inner_loop: list[dict[str, Any]],
-        mission_id: str = "",
-    ) -> dict[str, Any]:
-        """P1-7: preemptively validate `envelope["artifact"]` against the
-        engine's own `ContractValidator` and, on violations, feed the exact
-        schema-validator error text back for a targeted re-emit. This
-        replaces a "blind retry" (generic "invalid JSON, try again", no
-        information about *what* was wrong) with the same validator the
-        engine uses downstream, so worker-side pre-checks and engine-side
-        contract enforcement can never disagree about what "valid" means.
-
-        Validates the *same transform* the write path applies just after
-        this call returns (`sanitize_artifact_payload` + `mission_id`
-        provenance default) — not the raw model artifact — otherwise this
-        would flag violations (missing `mission_id`, stray `_`-prefixed
-        notes, null optionals) that the real write path already fixes,
-        and burn repair round-trips on non-problems.
-
-        Best-effort and bounded: if repairs run out, the last envelope is
-        returned as-is and the engine's own contract check still has the
-        final say — this never changes who owns contract enforcement, it
-        only saves wasted mission rounds on schema mistakes the model can
-        fix immediately once told exactly what's wrong.
-        """
-        from sciteam.mission import ContractValidator
-
-        validator = ContractValidator(self._schemas_dir)
-        working = messages
-        for attempt in range(_MAX_CONTRACT_REPAIR_ATTEMPTS + 1):
-            artifact = envelope.get("artifact")
-            if not isinstance(artifact, dict):
-                return envelope
-            payload = sanitize_artifact_payload(dict(artifact))
-            if not isinstance(payload, dict):
-                payload = {}
-            payload.setdefault("mission_id", mission_id)
-            errors = validator.validate(exit_contract, payload)
-            if not errors:
-                if attempt:
-                    inner_loop.append(
-                        {
-                            "kind": "contract_repair",
-                            "attempt": attempt,
-                            "exit_contract": exit_contract,
-                            "errors": [],
-                            "resolved": True,
-                        }
-                    )
-                return envelope
-            if attempt == _MAX_CONTRACT_REPAIR_ATTEMPTS:
-                inner_loop.append(
-                    {
-                        "kind": "contract_repair",
-                        "attempt": attempt,
-                        "exit_contract": exit_contract,
-                        "errors": errors[:20],
-                        "resolved": False,
-                        "exhausted": True,
-                    }
-                )
-                return envelope
-            inner_loop.append(
-                {
-                    "kind": "contract_repair",
-                    "attempt": attempt,
-                    "exit_contract": exit_contract,
-                    "errors": errors[:20],
-                }
-            )
-            repair_msg = (
-                f"Your `artifact` object fails contract `{exit_contract}` with these "
-                "schema-validator errors:\n"
-                + "\n".join(f"- {e}" for e in errors[:20])
-                + "\nRe-emit the FULL JSON envelope again with `artifact` fixed to "
-                "satisfy every listed violation. Keep summary/facts/files as-is "
-                "unless they must change to fix the errors."
-            )
-            working = working + [
-                {"role": "assistant", "content": json.dumps(envelope, ensure_ascii=False)},
-                {"role": "user", "content": repair_msg},
-            ]
-            response = await self._client.acomplete(
-                working, temperature=0.2, max_tokens=self._max_tokens
-            )
-            repaired = _extract_json(response.content)
-            if not isinstance(repaired, dict):
-                inner_loop.append(
-                    {
-                        "kind": "contract_repair",
-                        "attempt": attempt,
-                        "exit_contract": exit_contract,
-                        "errors": ["repair reply was not a valid JSON envelope"],
-                        "resolved": False,
-                        "exhausted": True,
-                    }
-                )
-                return envelope
-            envelope = repaired
-        return envelope
 
     def _fit_to_context(
         self,
@@ -1286,7 +641,9 @@ class LlmWorkerRuntime:
         # always-on file-workspace tools and, when justified, `compute.bash`
         # — the same predicate PiRuntime uses, so both arms grant an
         # identical tool surface for an identical allowlist.
-        tool_definitions = tool_definitions_for(effective_capabilities)
+        tool_definitions = tool_definitions_for(
+            effective_capabilities, plugins=self._plugin_registry
+        )
         enable_tools = bool(tool_definitions)
         # Cap tool thrash for non-emit analysis seats (ranking/reflection/…).
         tool_budget = self._max_tool_rounds
@@ -1308,7 +665,7 @@ class LlmWorkerRuntime:
                     },
                 )
             except OSError:
-                pass
+                logger.warning("could not append agent log for %s (continuing)", agent_key)
         # 2026-08-15 audit fix: an assess-duty seat's job is to independently
         # verify facts about the mission (including cross-referencing paths
         # inside an artifact it did not author, e.g. package_manifest.json's
@@ -1332,6 +689,11 @@ class LlmWorkerRuntime:
                 "work_item_id": work_item_id,
                 "agent_key": agent_key,
                 "allow_privileged": False,
+                # E5 (docs/SESSION-KERNEL.md §5.1): the run-wide session
+                # store, not one reconstructed from mission_workspace — its
+                # archive root is a property of the run, not of one seat.
+                "session_store": self._session_store,
+                "sandbox_profile": self._sandbox_profile,
             },
             tool_trace=tool_trace,
             inner_loop=inner_loop,
@@ -1393,7 +755,9 @@ class LlmWorkerRuntime:
                         },
                     )
             except OSError:
-                pass
+                logger.warning(
+                    "could not persist the failed-envelope record for %s (continuing)", agent_key
+                )
             failed_run = Run(
                 run_id=f"llm_{agent_key}_{len(self.transcript) + 1}",
                 spec=RunSpec(
@@ -1593,11 +957,38 @@ class LlmWorkerRuntime:
             if not isinstance(payload, dict):
                 payload = {}
             payload.setdefault("mission_id", mission_id)
-            Path(artifact_path).parent.mkdir(parents=True, exist_ok=True)
-            Path(artifact_path).write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-            wrote_artifact = True
+            # E6 (28-... §7.2): `artifact_submitted` is the second (and
+            # last) blockable plugin hook. This is the actual commit point
+            # of the exit-contract artifact — an authorized seat's
+            # institutional authority (`artifact_duty`, checked above) is
+            # necessary but, with a plugin installed, no longer sufficient;
+            # a plugin can add scrutiny here, never remove it.
+            registry = getattr(self, "_plugin_registry", None)
+            blocked_reason = ""
+            if registry is not None:
+                hook_result = registry.emit(
+                    "artifact_submitted",
+                    {
+                        "mission_id": mission_id,
+                        "agent_key": agent_key,
+                        "artifact_path": artifact_path,
+                        "payload": payload,
+                    },
+                )
+                if hook_result.block:
+                    blocked_reason = hook_result.reason or "blocked by an installed plugin hook"
+            if blocked_reason:
+                summary = (
+                    f"{summary}\n[REJECTED by plugin hook: {blocked_reason}]"
+                    if summary
+                    else f"[REJECTED by plugin hook: {blocked_reason}]"
+                )
+            else:
+                Path(artifact_path).parent.mkdir(parents=True, exist_ok=True)
+                Path(artifact_path).write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+                wrote_artifact = True
 
         if assessment_mode:
             assess_payload = {
@@ -1679,7 +1070,7 @@ class LlmWorkerRuntime:
                     ),
                 )
         except OSError:
-            pass
+            logger.warning("could not commit seat memory for %s (continuing)", agent_key)
         self.transcript.append(
             {
                 "mission_id": mission_id,
@@ -1714,7 +1105,7 @@ class LlmWorkerRuntime:
                     },
                 )
         except OSError:
-            pass
+            logger.warning("could not write the agent result file for %s (continuing)", agent_key)
 
         run = Run(
             run_id=f"llm_{agent_key}_{len(self.transcript)}",

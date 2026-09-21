@@ -146,10 +146,22 @@ def _parse_authority(item: dict[str, Any]) -> tuple[str, ...]:
 
 
 def load_team_config(path: Path) -> TeamConfig:
-    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return parse_team_config(yaml.safe_load(path.read_text(encoding="utf-8")), source=path)
+
+
+def parse_team_config(raw: Any, *, source: Path | str = "<memory>") -> TeamConfig:
+    """Apply every load-time institutional invariant to an in-memory manifest.
+
+    Split out from :func:`load_team_config` so callers that hold a manifest
+    as data — `sciteam mutate`, editors, generators — get *exactly* the
+    checks a real load performs, rather than a reimplementation that can
+    drift away from them.
+    """
+    path = source
     if not isinstance(raw, dict):
         raise ValueError(f"{path}: team config must be a mapping")
-    team_id = str(raw.get("id") or path.stem)
+    default_id = Path(source).stem if isinstance(source, Path) else str(source)
+    team_id = str(raw.get("id") or default_id)
     members_raw = raw.get("members") or []
     if not isinstance(members_raw, list) or not members_raw:
         raise ValueError(f"{path}: members must be a non-empty list")
@@ -205,6 +217,27 @@ def load_team_config(path: Path) -> TeamConfig:
             f"{path}: stopping.kind=judgment requires at least one member "
             "with may_assess_round / authority including may_assess_round"
         )
+    # Found by `sciteam mutate` (operator M1/drop-flag): an institution in
+    # which no seat may seal the exit artifact loads happily and can then
+    # never be closed legally. A rule nobody is empowered to satisfy is not
+    # a rule, so this fails at load rather than at hour three of a run.
+    if not any(m.emits_exit_artifact for m in members):
+        raise ValueError(
+            f"{path}: no member holds emits_exit_artifact — no seat could ever "
+            "close the mission legally"
+        )
+    # Likewise (M10/deaden-branch), but narrower than it first looks:
+    # max_iterations=0 legitimately means "no ceiling", so only a negative
+    # is a defect — and it is a dangerous one, because the normalizer
+    # clamps it to 0, silently turning a typo into *unlimited* rounds. Read
+    # the declared value, before that clamp.
+    declared_iterations = (coordination_raw.get("stopping") or {}).get("max_iterations")
+    if isinstance(declared_iterations, int) and declared_iterations < 0:
+        raise ValueError(
+            f"{path}: stopping.max_iterations is {declared_iterations}; a negative "
+            "ceiling would be normalized to 0, which means *unlimited* rounds — "
+            "declare 0 explicitly if that is what you want"
+        )
     return TeamConfig(
         team_id=team_id,
         name=str(raw.get("name") or team_id),
@@ -221,7 +254,7 @@ def load_team_configs(
 ) -> list[TeamConfig]:
     """Load every ``*.yaml`` paradigm under ``root``, plus any additional
     directories a plugin registered (``PluginRegistry.paradigm_dirs`` — see
-    ``docs/25-sciteam-plugin-architecture.md`` §3.3). ``root`` is always
+    ``docs/PLUGIN-GUIDE.md``). ``root`` is always
     searched first and alone reproduces the pre-plugin behavior exactly
     (``extra_roots`` defaults to empty).
 

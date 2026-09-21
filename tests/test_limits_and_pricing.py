@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from sciteam import limits, pricing
-from sciteam.arm_identity import describe_own_arm
 from sciteam.llm import LlmUsage
+from sciteam.runtime_identity import describe_local_runtime, runtime_version
 
 
 def test_snapshot_defaults_are_unified_window():
@@ -39,7 +39,33 @@ def test_cost_usd_computes_when_rates_set(monkeypatch):
     assert usage.cost_usd == 1.0
 
 
-def test_own_arm_version_is_pinable():
-    ver = describe_own_arm()
-    assert ver.startswith("own ")
-    assert ver != "own"
+def test_local_runtime_version_is_pinnable():
+    ver = describe_local_runtime()
+    assert ver.startswith("local ")
+    assert ver != "local"
+
+
+def test_image_digest_pins_an_installed_deployment(monkeypatch):
+    monkeypatch.setenv("SCITEAM_IMAGE_DIGEST", "sha256:abc123")
+    assert describe_local_runtime() == "local image:sha256:abc123"
+
+
+def test_a_backend_that_knows_its_build_reports_it():
+    class _Versioned:
+        def version(self) -> str:
+            return "my-agent-cli 2.3.1"
+
+    assert runtime_version(_Versioned()) == "my-agent-cli 2.3.1"
+
+
+def test_a_backend_without_a_version_falls_back_to_the_local_runtime():
+    assert runtime_version(object()).startswith("local ")
+
+
+def test_a_backend_whose_version_raises_is_recorded_as_unknown():
+    class _Broken:
+        def version(self) -> str:
+            raise RuntimeError("no build info")
+
+    # Visibly missing in the ledger, never silently attributed to the local build.
+    assert runtime_version(_Broken()) == "unknown"

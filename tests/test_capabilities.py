@@ -14,7 +14,10 @@ from sciteam.capabilities import (
 from sciteam.mission import MissionBudget, MissionOutcome, MissionRunner, MissionSpec
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
-SKILLS = LAB_ROOT / "assets" / "skills"
+
+from sciteam._paths import DATA_ROOT  # noqa: E402
+
+SKILLS = DATA_ROOT / "assets" / "skills"
 
 
 def test_parse_requires_section():
@@ -87,11 +90,11 @@ async def test_mission_runner_blocks_before_ticks(tmp_path):
 
     from sciteam import ContractValidator, TeamOrchestrator, build_registry
 
-    paradigms = build_registry(LAB_ROOT / "assets" / "teams" / "paradigms")
+    paradigms = build_registry(DATA_ROOT / "assets" / "teams" / "paradigms")
     runner = MissionRunner(
         orchestrator=TeamOrchestrator(runtime=BoomRuntime(), work_root=tmp_path / "work"),
         paradigms=paradigms,
-        validator=ContractValidator(LAB_ROOT / "schemas"),
+        validator=ContractValidator(DATA_ROOT / "schemas"),
         artifacts_root=tmp_path / "missions",
         skills_dir=SKILLS,
         capabilities=RuntimeCapabilities(available=frozenset({"web.search"})),

@@ -82,6 +82,33 @@ class AgentSlot:
     replica_of: str | None = None
     task_memory_dir: str | None = None
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "agent_key": self.agent_key,
+            "profile": dict(self.profile),
+            "work_dir": self.work_dir,
+            "state": self.state.value,
+            "current_task_id": self.current_task_id,
+            "active_work_item_id": self.active_work_item_id,
+            "replica_of": self.replica_of,
+            "task_memory_dir": self.task_memory_dir,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> AgentSlot:
+        return cls(
+            agent_key=str(data["agent_key"]),
+            profile=dict(data.get("profile") or {}),
+            work_dir=str(data.get("work_dir") or ""),
+            state=AgentState(str(data.get("state") or AgentState.IDLE.value)),
+            current_task_id=(str(data["current_task_id"]) if data.get("current_task_id") else None),
+            active_work_item_id=(
+                str(data["active_work_item_id"]) if data.get("active_work_item_id") else None
+            ),
+            replica_of=(str(data["replica_of"]) if data.get("replica_of") else None),
+            task_memory_dir=(str(data["task_memory_dir"]) if data.get("task_memory_dir") else None),
+        )
+
 
 @dataclass
 class Task:
@@ -217,6 +244,54 @@ class TeamRun:
     def agent_states(self) -> list[AgentSlot]:
         return self.agents
 
+    def to_dict(self) -> dict[str, Any]:
+        """Full-fidelity snapshot for cold-start recovery (docs/28 阶段4).
+
+        Distinct from `persist.snapshot_team_run`'s older human-readable
+        subset: this round-trips through `from_dict` losslessly, which is
+        the property recovery depends on — a snapshot a resumed run cannot
+        fully reconstruct itself from is a report, not a checkpoint.
+        """
+        return {
+            "id": self.id,
+            "goal": self.goal,
+            "team_profile_id": self.team_profile_id,
+            "state": self.state.value,
+            "active_round": self.active_round,
+            "agents": [a.to_dict() for a in self.agents],
+            "tasks": [],  # legacy Task projection; rebuilt from WorkBoard on load
+            "work_root": self.work_root,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+            "metadata": dict(self.metadata),
+            "artifacts": list(self.artifacts),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> TeamRun:
+        return cls(
+            id=str(data["id"]),
+            goal=str(data.get("goal") or ""),
+            team_profile_id=str(data.get("team_profile_id") or ""),
+            state=TeamRunState(str(data.get("state") or TeamRunState.PENDING.value)),
+            active_round=int(data.get("active_round") or 0),
+            agents=[AgentSlot.from_dict(a) for a in (data.get("agents") or [])],
+            tasks=[],
+            work_root=str(data.get("work_root") or ""),
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if data.get("created_at")
+                else datetime.now(UTC)
+            ),
+            updated_at=(
+                datetime.fromisoformat(data["updated_at"])
+                if data.get("updated_at")
+                else datetime.now(UTC)
+            ),
+            metadata=dict(data.get("metadata") or {}),
+            artifacts=list(data.get("artifacts") or []),
+        )
+
 
 def work_item_to_task(item: WorkItem, *, round_index: int = 0) -> Task:
     """Project a WorkItem onto the legacy Task shape for aggregation/assess."""
@@ -243,13 +318,4 @@ def work_item_to_task(item: WorkItem, *, round_index: int = 0) -> Task:
 
 
 def agent_slot_to_dict(agent: AgentSlot) -> dict[str, Any]:
-    return {
-        "agent_key": agent.agent_key,
-        "profile": dict(agent.profile),
-        "work_dir": agent.work_dir,
-        "state": agent.state.value,
-        "current_task_id": agent.current_task_id,
-        "active_work_item_id": agent.active_work_item_id,
-        "replica_of": agent.replica_of,
-        "task_memory_dir": agent.task_memory_dir,
-    }
+    return agent.to_dict()

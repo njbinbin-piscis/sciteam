@@ -1,4 +1,4 @@
-"""Plugin engine contract (docs/25-sciteam-plugin-architecture.md).
+"""Plugin engine contract (docs/PLUGIN-GUIDE.md, docs/COMPATIBILITY.md).
 
 Exercises `PluginRegistry`/`PluginAPI`/`load_all_plugins` directly against
 fake `register()` callables — no real installed package needed, since
@@ -8,12 +8,13 @@ returning objects with `.name` and `.load()`.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Any
 
 import pytest
 from sciteam.plugin_api import (
     BLOCKABLE_EVENTS,
+    ENTRY_POINT_GROUP,
     EVENTS,
     PLUGIN_API_VERSION,
     HookResult,
@@ -162,6 +163,56 @@ class TestHookDispatch:
         assert BLOCKABLE_EVENTS <= EVENTS
 
 
+class TestFrozenPluginContract:
+    """The surface docs/COMPATIBILITY.md freezes under PLUGIN_API_VERSION.
+
+    These assertions are pinned on purpose: any PR that changes the plugin
+    registration surface must also edit this file, which makes the change
+    visible in review instead of arriving silently in an unrelated diff.
+    Changing them requires bumping PLUGIN_API_VERSION's major component and
+    a CHANGELOG entry with a migration path.
+    """
+
+    def test_api_version_is_pinned(self):
+        assert PLUGIN_API_VERSION == "1.0"
+
+    def test_event_set_is_pinned(self):
+        assert {
+            "mission_start",
+            "round_end",
+            "tool_call",
+            "artifact_submitted",
+            "veto_issued",
+            "amendment_applied",
+        } == EVENTS
+
+    def test_registration_surface_is_pinned(self):
+        surface = {name for name in vars(PluginAPI) if not name.startswith("_")}
+        assert surface == {
+            "register_runtime_port",
+            "register_tool",
+            "register_port",
+            "register_plan_reviser",
+            "register_assessor",
+            "register_paradigm_dir",
+            "register_role_prompts_dir",
+            "register_skills_dir",
+            "on",
+        }
+
+    def test_manifest_fields_are_pinned(self):
+        assert [f.name for f in fields(PluginManifest)] == [
+            "id",
+            "version",
+            "sciteam_api_version",
+            "provides",
+            "description",
+        ]
+
+    def test_entry_point_group_is_pinned(self):
+        assert ENTRY_POINT_GROUP == "sciteam.plugins"
+
+
 @dataclass
 class _FakeEntryPoint:
     name: str
@@ -243,6 +294,48 @@ class TestLoadAllPlugins:
         # First one wins; second's tool never leaked into the final registry.
         assert registry.tool_handler("a_tool") is not None
         assert registry.tool_handler("b_tool") is None
+
+    def test_conflicting_plugin_leaks_none_of_its_other_registrations(self, monkeypatch):
+        """docs/28 §7.2 (E7) '插件冲突' contract: a plugin declaring two
+        tools, only one of which collides with an already-committed
+        registration, must not leak the non-conflicting one. Regression
+        test for a bug where `_merge_from` committed staged registrations
+        one at a time into the final registry, so items processed before
+        the conflicting one stayed committed even though the plugin's
+        manifest was never accepted."""
+
+        def register_a(api: PluginAPI) -> PluginManifest:
+            api.register_tool(
+                ToolSpec(name="shared", version="1.0", capability="x", summary=""),
+                handler=lambda args: args,
+            )
+            return _manifest("plugin-a")
+
+        def register_b(api: PluginAPI) -> PluginManifest:
+            # Registered *before* the conflicting one, in staging's
+            # insertion order — the bug this test guards against let this
+            # leak through before the later `shared` collision was seen.
+            api.register_tool(
+                ToolSpec(name="only_b", version="1.0", capability="x", summary=""),
+                handler=lambda args: args,
+            )
+            api.register_tool(
+                ToolSpec(name="shared", version="1.0", capability="x", summary=""),
+                handler=lambda args: args,
+            )
+            return _manifest("plugin-b")
+
+        monkeypatch.setattr(
+            "sciteam.plugin_api.metadata.entry_points",
+            lambda group=None: [
+                _FakeEntryPoint("a", register_a),
+                _FakeEntryPoint("b", register_b),
+            ],
+        )
+        registry = load_all_plugins(strict=False)
+        assert [m.id for m in registry.loaded_plugins] == ["plugin-a"]
+        assert registry.tool_handler("shared") is not None  # plugin-a's, untouched
+        assert registry.tool_handler("only_b") is None  # plugin-b never committed anything
 
     def test_one_broken_plugin_does_not_prevent_others_from_loading(self, monkeypatch):
         def register_broken(api: PluginAPI) -> PluginManifest:

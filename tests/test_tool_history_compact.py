@@ -11,8 +11,9 @@ import json
 
 from sciteam import LlmWorkerRuntime, PromptAssets
 from sciteam.llm import LlmUsage
+from sciteam.session import FileSessionStore, project
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT
 
 
 class _FakeLlmClient:
@@ -26,11 +27,11 @@ class _FakeLlmClient:
 
 def _runtime(*, budget_chars: int = 1000, keep_recent: int | None = None) -> LlmWorkerRuntime:
     assets = PromptAssets(
-        prompts_dir=LAB_ROOT / "assets" / "prompts",
-        skills_dir=LAB_ROOT / "assets" / "skills",
+        prompts_dir=DATA_ROOT / "assets" / "prompts",
+        skills_dir=DATA_ROOT / "assets" / "skills",
     )
     runtime = LlmWorkerRuntime(
-        client=_FakeLlmClient(), assets=assets, schemas_dir=LAB_ROOT / "schemas"
+        client=_FakeLlmClient(), assets=assets, schemas_dir=DATA_ROOT / "schemas"
     )
     runtime._tool_history_budget_chars = budget_chars
     return runtime
@@ -176,8 +177,8 @@ class TestIntegrationWithToolLoop:
         monkeypatch.setattr("sciteam.wizard_tools.tool_permission", lambda name: "readonly")
 
         assets = PromptAssets(
-            prompts_dir=LAB_ROOT / "assets" / "prompts",
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            prompts_dir=DATA_ROOT / "assets" / "prompts",
+            skills_dir=DATA_ROOT / "assets" / "skills",
         )
 
         class _RoundLimitedClient(_FakeLlmClient):
@@ -197,7 +198,7 @@ class TestIntegrationWithToolLoop:
                 return type("Resp", (), {"content": "{}", "tool_calls": None})()
 
         client = _RoundLimitedClient(n_rounds=8)
-        runtime = LlmWorkerRuntime(client=client, assets=assets, schemas_dir=LAB_ROOT / "schemas")
+        runtime = LlmWorkerRuntime(client=client, assets=assets, schemas_dir=DATA_ROOT / "schemas")
         runtime._tool_history_budget_chars = 5000
 
         messages = [{"role": "system", "content": "sys"}, {"role": "user", "content": "go"}]
@@ -229,6 +230,161 @@ class TestIntegrationWithToolLoop:
         assert any(len(p.read_text(encoding="utf-8")) >= 3000 for p in archived)
 
 
+class TestSessionKernelIntegration:
+    """E4 (docs/SESSION-KERNEL.md): when a composition root attaches a
+    `FileSessionStore`, the inner loop must also produce a faithful,
+    hash-chained session log — additively, without changing any of the
+    provider-visible `messages` behavior covered above."""
+
+    async def test_session_store_none_by_default_is_a_pure_noop(self, monkeypatch, tmp_path):
+        """The overwhelming majority of existing callers never pass
+        `session_store`; this must remain silently free of any session I/O."""
+
+        def fake_run(name, args, *, context=None):
+            return {"ok": True}
+
+        monkeypatch.setattr("sciteam.wizard_tools.run_research_tool", fake_run)
+        monkeypatch.setattr("sciteam.wizard_tools.tool_permission", lambda name: "readonly")
+        assets = PromptAssets(
+            prompts_dir=DATA_ROOT / "assets" / "prompts", skills_dir=DATA_ROOT / "assets" / "skills"
+        )
+
+        class _OnceClient(_FakeLlmClient):
+            def __init__(self) -> None:
+                super().__init__()
+                self._calls = 0
+
+            async def acomplete(self, messages, **kwargs):
+                self._calls += 1
+                if self._calls == 1:
+                    tc = {"id": "c1", "function": {"name": "literature_search", "arguments": "{}"}}
+                    return type("Resp", (), {"content": "", "tool_calls": [tc]})()
+                return type("Resp", (), {"content": "{}", "tool_calls": None})()
+
+        runtime = LlmWorkerRuntime(
+            client=_OnceClient(), assets=assets, schemas_dir=DATA_ROOT / "schemas"
+        )
+        assert runtime._session_store is None
+        messages = [{"role": "system", "content": "sys"}, {"role": "user", "content": "go"}]
+        await runtime._complete_with_tools(
+            messages,
+            tool_definitions=[{"type": "function", "function": {"name": "literature_search"}}],
+            tool_context={"mission_workspace": str(tmp_path)},
+            tool_trace=[],
+            inner_loop=[],
+            max_tool_rounds=3,
+        )
+        assert not (tmp_path / "sessions").exists()
+
+    async def test_attached_session_store_records_a_faithful_chained_log(
+        self, monkeypatch, tmp_path
+    ):
+        def fake_run(name, args, *, context=None):
+            return {"answer": 42}
+
+        monkeypatch.setattr("sciteam.wizard_tools.run_research_tool", fake_run)
+        monkeypatch.setattr("sciteam.wizard_tools.tool_permission", lambda name: "readonly")
+        assets = PromptAssets(
+            prompts_dir=DATA_ROOT / "assets" / "prompts", skills_dir=DATA_ROOT / "assets" / "skills"
+        )
+
+        class _OnceClient(_FakeLlmClient):
+            def __init__(self) -> None:
+                super().__init__()
+                self._calls = 0
+
+            async def acomplete(self, messages, **kwargs):
+                self._calls += 1
+                if self._calls == 1:
+                    tc = {"id": "c1", "function": {"name": "literature_search", "arguments": "{}"}}
+                    return type("Resp", (), {"content": "", "tool_calls": [tc]})()
+                return type("Resp", (), {"content": '{"artifact": {}}', "tool_calls": None})()
+
+        session_store = FileSessionStore(tmp_path)
+        runtime = LlmWorkerRuntime(
+            client=_OnceClient(),
+            assets=assets,
+            schemas_dir=DATA_ROOT / "schemas",
+            session_store=session_store,
+        )
+        messages = [{"role": "system", "content": "sys"}, {"role": "user", "content": "go"}]
+        tool_context = {
+            "mission_workspace": str(tmp_path),
+            "team_run_id": "run1",
+            "agent_key": "implementer",
+            "work_item_id": "w1",
+        }
+        await runtime._complete_with_tools(
+            messages,
+            tool_definitions=[{"type": "function", "function": {"name": "literature_search"}}],
+            tool_context=tool_context,
+            tool_trace=[],
+            inner_loop=[],
+            max_tool_rounds=3,
+        )
+
+        session_id = runtime._session_id_for(tool_context)
+        events = list(session_store.read_from(session_id))
+        kinds = [e.kind for e in events]
+        assert "user_message" in kinds
+        assert "tool_call" in kinds
+        assert "tool_result" in kinds
+        assert "assistant_message" in kinds
+        assert session_store.verify_chain(session_id).ok
+
+        # tool_result must carry a content-addressed ref the archive actually
+        # has (docs/SESSION-KERNEL.md §5.1), not a bare filesystem path.
+        result_event = next(e for e in events if e.kind == "tool_result")
+        archived = session_store.read_archived(result_event.payload["result_ref"])
+        assert '"answer": 42' in archived
+
+        # projection is deterministic and pairs the call with its result
+        ctx = project(events)
+        tool_msgs = [m for m in ctx.messages if m["role"] == "tool"]
+        assert len(tool_msgs) == 1
+        assert tool_msgs[0]["tool_call_id"] == "c1"
+        assert "interrupted" not in tool_msgs[0]
+
+    async def test_session_logging_failure_never_breaks_the_inner_loop(self, monkeypatch, tmp_path):
+        """A broken session store must degrade to a warning, not a crash —
+        same discipline as the existing `except OSError` around inner_loop
+        trace persistence."""
+
+        def fake_run(name, args, *, context=None):
+            return {"ok": True}
+
+        monkeypatch.setattr("sciteam.wizard_tools.run_research_tool", fake_run)
+        monkeypatch.setattr("sciteam.wizard_tools.tool_permission", lambda name: "readonly")
+        assets = PromptAssets(
+            prompts_dir=DATA_ROOT / "assets" / "prompts", skills_dir=DATA_ROOT / "assets" / "skills"
+        )
+
+        class _BrokenStore:
+            def append(self, *a, **kw):
+                raise OSError("disk is on fire")
+
+        class _OnceClient(_FakeLlmClient):
+            async def acomplete(self, messages, **kwargs):
+                return type("Resp", (), {"content": "{}", "tool_calls": None})()
+
+        runtime = LlmWorkerRuntime(
+            client=_OnceClient(),
+            assets=assets,
+            schemas_dir=DATA_ROOT / "schemas",
+            session_store=_BrokenStore(),
+        )
+        messages = [{"role": "system", "content": "sys"}, {"role": "user", "content": "go"}]
+        resp = await runtime._complete_with_tools(
+            messages,
+            tool_definitions=[],
+            tool_context={"mission_workspace": str(tmp_path)},
+            tool_trace=[],
+            inner_loop=[],
+            max_tool_rounds=3,
+        )
+        assert resp.content == "{}"
+
+
 class TestArchiveAlways:
     async def test_oversize_tool_result_is_fully_archived(self, monkeypatch, tmp_path):
         huge = {"blob": "z" * 30_000}
@@ -239,8 +395,8 @@ class TestArchiveAlways:
         monkeypatch.setattr("sciteam.wizard_tools.run_research_tool", fake_run)
         monkeypatch.setattr("sciteam.wizard_tools.tool_permission", lambda name: "readonly")
         assets = PromptAssets(
-            prompts_dir=LAB_ROOT / "assets" / "prompts",
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            prompts_dir=DATA_ROOT / "assets" / "prompts",
+            skills_dir=DATA_ROOT / "assets" / "skills",
         )
 
         class _OnceClient(_FakeLlmClient):
@@ -267,7 +423,7 @@ class TestArchiveAlways:
                 return type("Resp", (), {"content": "{}", "tool_calls": None})()
 
         runtime = LlmWorkerRuntime(
-            client=_OnceClient(), assets=assets, schemas_dir=LAB_ROOT / "schemas"
+            client=_OnceClient(), assets=assets, schemas_dir=DATA_ROOT / "schemas"
         )
         runtime._tool_result_visible_chars = 8_000
         messages = [{"role": "system", "content": "sys"}, {"role": "user", "content": "go"}]

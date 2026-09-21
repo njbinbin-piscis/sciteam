@@ -20,7 +20,7 @@ from sciteam.llm_worker import (
     PromptAssets,
 )
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT
 
 
 class _FakeLlmClient:
@@ -40,9 +40,9 @@ def _make_skills(skills_dir: Path, bodies: dict[str, str]) -> None:
 
 
 def _runtime(skills_dir: Path) -> LlmWorkerRuntime:
-    assets = PromptAssets(prompts_dir=LAB_ROOT / "assets" / "prompts", skills_dir=skills_dir)
+    assets = PromptAssets(prompts_dir=DATA_ROOT / "assets" / "prompts", skills_dir=skills_dir)
     return LlmWorkerRuntime(
-        client=_FakeLlmClient(), assets=assets, schemas_dir=LAB_ROOT / "schemas"
+        client=_FakeLlmClient(), assets=assets, schemas_dir=DATA_ROOT / "schemas"
     )
 
 
@@ -134,8 +134,10 @@ class TestWiredIntoRunSubagent:
         client = _Client([json.dumps({"summary": "ok", "facts": [], "artifact": None})])
         runtime = LlmWorkerRuntime(
             client=client,
-            assets=PromptAssets(prompts_dir=LAB_ROOT / "assets" / "prompts", skills_dir=skills_dir),
-            schemas_dir=LAB_ROOT / "schemas",
+            assets=PromptAssets(
+                prompts_dir=DATA_ROOT / "assets" / "prompts", skills_dir=skills_dir
+            ),
+            schemas_dir=DATA_ROOT / "schemas",
         )
         selected, applied, _ = runtime._select_topk_skills(
             "do something about kvcache benchmarking", allowlist
@@ -158,8 +160,10 @@ class TestWiredIntoRunSubagent:
         client = _Client([envelope, envelope])
         runtime = LlmWorkerRuntime(
             client=client,
-            assets=PromptAssets(prompts_dir=LAB_ROOT / "assets" / "prompts", skills_dir=skills_dir),
-            schemas_dir=LAB_ROOT / "schemas",
+            assets=PromptAssets(
+                prompts_dir=DATA_ROOT / "assets" / "prompts", skills_dir=skills_dir
+            ),
+            schemas_dir=DATA_ROOT / "schemas",
         )
         from sciteam.persist import inner_loop_path
 

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciteam/institution_event.schema.json",
+  "title": "InstitutionEvent",
+  "description": "One record in the append-only, hash-chained institutional ledger. Every event states who acted (seat), under what right (authority), whether the institution let the act take effect (effect), and against which frozen rule text it was judged (rule_version). The chain makes the record tamper-evident: an entry cannot be edited, reordered, or removed without breaking verification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seq", "ts", "run_id", "kind", "effect", "payload", "prev_hash", "hash"],
+  "properties": {
+    "seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "1-based position in the chain. Strictly increasing by 1 with no gaps."
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp. Advisory only: ordering is defined by seq and the hash chain, never by clocks."
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the run this chain belongs to. Constant for every entry in one ledger file."
+    },
+    "kind": {
+      "type": "string",
+      "pattern": "^(run_started|run_finished|rule_version_set|authority_checked|artifact_submitted|artifact_accepted|artifact_rejected|audit_reported|veto_issued|reopened|closed|amendment_proposed|amendment_decided|amendment_applied|llm_call|tool_call|x_[a-z0-9_]+)$",
+      "description": "Institutional event vocabulary. The listed kinds are the closed core set that the interpreter and the replayer understand. Plugins may emit additional kinds under the 'x_' prefix; those are recorded and verified like any other event but carry no interpreter semantics, so a plugin can add observations without inventing new institutional effects."
+    },
+    "seat": {
+      "type": ["string", "null"],
+      "description": "The institutional seat that acted. Null for interpreter-level events (run_started, rule_version_set) that belong to no seat."
+    },
+    "authority": {
+      "type": ["string", "null"],
+      "description": "The specific right invoked, e.g. may_submit_artifact or may_veto. Null when the event is an observation rather than an exercise of authority."
+    },
+    "effect": {
+      "type": "string",
+      "enum": ["accepted", "rejected", "observed"],
+      "description": "Whether the act counted. 'accepted' means the institution granted it system effect; 'rejected' means the act physically happened but produced no institutional effect; 'observed' means the event is a record with no effect claim."
+    },
+    "rule_version": {
+      "type": ["string", "null"],
+      "description": "Digest or version tag of the institution manifest in force when this event was judged. Lets a reader confirm which rule text an old decision was made under, and detect decisions made under rules that were later amended."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific body. Free-form by design: the chain guarantees integrity of whatever is recorded, and per-kind meaning is documented in docs/CONCEPTS.md rather than constrained here."
+    },
+    "prev_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Hash of the preceding entry. The first entry uses 64 zeros as the genesis link."
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "sha256 over the canonical JSON of this entry with the 'hash' field removed: sorted keys, no spaces, UTF-8. Recomputing it is how a verifier detects edits."
+    }
+  }
+}

@@ -22,11 +22,28 @@ from sciteam.capabilities import (
     parse_requires_capabilities,
     preflight_mission,
 )
+from sciteam.checkpoint import ResumeState, read_resume_state, record_mission_decision
 from sciteam.compact import CompactionProfile, WorkingPack, build_working_pack
 from sciteam.coordination import CoordinationSpec, SchedulingMode
 from sciteam.coordinator import ContractCoordinator, ScriptedCoordinator, TeamCoordinator
+from sciteam.event_log import (
+    CORE_KINDS,
+    GENESIS_HASH,
+    LEDGER_FILENAME,
+    ChainVerification,
+    CostLine,
+    EventLog,
+    InstitutionEvent,
+    LedgerError,
+    LedgerState,
+    cost_report,
+    read_events,
+    replay,
+    verify_chain,
+)
 from sciteam.evidence import EvidenceGraph
 from sciteam.kb import CampaignKB, KBEntry
+from sciteam.ledger_view import export_html_view, render_html
 from sciteam.llm import LlmClient, LlmConfig, LlmError, LlmResponse, LlmUsage
 from sciteam.llm_worker import LlmWorkerRuntime, PromptAssets
 from sciteam.mission import (
@@ -44,6 +61,14 @@ from sciteam.models import (
     RoundTask,
     TeamRun,
     TeamRunState,
+)
+from sciteam.mutation import (
+    OPERATORS,
+    MutationOperator,
+    MutationReport,
+    MutationResult,
+    mutate,
+    mutate_file,
 )
 from sciteam.orchestrator import CreateSpec, DriveResult, TeamOrchestrator
 from sciteam.plugin_api import (
@@ -70,6 +95,16 @@ from sciteam.ports import (
     VerdictRecord,
     VerifierPort,
 )
+from sciteam.provenance import compare, environment_fingerprint
+from sciteam.resilience import (
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CircuitState,
+    ResiliencePolicy,
+    ResilientRuntimePort,
+    RetryConfig,
+    TimeoutConfig,
+)
 from sciteam.roster_policy import load_role_catalog, validate_roster
 from sciteam.round_assessor import (
     AssessorPort,
@@ -78,6 +113,7 @@ from sciteam.round_assessor import (
     make_contract_coordinator,
 )
 from sciteam.runtime import AgentRunResult, Run, RunSpec, RunState, RuntimePort
+from sciteam.scaffold import list_templates, scaffold_project
 from sciteam.team_loader import build_registry, load_team_configs, resolve_start_params
 from sciteam.tool_catalog import ToolCatalog, ToolSpec
 from sciteam.trace import CampaignTrace
@@ -88,15 +124,46 @@ __all__ = [
     "AssessmentDecision",
     "AssessorPort",
     "BudgetClock",
+    "CircuitBreaker",
+    "CircuitBreakerConfig",
+    "CircuitState",
     "build_assessment_facts",
     "ClaimSpan",
     "PlanReviser",
     "ComputeJobResult",
     "ComputeJobSpec",
     "ComputePort",
+    "CORE_KINDS",
+    "ResumeState",
+    "read_resume_state",
+    "record_mission_decision",
+    "OPERATORS",
+    "MutationOperator",
+    "MutationReport",
+    "MutationResult",
+    "mutate",
+    "mutate_file",
+    "compare",
+    "environment_fingerprint",
+    "GENESIS_HASH",
+    "LEDGER_FILENAME",
+    "ChainVerification",
+    "CostLine",
     "DatasetManifest",
     "DatasetPort",
+    "EventLog",
     "EvidenceGraph",
+    "InstitutionEvent",
+    "LedgerError",
+    "LedgerState",
+    "cost_report",
+    "read_events",
+    "replay",
+    "verify_chain",
+    "export_html_view",
+    "render_html",
+    "list_templates",
+    "scaffold_project",
     "JobState",
     "LiteraturePort",
     "Reference",
@@ -150,6 +217,10 @@ __all__ = [
     "RunSpec",
     "RunState",
     "RuntimePort",
+    "ResiliencePolicy",
+    "ResilientRuntimePort",
+    "RetryConfig",
+    "TimeoutConfig",
     "SchedulingMode",
     "ScriptedCoordinator",
     "ScriptedPlaybookPlanner",
@@ -170,4 +241,4 @@ __all__ = [
     "load_all_plugins",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.3.0.dev0"

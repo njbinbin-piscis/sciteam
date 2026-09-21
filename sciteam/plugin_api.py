@@ -1,5 +1,5 @@
 """The plugin engine bundled with the sciteam base (design: see
-``docs/25-sciteam-plugin-architecture.md`` in the companion research repo).
+``docs/PLUGIN-GUIDE.md``).
 Analogous to ``pluggy`` shipping inside ``pytest`` itself: this module is
 part of the frozen base, not a plugin — it is what lets everything *else*
 be a plugin instead of a change to ``sciteam/``.
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 #: Frozen plugin-facing contract version — independent of `sciteam.__version__`.
 #: Internal refactors that do not touch the surface documented in
-#: `docs/25-sciteam-plugin-architecture.md` §5 never bump this. Bumping the
+#: `docs/COMPATIBILITY.md` never bump this. Bumping the
 #: major component is a breaking change to every installed plugin.
 PLUGIN_API_VERSION = "1.0"
 
@@ -56,7 +56,7 @@ ToolHandler = Callable[[dict[str, Any]], dict[str, Any]]
 HookHandler = Callable[[dict[str, Any]], "HookResult | None"]
 
 #: Events a hook may subscribe to (`PluginAPI.on`). Kept in sync with
-#: docs/25-sciteam-plugin-architecture.md §3.4 — that table is the source
+#: docs/PLUGIN-GUIDE.md — that table is the source
 #: of truth for what each event's payload contains and when it fires.
 EVENTS = frozenset(
     {
@@ -70,7 +70,7 @@ EVENTS = frozenset(
 )
 
 #: Only these two events may block the action they observe. The rest of
-#: `EVENTS` already have their own authority判定 elsewhere (declarative
+#: `EVENTS` already have their own authority ruling elsewhere (declarative
 #: roles in team_loader, the amendment layer whitelist, audit_veto's RBAC)
 #: — a plugin gets to add *more* scrutiny at the two points where "does
 #: this action take effect" is actually decided, never a second opinion
@@ -233,13 +233,41 @@ class PluginRegistry:
             raise PluginError(f"unknown plugin event: {event!r} (known: {sorted(EVENTS)})")
         self._hooks.setdefault(event, []).append((plugin_id, handler))
 
+    def _check_merge_conflicts(self, staging: PluginRegistry) -> None:
+        """Raise `PluginError` on the first name collision between
+        `staging` and this (final) registry, without mutating either.
+        Split out from `_merge_from` so conflicts are detected *before*
+        any registration is committed — see that method's docstring for
+        why a plugin with two tools, one of them conflicting, must not
+        leak the non-conflicting one."""
+        for name in staging._runtime_ports:
+            if name in self._runtime_ports:
+                raise PluginError(f"runtime port {name!r} already registered")
+        for reg in staging._tools.values():
+            if reg.spec.name in self._tools:
+                raise PluginError(f"tool {reg.spec.name!r} already registered")
+        for kind, name in staging._ports:
+            if (kind, name) in self._ports:
+                raise PluginError(f"{kind} port {name!r} already registered")
+        for name in staging._plan_revisers:
+            if name in self._plan_revisers:
+                raise PluginError(f"plan reviser {name!r} already registered")
+        for name in staging._assessors:
+            if name in self._assessors:
+                raise PluginError(f"assessor {name!r} already registered")
+
     def _merge_from(self, staging: PluginRegistry, plugin_id: str) -> None:
         """Commit one plugin's staged registrations into this (final)
         registry, conflict-checked against what is already committed.
         Called only after that plugin's manifest has been validated —
-        see `load_all_plugins`. Raises `PluginError` and commits nothing
-        for this plugin if any single item conflicts (all-or-nothing per
-        plugin, so a plugin never ends up half-registered)."""
+        see `load_all_plugins`. Raises `PluginError` and commits *nothing*
+        for this plugin if any single item conflicts: conflicts are
+        checked across the whole staged batch first (`_check_merge_conflicts`)
+        so a plugin declaring N tools, only one of which collides, cannot
+        leak the other N-1 into the registry before the collision is
+        found — true all-or-nothing, not "all-or-nothing unless the
+        conflicting item happens to be registered last"."""
+        self._check_merge_conflicts(staging)
         for name, factory in staging._runtime_ports.items():
             self._register_runtime_port(name, factory)
         for reg in staging._tools.values():

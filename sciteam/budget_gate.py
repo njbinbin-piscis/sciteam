@@ -29,40 +29,47 @@ GATE_REL = Path("control") / "budget_gate.json"
 METER_REL = Path("control") / "schedule_meter.json"
 
 REASON_LABELS = {
-    "tick_budget_exhausted": "调度油箱耗尽（内部步数）",
-    "budget_exhausted": "协调轮次用尽",
-    "wall_clock_exhausted": "墙钟时间用尽",
-    "assessor_envelope_repair": "裁决席信封多次不合格",
-    "human_gate": "制度要求人工确认",
-    "worker_escalate": "工作席请求人工协助",
-    "worker_retry_exhausted": "工作席自修次数耗尽",
-    "billing_402": "账户欠费（HTTP 402）",
-    "token_fuse": "本 seed token 熔断",
-    "wall_fuse": "本 seed 墙钟熔断",
+    "tick_budget_exhausted": "scheduling fuel exhausted (internal engine steps)",
+    "budget_exhausted": "coordination rounds exhausted",
+    "wall_clock_exhausted": "wall-clock budget exhausted",
+    "assessor_envelope_repair": "assessor seat returned a malformed envelope repeatedly",
+    "human_gate": "the institution requires human confirmation",
+    "worker_escalate": "a working seat asked for human help",
+    "worker_retry_exhausted": "a working seat exhausted its self-repair attempts",
+    "billing_402": "account out of credit (HTTP 402)",
+    "token_fuse": "per-seed token fuse tripped",
+    "wall_fuse": "per-seed wall-clock fuse tripped",
 }
 
 REASON_BLURBS = {
     "tick_budget_exhausted": (
-        "仅在硬门控模式（测试 / SCITEAM_TICK_HARD_GATE）下出现。"
-        "默认生产路径会自动续杯调度步数，不应因 tick 停科研实验。"
+        "Only reachable under the hard-gate mode (tests / SCITEAM_TICK_HARD_GATE). "
+        "The default path tops scheduling steps up automatically; a run should "
+        "never stop on ticks alone."
     ),
-    "budget_exhausted": "协调轮次已达上限，任务暂停，等你追加或中止。",
-    "wall_clock_exhausted": "墙钟时间已达上限，任务暂停，等你追加或中止。",
+    "budget_exhausted": "Coordination-round cap reached. Paused — extend the budget or abort.",
+    "wall_clock_exhausted": "Wall-clock cap reached. Paused — extend the budget or abort.",
     "assessor_envelope_repair": (
-        "裁决席连续未能返回合法 round_assessment JSON。"
-        "可追加轮次让席位重试，或中止以便改技能/提示词后再跑——这不是科学结论停机。"
+        "The assessor seat repeatedly failed to return valid round_assessment JSON. "
+        "Extend the budget to let it retry, or abort and fix the skill/prompt first — "
+        "this is an envelope failure, not a scientific result."
     ),
-    "human_gate": "范式声明需要人工确认后才能结项。",
-    "worker_escalate": "工作席已附诊断与尝试记录，请补充约束、资源或裁决。",
+    "human_gate": "The paradigm declares that closing requires human confirmation.",
+    "worker_escalate": (
+        "The working seat attached its diagnosis and attempt log; supply constraints, "
+        "resources, or a ruling."
+    ),
     "worker_retry_exhausted": (
-        "工作席已多次改变方法但仍不能满足工单契约；可授权继续、补充指导或中止。"
+        "The working seat changed approach several times and still cannot satisfy the "
+        "work-item contract; authorize continuation, add guidance, or abort."
     ),
     "billing_402": (
-        "诊断含 HTTP 402 / Insufficient Balance。必须 HOLD，禁止 grant。"
-        "余额恢复前战役保持 waiting_user。该 split 标记 contaminated。"
+        "Diagnosis contains HTTP 402 / Insufficient Balance. This must HOLD; granting is "
+        "forbidden. The campaign stays waiting_user until credit is restored, and this "
+        "split is marked contaminated."
     ),
-    "token_fuse": "本 seed 的 token 上限已触顶，自动暂停，不继续烧。",
-    "wall_fuse": "本 seed 的墙钟上限已触顶，自动暂停。",
+    "token_fuse": "This seed hit its token ceiling and was paused automatically.",
+    "wall_fuse": "This seed hit its wall-clock ceiling and was paused automatically.",
 }
 
 
@@ -241,8 +248,10 @@ def pending_summary(run_dir: Path | str) -> dict[str, Any] | None:
         "mission_id": data.get("mission_id"),
         "team_run_id": data.get("team_run_id"),
         "reason": reason,
-        "reason_label": REASON_LABELS.get(reason, reason or "预算耗尽"),
-        "reason_blurb": REASON_BLURBS.get(reason, "战役已暂停，等待人类授权。"),
+        "reason_label": REASON_LABELS.get(reason, reason or "budget exhausted"),
+        "reason_blurb": REASON_BLURBS.get(
+            reason, "The campaign is paused, awaiting human authorization."
+        ),
         "rounds_used": data.get("rounds_used"),
         "current_max_iterations": data.get("current_max_iterations"),
         "ticks_used": ticks_used,
@@ -288,8 +297,9 @@ def write_schedule_meter(
         "state": state,
         "updated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "note": (
-            "调度油箱（tick）= 引擎内部步数（观测用）。"
-            "默认软续杯，不因耗尽停实验；科学停机看协调轮/墙钟/契约。"
+            "Ticks are internal engine steps, recorded for observability. They are "
+            "topped up softly by default; a run stops on coordination rounds, "
+            "wall clock, or contract outcome — not on ticks."
         ),
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

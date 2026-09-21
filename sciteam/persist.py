@@ -25,69 +25,30 @@ def snapshot_team_run(
     board: WorkBoard | None = None,
     deps: DepGraph | None = None,
 ) -> None:
-    """Write a full JSON snapshot + append newly done tasks to rounds.jsonl."""
+    """Write a full JSON snapshot + append newly done tasks to rounds.jsonl.
+
+    docs/28 阶段4: `team_run.json`/`board.json`/`deps.jsonl` together are the
+    cold-start recovery surface (`sciteam.recovery.load_team_run_snapshot`).
+    `team_run.json` is `TeamRun.to_dict()` verbatim (lossless round-trip via
+    `TeamRun.from_dict`) plus a human-readable `tasks` projection for
+    operators inspecting the run without loading `board.json`.
+    """
     root = Path(run.work_root)
     root.mkdir(parents=True, exist_ok=True)
-    snap = {
-        "id": run.id,
-        "goal": run.goal,
-        "team_profile_id": run.team_profile_id,
-        "state": run.state.value,
-        "active_round": run.active_round,
-        "updated_at": datetime.now(UTC).isoformat(timespec="seconds"),
-        "metadata": {
-            k: v
-            for k, v in (run.metadata or {}).items()
-            if k
-            in {
-                "mission_id",
-                "mission_kind",
-                "exit_contract",
-                "skills_allowlist",
-                "artifact_path",
-                "artifact_gate",
-                "artifact_source",
-                "artifact_emit_roles",
-                "assess_roles",
-                "coordination",
-                "next_round_hint",
-                "last_assessment_reason",
-                "last_aggregation",
-                "budget_exhausted",
-                "budget_extensions",
-                "gate_reason",
-                "heartbeats_used",
-                "worker_retry_limit",
-                "worker_escalation",
-                "human_gate_pending",
-                "human_gate_cleared",
-            }
-        },
-        "agents": [
-            {
-                "agent_key": a.agent_key,
-                "state": a.state.value,
-                "work_dir": a.work_dir,
-                "profile": a.profile,
-                "replica_of": a.replica_of,
-                "active_work_item_id": a.active_work_item_id,
-            }
-            for a in run.agents
-        ],
-        "tasks": [
-            {
-                "task_id": t.task_id,
-                "agent_key": t.agent_key,
-                "round_index": t.round_index,
-                "state": t.state.value,
-                "result": _clip(t.result, 8000),
-                "error": t.error,
-                "handoff_to": t.handoff_to,
-                "metadata": dict(t.metadata),
-            }
-            for t in run.tasks
-        ],
-    }
+    snap = run.to_dict()
+    snap["tasks"] = [
+        {
+            "task_id": t.task_id,
+            "agent_key": t.agent_key,
+            "round_index": t.round_index,
+            "state": t.state.value,
+            "result": _clip(t.result, 8000),
+            "error": t.error,
+            "handoff_to": t.handoff_to,
+            "metadata": dict(t.metadata),
+        }
+        for t in run.tasks
+    ]
     (root / "team_run.json").write_text(
         json.dumps(snap, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )

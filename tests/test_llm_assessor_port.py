@@ -9,7 +9,7 @@ from sciteam.coordinator import ContractCoordinator
 from sciteam.models import AgentSlot, Task, TaskState, TeamRun, TeamRunState
 from sciteam.round_assessor import LlmAssessorPort, ScriptedAssessor, make_contract_coordinator
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT, LAB_ROOT
 
 
 class _FakeRuntime:
@@ -39,7 +39,7 @@ def test_llm_assessor_loads_role_prompt_and_parses_envelope():
         "assessor_key": "round_assessor",
     }
     runtime = _FakeRuntime(json.dumps(envelope))
-    port = LlmAssessorPort(runtime=runtime, assets_root=LAB_ROOT / "assets")
+    port = LlmAssessorPort(runtime=runtime, assets_root=DATA_ROOT / "assets")
     run = TeamRun(
         id="r",
         goal="g",
@@ -134,5 +134,5 @@ def test_make_contract_coordinator_modes():
     assert isinstance(fake._assessor, ScriptedAssessor)
 
     runtime = _FakeRuntime("{}")
-    live = make_contract_coordinator(live=True, runtime=runtime, assets_root=LAB_ROOT / "assets")
+    live = make_contract_coordinator(live=True, runtime=runtime, assets_root=DATA_ROOT / "assets")
     assert isinstance(live._assessor, LlmAssessorPort)

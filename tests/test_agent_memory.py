@@ -9,7 +9,7 @@ import pytest
 from sciteam.llm import LlmResponse, LlmUsage
 from sciteam.llm_worker import LlmWorkerRuntime, PromptAssets
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT
 
 
 class _Client:
@@ -43,10 +43,10 @@ def _runtime(responses: list[str]) -> tuple[LlmWorkerRuntime, _Client]:
     runtime = LlmWorkerRuntime(
         client=client,
         assets=PromptAssets(
-            prompts_dir=LAB_ROOT / "assets" / "prompts",
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            prompts_dir=DATA_ROOT / "assets" / "prompts",
+            skills_dir=DATA_ROOT / "assets" / "skills",
         ),
-        schemas_dir=LAB_ROOT / "schemas",
+        schemas_dir=DATA_ROOT / "schemas",
     )
     return runtime, client
 
@@ -124,10 +124,10 @@ async def test_next_wave_prompt_recalls_same_seat_failure(tmp_path: Path) -> Non
     runtime = LlmWorkerRuntime(
         client=client,
         assets=PromptAssets(
-            prompts_dir=LAB_ROOT / "assets" / "prompts",
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            prompts_dir=DATA_ROOT / "assets" / "prompts",
+            skills_dir=DATA_ROOT / "assets" / "skills",
         ),
-        schemas_dir=LAB_ROOT / "schemas",
+        schemas_dir=DATA_ROOT / "schemas",
     )
     work_dir = tmp_path / "seat"
     first = await runtime.run_subagent(

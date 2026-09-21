@@ -20,7 +20,7 @@ from sciteam.experiment_pack import recruit_agent
 from sciteam.roster_policy import prefer_skills_for_roles
 from sciteam.team_loader import build_registry
 
-from tests.conftest import ArtifactWritingRuntime
+from tests.conftest import DATA_ROOT, ArtifactWritingRuntime
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
 
@@ -53,8 +53,8 @@ async def test_mission_declared_allowlist_unions_with_role_derived_skills(tmp_pa
             runtime=ArtifactWritingRuntime({"m_union": VALID_LIT_MAP}),
             work_root=tmp_path / "w",
         ),
-        paradigms=build_registry(LAB_ROOT / "assets" / "teams" / "paradigms"),
-        validator=ContractValidator(LAB_ROOT / "schemas"),
+        paradigms=build_registry(DATA_ROOT / "assets" / "teams" / "paradigms"),
+        validator=ContractValidator(DATA_ROOT / "schemas"),
         artifacts_root=tmp_path / "m",
         pack_dir=run_dir / "pack",
     )

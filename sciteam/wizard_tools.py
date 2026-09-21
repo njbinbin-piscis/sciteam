@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html
 import json
+import logging
 import re
 import urllib.error
 import urllib.parse
@@ -17,15 +18,22 @@ from pathlib import Path
 from typing import Any
 
 from sciteam import amendment as amendment_kernel
-from sciteam import fs_tools
+from sciteam import context_tools, fs_tools
+from sciteam._paths import ASSETS_ROOT, SCHEMAS_DIR, runs_root
 from sciteam.ask_question import execute_ask_question
 from sciteam.ask_question import tool_schema as ask_question_tool_schema
 from sciteam.plugin_api import PluginRegistry
-from sciteam.sandbox import LocalPythonSandbox, request_from_arguments
+from sciteam.sandbox import (
+    DEVELOPMENT_SANDBOX_PROFILE,
+    SandboxUnavailableError,
+    build_sandbox,
+    request_from_arguments,
+)
 from sciteam.tool_registry import ToolRegistry
 
-LAB_ROOT = Path(__file__).resolve().parents[1]
-_CACHE = LAB_ROOT / "runs" / "_wizard_http_cache"
+logger = logging.getLogger(__name__)
+
+_CACHE = runs_root() / "_wizard_http_cache"
 
 ToolHandler = Callable[[dict[str, Any]], dict[str, Any]]
 
@@ -186,7 +194,11 @@ RESEARCH_TOOL_DEFS = list(WIZARD_TOOL_DEFS)
 # capability gating below): research tools + B4's workspace-confined
 # read/write/edit/grep/find/ls/bash, so `LlmWorkerRuntime` seats get the
 # same file-tool parity `PiRuntime` gets natively from the pi CLI.
-MISSION_TOOL_DEFS = [*RESEARCH_TOOL_DEFS, *fs_tools.FS_TOOL_DEFS]
+MISSION_TOOL_DEFS = [
+    *RESEARCH_TOOL_DEFS,
+    *fs_tools.FS_TOOL_DEFS,
+    context_tools.READ_ARCHIVED_RESULT_TOOL_DEF,
+]
 
 # Wizard: research tools + terminal ask_question for UI chips / topic picks.
 # Deliberately excludes MISSION_TOOL_DEFS' fs/bash tools — the intake wizard
@@ -557,8 +569,15 @@ def amendment_audit(proposal: dict[str, Any], lab_root: Path | str | None = None
     """Grundnorm G7 mechanical audit: preflight (schema + fail-closed layer +
     entrenchment) plus motivation-ref resolvability. The tool writes the
     ledger; reviewing seats quote it."""
-    root = Path(lab_root) if lab_root else Path(__file__).resolve().parents[1]
-    pre = amendment_kernel.preflight(proposal, root / "schemas", assets_root=root / "assets")
+    # An explicit lab_root is a self-contained tree (schemas/, assets/, runs/).
+    # Otherwise: schemas/assets come from the bundled package data, and
+    # failure_refs (run artifacts) resolve against the working directory.
+    if lab_root:
+        root = Path(lab_root)
+        schemas_dir, assets_root = root / "schemas", root / "assets"
+    else:
+        root, schemas_dir, assets_root = Path.cwd(), SCHEMAS_DIR, ASSETS_ROOT
+    pre = amendment_kernel.preflight(proposal, schemas_dir, assets_root=assets_root)
     ref_violations = amendment_kernel.audit_alignment(proposal, root) if pre.ok else []
     passed = pre.ok and not ref_violations
     return {
@@ -599,7 +618,7 @@ def run_wizard_tool(
 
     Built-in tools (``_WIZARD_TOOL_DISPATCH``) are always checked first and
     can never be shadowed by a plugin (see
-    ``docs/25-sciteam-plugin-architecture.md`` §7 — plugins add, they don't
+    ``docs/PLUGIN-GUIDE.md`` — plugins add, they don't
     override). ``plugins`` is an explicit, caller-supplied
     ``PluginRegistry`` (typically produced once by
     ``sciteam.plugin_api.load_all_plugins()`` in the composition root and
@@ -632,7 +651,21 @@ def _sandbox_handler(
             "reason_code": "sandbox_workspace_missing",
             "error": "mission workspace was not supplied",
         }
-    sandbox = LocalPythonSandbox(str(workspace))
+    profile = context.get("sandbox_profile")
+    try:
+        sandbox = build_sandbox(str(workspace), profile=profile)
+    except SandboxUnavailableError as exc:
+        return {
+            "ok": False,
+            "reason_code": "sandbox_unavailable",
+            "error": str(exc),
+        }
+    if profile == DEVELOPMENT_SANDBOX_PROFILE:
+        logger.warning(
+            "sandbox_profile=development: side-effect tool running without a "
+            "container boundary (workspace=%s)",
+            workspace,
+        )
     request = request_from_arguments(arguments)
     result = sandbox.certify(request) if certify else sandbox.run(request)
     payload = result.to_dict()
@@ -642,7 +675,7 @@ def _sandbox_handler(
     return payload
 
 
-_CATALOG = LAB_ROOT / "assets" / "tools" / "catalog.yaml"
+_CATALOG = ASSETS_ROOT / "tools" / "catalog.yaml"
 _RESEARCH_REGISTRY = ToolRegistry(_CATALOG)
 _RESEARCH_REGISTRY.register(
     "literature.search", lambda args, _ctx: _dispatch_literature_search(args)
@@ -667,9 +700,24 @@ _RESEARCH_REGISTRY.register("fs.list", fs_tools.list_dir)
 _RESEARCH_REGISTRY.register("fs.find", fs_tools.find_files)
 _RESEARCH_REGISTRY.register("fs.grep", fs_tools.grep_files)
 _RESEARCH_REGISTRY.register("compute.bash", fs_tools.run_bash)
+# E5 (docs/SESSION-KERNEL.md §5.1): recovery read for compacted tool results.
+_RESEARCH_REGISTRY.register("context.read_archived", context_tools.read_archived_result)
 
 
-def tool_definitions_for(capabilities: set[str]) -> list[dict[str, Any]]:
+def _plugin_tool_def(spec: Any) -> dict[str, Any]:
+    return {
+        "type": "function",
+        "function": {
+            "name": spec.name,
+            "description": spec.summary,
+            "parameters": spec.input_schema or {"type": "object", "properties": {}},
+        },
+    }
+
+
+def tool_definitions_for(
+    capabilities: set[str], *, plugins: PluginRegistry | None = None
+) -> list[dict[str, Any]]:
     """Capability-filtered tool defs for a mission worker claim.
 
     ``capabilities`` here is the seat's *effective* set (see
@@ -677,22 +725,48 @@ def tool_definitions_for(capabilities: set[str]) -> list[dict[str, Any]]:
     always-on fs.* capabilities and, when justified, `compute.bash`); this
     function does not itself add anything beyond filtering `MISSION_TOOL_DEFS`
     against it, so both arms' "who gets what" logic stays in one place.
+
+    ``plugins`` (E6, 28-... §7.2) is the same explicit, caller-supplied
+    registry `run_wizard_tool` already accepts — an installed plugin's tool
+    is now visible to the mission worker's real tool loop, not only to the
+    intake wizard, closing the gap between the two dispatchers. A plugin
+    tool whose capability is not in the seat's effective set is invisible
+    here exactly like a built-in one would be.
     """
-    return _RESEARCH_REGISTRY.definitions_for(capabilities, MISSION_TOOL_DEFS)
+    defs = _RESEARCH_REGISTRY.definitions_for(capabilities, MISSION_TOOL_DEFS)
+    if plugins is not None:
+        for spec in plugins.all_tool_specs():
+            if spec.capability in capabilities:
+                defs.append(_plugin_tool_def(spec))
+    return defs
 
 
-def tool_permission(name: str) -> str:
+def tool_permission(name: str, *, plugins: PluginRegistry | None = None) -> str:
     """Catalog permission (`readonly`/`side_effect`/`privileged`) for a tool
     name, used by the worker's tool loop to decide concurrent vs serial
-    execution. Unknown names fall back to `side_effect` (serial, safe)."""
-    return _RESEARCH_REGISTRY.permission_of(name)
+    execution. Falls through to an installed plugin's own declared
+    permission when the name is not a built-in; unknown names fall back to
+    `side_effect` (serial, safe)."""
+    if _RESEARCH_REGISTRY.known(name):
+        return _RESEARCH_REGISTRY.permission_of(name)
+    if plugins is not None:
+        spec = plugins.tool_spec(name)
+        if spec is not None:
+            return spec.permission
+    return "side_effect"
 
 
-def tool_deterministic(name: str) -> bool:
+def tool_deterministic(name: str, *, plugins: PluginRegistry | None = None) -> bool:
     """Catalog `deterministic` flag for a tool name (P1-7): gates the
-    worker's same-work-item (tool, args) result cache. Unknown names default
-    to False (never cached)."""
-    return _RESEARCH_REGISTRY.deterministic_of(name)
+    worker's same-work-item (tool, args) result cache. Falls through to a
+    plugin's declared flag; unknown names default to False (never cached)."""
+    if _RESEARCH_REGISTRY.known(name):
+        return _RESEARCH_REGISTRY.deterministic_of(name)
+    if plugins is not None:
+        spec = plugins.tool_spec(name)
+        if spec is not None:
+            return spec.deterministic
+    return False
 
 
 def run_research_tool(
@@ -700,5 +774,22 @@ def run_research_tool(
     arguments: dict[str, Any] | None,
     *,
     context: dict[str, Any] | None = None,
+    plugins: PluginRegistry | None = None,
 ) -> dict[str, Any]:
-    return _RESEARCH_REGISTRY.execute(name, arguments, context=context)
+    """Dispatch one mission-worker tool call. Built-in (catalog) tools are
+    always checked first and can never be shadowed by a plugin — same
+    "plugins add, they don't override" rule `run_wizard_tool` already
+    documents, now shared by both dispatchers (E6)."""
+    if _RESEARCH_REGISTRY.known(name) or plugins is None:
+        return _RESEARCH_REGISTRY.execute(name, arguments, context=context)
+    handler = plugins.tool_handler(name)
+    if handler is None:
+        return {
+            "ok": False,
+            "reason_code": "unknown_tool",
+            "error": f"tool not present in catalog or installed plugins: {name}",
+        }
+    try:
+        return handler(arguments if isinstance(arguments, dict) else {})
+    except Exception as exc:  # noqa: BLE001 - a broken plugin tool must not crash the loop
+        return {"ok": False, "error": f"{type(exc).__name__}: {exc}", "tool": name}

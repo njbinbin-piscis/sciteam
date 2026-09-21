@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from sciteam._paths import ASSETS_ROOT
 from sciteam.capabilities import RuntimeCapabilities, preflight_mission
 from sciteam.sandbox import LocalPythonSandbox, SandboxRequest
 
@@ -65,7 +66,7 @@ def test_sandbox_rejects_escape_timeout_and_network(tmp_path: Path) -> None:
 def test_model_skill_capability_preflight(tmp_path: Path) -> None:
     skill_dir = tmp_path / "skills" / "model.as_program"
     skill_dir.mkdir(parents=True)
-    source = Path(__file__).parents[1] / "assets" / "skills" / "model.as_program" / "SKILL.md"
+    source = ASSETS_ROOT / "skills" / "model.as_program" / "SKILL.md"
     (skill_dir / "SKILL.md").write_text(source.read_text(encoding="utf-8"))
     missing = preflight_mission(
         skills_dir=tmp_path / "skills",

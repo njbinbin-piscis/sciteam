@@ -44,6 +44,14 @@ class ToolRegistry:
     def available_capabilities(self) -> frozenset[str]:
         return frozenset(self._handlers)
 
+    def known(self, name: str) -> bool:
+        """Whether ``name`` is a catalog tool with an injected handler —
+        used to decide whether a lookup should fall through to an
+        installed plugin's tool catalog instead (E6: `wizard_tools.py`'s
+        `run_research_tool`/`tool_definitions_for` fallback)."""
+        tool = self._tools.get(str(name))
+        return tool is not None and tool.capability in self._handlers
+
     def permission_of(self, name: str) -> str:
         """Catalog permission for a tool name; unknown tools are treated as
         `side_effect` (the conservative/serial default) rather than silently

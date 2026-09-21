@@ -14,7 +14,7 @@ from sciteam.compact import build_working_pack, profile_for
 from sciteam.llm import LlmResponse, LlmUsage
 from sciteam.persist import inner_loop_path
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT
 
 
 class _CtxFakeLlmClient:
@@ -62,8 +62,8 @@ class _FakeAssets:
 
 def _real_assets() -> PromptAssets:
     return PromptAssets(
-        prompts_dir=LAB_ROOT / "assets" / "prompts",
-        skills_dir=LAB_ROOT / "assets" / "skills",
+        prompts_dir=DATA_ROOT / "assets" / "prompts",
+        skills_dir=DATA_ROOT / "assets" / "skills",
     )
 
 
@@ -71,7 +71,7 @@ def _runtime(client, assets=None, *, max_tokens: int | None = None) -> LlmWorker
     return LlmWorkerRuntime(
         client=client,
         assets=assets or _real_assets(),
-        schemas_dir=LAB_ROOT / "schemas",
+        schemas_dir=DATA_ROOT / "schemas",
         max_tokens=max_tokens,
     )
 

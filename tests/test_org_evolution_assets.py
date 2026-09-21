@@ -10,7 +10,10 @@ from sciteam.roster_policy import load_role_catalog, role_registry_preflight
 from sciteam.team_loader import load_team_config
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
-ASSETS = LAB_ROOT / "assets"
+
+from sciteam._paths import DATA_ROOT  # noqa: E402
+
+ASSETS = DATA_ROOT / "assets"
 
 NEW_PARADIGMS = ["retro_council", "amendment_review"]
 NEW_SKILLS = ["org.retro", "org.amend_draft", "org.amend_review", "org.shadow_verify", "org.evolve"]

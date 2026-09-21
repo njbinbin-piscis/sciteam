@@ -22,7 +22,7 @@ from sciteam.models import TeamRunState
 from sciteam.round_assessor import ScriptedAssessor
 from sciteam.team_loader import load_team_config
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT, LAB_ROOT
 
 FIXTURE = LAB_ROOT / "tests" / "fixtures" / "teams" / "minimal_judgment.yaml"
 
@@ -78,7 +78,7 @@ def test_all_asset_judgment_paradigms_declare_emit_and_assess():
     """Institutional gap: judgment without emit-duty stalls forever (need_artifact)."""
     from sciteam import build_registry
 
-    registry = build_registry(LAB_ROOT / "assets" / "teams" / "paradigms")
+    registry = build_registry(DATA_ROOT / "assets" / "teams" / "paradigms")
     for cfg in registry.list():
         pid = cfg.team_id
         stopping = (cfg.coordination or {}).get("stopping") or {}

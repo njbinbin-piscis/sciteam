@@ -23,7 +23,10 @@ from sciteam.kb import CampaignKB
 from sciteam.mission import MissionOutcome
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_PATH = LAB_ROOT / "schemas" / "audit_veto.schema.json"
+
+from sciteam._paths import DATA_ROOT  # noqa: E402
+
+SCHEMA_PATH = DATA_ROOT / "schemas" / "audit_veto.schema.json"
 
 
 # ---------------------------------------------------------------------------

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from sciteam._paths import ASSETS_ROOT
 from sciteam.assessment_facts import build_assessment_facts
 from sciteam.coordination import CoordinationSpec, StoppingKind
 from sciteam.models import (
@@ -25,7 +27,10 @@ from sciteam.round_assessor import (
     parse_assessor_envelope,
 )
 
-_LAB_ASSETS = Path(__file__).resolve().parents[1] / "assets"
+logger = logging.getLogger(__name__)
+
+
+_LAB_ASSETS = ASSETS_ROOT
 
 
 @runtime_checkable
@@ -201,7 +206,7 @@ def _persist_json(run: TeamRun, name: str, payload: dict[str, Any]) -> None:
             encoding="utf-8",
         )
     except OSError:
-        pass
+        logger.warning("could not write coordinator record %s (continuing)", name)
 
 
 class ContractCoordinator(ScriptedCoordinator):

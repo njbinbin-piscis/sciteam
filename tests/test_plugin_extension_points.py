@@ -1,4 +1,4 @@
-"""P2 (docs/25-sciteam-plugin-architecture.md §6): plugins extend the base's
+"""P2 (docs/PLUGIN-GUIDE.md): plugins extend the base's
 tool dispatch, paradigm registry, and prompt/skill lookup by *adding* search
 locations — never by overriding what the base assets already define. These
 tests exercise the actual extension points wired for wizard tools,
@@ -16,7 +16,7 @@ from sciteam.team_loader import build_registry
 from sciteam.tool_catalog import ToolSpec
 from sciteam.wizard_tools import _WIZARD_TOOL_DISPATCH, run_wizard_tool
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT
 
 
 class TestWizardToolPluginFallback:
@@ -71,11 +71,11 @@ class TestWizardToolPluginFallback:
 class TestBuildRegistryExtraRoots:
     def test_default_call_reproduces_existing_behavior(self):
         # Sanity: the base paradigms directory alone still loads normally.
-        registry = build_registry(LAB_ROOT / "assets" / "teams" / "paradigms")
+        registry = build_registry(DATA_ROOT / "assets" / "teams" / "paradigms")
         assert registry.list()
 
     def test_extra_root_paradigm_is_discovered(self, tmp_path):
-        base = LAB_ROOT / "assets" / "teams" / "paradigms"
+        base = DATA_ROOT / "assets" / "teams" / "paradigms"
         plugin_dir = tmp_path / "plugin_paradigms"
         plugin_dir.mkdir()
         (plugin_dir / "round_robin_review.yaml").write_text(
@@ -102,7 +102,7 @@ class TestBuildRegistryExtraRoots:
         assert len(registry.list()) > 1
 
     def test_duplicate_team_id_across_roots_is_fail_closed(self, tmp_path):
-        base = LAB_ROOT / "assets" / "teams" / "paradigms"
+        base = DATA_ROOT / "assets" / "teams" / "paradigms"
         existing_id = next(p.stem for p in sorted(base.glob("*.yaml")))
         colliding_dir = tmp_path / "colliding_paradigms"
         colliding_dir.mkdir()
@@ -130,12 +130,12 @@ class TestBuildRegistryExtraRoots:
 class TestPromptAssetsExtraDirs:
     def test_default_lookup_unchanged(self):
         assets_no_extra = PromptAssets(
-            prompts_dir=LAB_ROOT / "assets" / "prompts",
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            prompts_dir=DATA_ROOT / "assets" / "prompts",
+            skills_dir=DATA_ROOT / "assets" / "skills",
         )
         assets_empty_extra = PromptAssets(
-            prompts_dir=LAB_ROOT / "assets" / "prompts",
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            prompts_dir=DATA_ROOT / "assets" / "prompts",
+            skills_dir=DATA_ROOT / "assets" / "skills",
             extra_prompts_dirs=(),
             extra_skills_dirs=(),
         )
@@ -150,14 +150,14 @@ class TestPromptAssetsExtraDirs:
             "You are the patent scout.\n", encoding="utf-8"
         )
         assets = PromptAssets(
-            prompts_dir=LAB_ROOT / "assets" / "prompts",
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            prompts_dir=DATA_ROOT / "assets" / "prompts",
+            skills_dir=DATA_ROOT / "assets" / "skills",
             extra_prompts_dirs=(plugin_prompts,),
         )
         assert assets.role_prompt("patent_scout").strip() == "You are the patent scout."
 
     def test_base_role_prompt_is_never_shadowed_by_extra_dir(self, tmp_path):
-        base_prompts = LAB_ROOT / "assets" / "prompts"
+        base_prompts = DATA_ROOT / "assets" / "prompts"
         base_role = next((base_prompts / "roles").glob("*.md")).stem
         plugin_prompts = tmp_path / "plugin_prompts"
         (plugin_prompts / "roles").mkdir(parents=True)
@@ -166,7 +166,7 @@ class TestPromptAssetsExtraDirs:
         )
         assets = PromptAssets(
             prompts_dir=base_prompts,
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            skills_dir=DATA_ROOT / "assets" / "skills",
             extra_prompts_dirs=(plugin_prompts,),
         )
         assert "HIJACKED" not in assets.role_prompt(base_role)
@@ -178,8 +178,8 @@ class TestPromptAssetsExtraDirs:
             "# Demo skill\nversion: 1.0\nBody text.\n", encoding="utf-8"
         )
         assets = PromptAssets(
-            prompts_dir=LAB_ROOT / "assets" / "prompts",
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            prompts_dir=DATA_ROOT / "assets" / "prompts",
+            skills_dir=DATA_ROOT / "assets" / "skills",
             extra_skills_dirs=(plugin_skills,),
         )
         text, source = assets.skill_raw_text("demo_skill")

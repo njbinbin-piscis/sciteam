@@ -59,11 +59,19 @@ def test_good_paradigm_passes(tmp_path):
 
 
 def test_no_standing_seat_fails(tmp_path):
+    """An institution where no seat may submit must never come back "pass".
+
+    The *detection point* moved: `sciteam mutate` (operator M1/drop-flag)
+    found that this used to load cleanly, so the strict loader now rejects
+    it outright and the shadow reports the load error rather than
+    simulating an authority collapse it can no longer construct. Caught
+    earlier and more cheaply — but the verdict must still be `fail`, which
+    is what this test guards.
+    """
     root = _write_paradigm(tmp_path / "assets", _NO_STANDING_PARADIGM)
     result = evaluate_authority_behavior(root)
     assert result["verdict"] == "fail"
-    (para,) = result["paradigms"]
-    assert para["has_standing_seat"] is False
+    assert "no member holds emits_exit_artifact" in result["error"]
 
 
 def test_assess_seat_declared_as_also_duty_fails_behind_structural_shadow(tmp_path):

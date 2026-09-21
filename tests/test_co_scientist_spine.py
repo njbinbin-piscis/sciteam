@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
+from sciteam._paths import ASSETS_ROOT
 from sciteam.registry_catalog import (
     registered_exit_contract_ids,
     registered_paradigm_ids,
 )
 
-LAB = Path(__file__).resolve().parents[1]
-TEMPLATES = LAB / "assets" / "templates"
+TEMPLATES = ASSETS_ROOT / "templates"
 
 
 def test_co_scientist_spine_binds_registered_tournament_paradigm():

@@ -9,7 +9,7 @@ from sciteam.compact import DEFAULT_PROFILE
 from sciteam.llm import LlmResponse
 from sciteam.llm_worker import _extract_json, _role_key, sanitize_artifact_payload
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT
 
 
 class FakeLlmClient:
@@ -41,8 +41,8 @@ class FakeLlmClient:
 
 def _assets() -> PromptAssets:
     return PromptAssets(
-        prompts_dir=LAB_ROOT / "assets" / "prompts",
-        skills_dir=LAB_ROOT / "assets" / "skills",
+        prompts_dir=DATA_ROOT / "assets" / "prompts",
+        skills_dir=DATA_ROOT / "assets" / "skills",
     )
 
 
@@ -51,7 +51,7 @@ def _runtime(responses: list[str]) -> tuple[LlmWorkerRuntime, FakeLlmClient]:
     runtime = LlmWorkerRuntime(
         client=client,
         assets=_assets(),
-        schemas_dir=LAB_ROOT / "schemas",
+        schemas_dir=DATA_ROOT / "schemas",
     )
     return runtime, client
 
@@ -292,7 +292,7 @@ class TestWorker:
         runtime = LlmWorkerRuntime(
             client=client,
             assets=_assets(),
-            schemas_dir=LAB_ROOT / "schemas",
+            schemas_dir=DATA_ROOT / "schemas",
             eval_runner=fake_eval,
         )
         result = await runtime.run_subagent(
@@ -334,7 +334,7 @@ class TestWorker:
         runtime = LlmWorkerRuntime(
             client=client,
             assets=_assets(),
-            schemas_dir=LAB_ROOT / "schemas",
+            schemas_dir=DATA_ROOT / "schemas",
             eval_runner=fake_eval,
         )
         ctx = _context(tmp_path, "evaluator")
@@ -369,7 +369,7 @@ class TestWorker:
         runtime = LlmWorkerRuntime(
             client=client,
             assets=_assets(),
-            schemas_dir=LAB_ROOT / "schemas",
+            schemas_dir=DATA_ROOT / "schemas",
             eval_runner=fake_eval,
         )
         ctx = _context(tmp_path, "evaluator")
@@ -424,7 +424,7 @@ class TestWorker:
 
         client = ToolAwareFakeClient(second_payload)
         runtime = LlmWorkerRuntime(
-            client=client, assets=_assets(), schemas_dir=LAB_ROOT / "schemas"
+            client=client, assets=_assets(), schemas_dir=DATA_ROOT / "schemas"
         )
         ctx = {
             "team_run_id": "run1",

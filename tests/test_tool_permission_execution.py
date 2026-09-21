@@ -12,7 +12,7 @@ from sciteam import LlmWorkerRuntime, PromptAssets
 from sciteam.llm import LlmUsage
 from sciteam.tool_registry import ToolRegistry
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT
 
 
 class _FakeLlmClient:
@@ -26,11 +26,11 @@ class _FakeLlmClient:
 
 def _runtime() -> LlmWorkerRuntime:
     assets = PromptAssets(
-        prompts_dir=LAB_ROOT / "assets" / "prompts",
-        skills_dir=LAB_ROOT / "assets" / "skills",
+        prompts_dir=DATA_ROOT / "assets" / "prompts",
+        skills_dir=DATA_ROOT / "assets" / "skills",
     )
     return LlmWorkerRuntime(
-        client=_FakeLlmClient(), assets=assets, schemas_dir=LAB_ROOT / "schemas"
+        client=_FakeLlmClient(), assets=assets, schemas_dir=DATA_ROOT / "schemas"
     )
 
 
@@ -43,7 +43,7 @@ def _tc(call_id: str, name: str) -> dict:
 
 class TestToolRegistryPermission:
     def test_permission_of_known_tools(self, tmp_path):
-        registry = ToolRegistry(LAB_ROOT / "assets" / "tools" / "catalog.yaml")
+        registry = ToolRegistry(DATA_ROOT / "assets" / "tools" / "catalog.yaml")
         assert registry.permission_of("literature_search") == "readonly"
         assert registry.permission_of("url_fetch") == "readonly"
         assert registry.permission_of("run_eval") == "side_effect"
@@ -51,7 +51,7 @@ class TestToolRegistryPermission:
         assert registry.permission_of("submit_job") == "privileged"
 
     def test_unknown_tool_defaults_to_side_effect(self):
-        registry = ToolRegistry(LAB_ROOT / "assets" / "tools" / "catalog.yaml")
+        registry = ToolRegistry(DATA_ROOT / "assets" / "tools" / "catalog.yaml")
         assert registry.permission_of("no_such_tool") == "side_effect"
 
 
@@ -287,7 +287,7 @@ class TestToolResultDedupCache:
     def test_catalog_deterministic_flags_match_expectations(self):
         from sciteam.tool_registry import ToolRegistry
 
-        registry = ToolRegistry(LAB_ROOT / "assets" / "tools" / "catalog.yaml")
+        registry = ToolRegistry(DATA_ROOT / "assets" / "tools" / "catalog.yaml")
         assert registry.deterministic_of("literature_search") is True
         assert registry.deterministic_of("run_eval") is True
         assert registry.deterministic_of("web_search") is False

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from sciteam._paths import ASSETS_ROOT, SCHEMAS_DIR
 from sciteam.roster_policy import (
     is_banned_identity,
     load_role_catalog,
@@ -29,9 +30,7 @@ def test_validate_roster_rejects_generic():
 
 
 def test_paradigm_rosters_are_professional():
-    registry = build_registry(
-        __file__.replace("tests/test_roster_policy.py", "assets/teams/paradigms")
-    )
+    registry = build_registry(ASSETS_ROOT / "teams" / "paradigms")
     # build_registry loads and validates; pipeline_chain must not use stage_*
     pc = registry.get("pipeline_chain")
     assert pc is not None
@@ -50,9 +49,7 @@ def test_role_catalog_skills_union():
 
 
 def test_role_registry_preflight_passes_for_registered_role(tmp_path):
-    from pathlib import Path
-
-    prompts_dir = Path(__file__).resolve().parents[1] / "assets" / "prompts"
+    prompts_dir = ASSETS_ROOT / "prompts"
     issues = role_registry_preflight(
         [{"agent_key": "reviewer", "role": "reviewer"}],
         prompts_dir=prompts_dir,
@@ -61,9 +58,7 @@ def test_role_registry_preflight_passes_for_registered_role(tmp_path):
 
 
 def test_role_registry_preflight_flags_unregistered_role(tmp_path):
-    from pathlib import Path
-
-    prompts_dir = Path(__file__).resolve().parents[1] / "assets" / "prompts"
+    prompts_dir = ASSETS_ROOT / "prompts"
     issues = role_registry_preflight(
         [{"agent_key": "made_up_specialist", "role": "made_up_specialist"}],
         prompts_dir=prompts_dir,
@@ -80,9 +75,7 @@ def test_role_registry_preflight_flags_prompt_only_gap(tmp_path):
     e.g. `watcher` seat / `analyst` role before the watcher.md fix) must still
     fail — catalog skills alone do not give the seat role-specific duty text.
     """
-    from pathlib import Path
-
-    prompts_dir = Path(__file__).resolve().parents[1] / "assets" / "prompts"
+    prompts_dir = ASSETS_ROOT / "prompts"
     issues = role_registry_preflight(
         [{"agent_key": "no_such_prompt_stem", "role": "analyst"}],
         prompts_dir=prompts_dir,
@@ -94,10 +87,8 @@ def test_role_registry_preflight_flags_prompt_only_gap(tmp_path):
 def test_role_registry_preflight_ignores_relax_env(monkeypatch):
     """Unlike validate_roster, this check is not gated by SCITEAM_ROSTER_RELAX —
     it protects against fail-open training gaps, not naming style."""
-    from pathlib import Path
-
     monkeypatch.setenv("SCITEAM_ROSTER_RELAX", "1")
-    prompts_dir = Path(__file__).resolve().parents[1] / "assets" / "prompts"
+    prompts_dir = ASSETS_ROOT / "prompts"
     issues = role_registry_preflight(
         [{"agent_key": "made_up_specialist", "role": "made_up_specialist"}],
         prompts_dir=prompts_dir,
@@ -107,8 +98,6 @@ def test_role_registry_preflight_ignores_relax_env(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_mission_rejects_banned_roster(tmp_path):
-    from pathlib import Path
-
     from sciteam import (
         ContractValidator,
         MissionBudget,
@@ -118,16 +107,14 @@ async def test_mission_rejects_banned_roster(tmp_path):
     )
     from sciteam.team_loader import build_registry
 
-    lab = Path(__file__).resolve().parents[1]
-
     class Boom:
         async def run_subagent(self, *a, **k):  # noqa: ANN002
             raise AssertionError("should not run")
 
     runner = MissionRunner(
         orchestrator=TeamOrchestrator(runtime=Boom(), work_root=tmp_path / "w"),
-        paradigms=build_registry(lab / "assets" / "teams" / "paradigms"),
-        validator=ContractValidator(lab / "schemas"),
+        paradigms=build_registry(ASSETS_ROOT / "teams" / "paradigms"),
+        validator=ContractValidator(SCHEMAS_DIR),
         artifacts_root=tmp_path / "m",
     )
     outcome = await runner.run(
@@ -147,8 +134,6 @@ async def test_mission_rejects_banned_roster(tmp_path):
 
 @pytest.mark.asyncio
 async def test_mission_rejects_unregistered_role_when_prompts_dir_set(tmp_path):
-    from pathlib import Path
-
     from sciteam import (
         ContractValidator,
         MissionBudget,
@@ -158,18 +143,16 @@ async def test_mission_rejects_unregistered_role_when_prompts_dir_set(tmp_path):
     )
     from sciteam.team_loader import build_registry
 
-    lab = Path(__file__).resolve().parents[1]
-
     class Boom:
         async def run_subagent(self, *a, **k):  # noqa: ANN002
             raise AssertionError("should not run")
 
     runner = MissionRunner(
         orchestrator=TeamOrchestrator(runtime=Boom(), work_root=tmp_path / "w"),
-        paradigms=build_registry(lab / "assets" / "teams" / "paradigms"),
-        validator=ContractValidator(lab / "schemas"),
+        paradigms=build_registry(ASSETS_ROOT / "teams" / "paradigms"),
+        validator=ContractValidator(SCHEMAS_DIR),
         artifacts_root=tmp_path / "m",
-        prompts_dir=lab / "assets" / "prompts",
+        prompts_dir=ASSETS_ROOT / "prompts",
     )
     outcome = await runner.run(
         MissionSpec(

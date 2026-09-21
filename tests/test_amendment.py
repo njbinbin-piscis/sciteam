@@ -9,7 +9,10 @@ import yaml
 from sciteam import amendment
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
-SCHEMAS_DIR = LAB_ROOT / "schemas"
+
+from sciteam._paths import DATA_ROOT  # noqa: E402
+
+SCHEMAS_DIR = DATA_ROOT / "schemas"
 
 
 def make_proposal(**overrides):

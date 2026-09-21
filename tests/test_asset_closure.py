@@ -15,7 +15,10 @@ from pathlib import Path
 import yaml
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
-SKILLS_DIR = LAB_ROOT / "assets" / "skills"
+
+from sciteam._paths import DATA_ROOT  # noqa: E402
+
+SKILLS_DIR = DATA_ROOT / "assets" / "skills"
 INDEX_MD = SKILLS_DIR / "INDEX.md"
 
 SKILL_LIST_KEYS = {"skills_allowlist", "default_skills", "skills"}
@@ -46,7 +49,7 @@ def _yaml_referenced() -> dict[str, set[str]]:
             for item in node:
                 walk(item, src)
 
-    assets = LAB_ROOT / "assets"
+    assets = DATA_ROOT / "assets"
     for path in list(assets.rglob("*.yaml")) + list(assets.rglob("*.yml")):
         try:
             docs = list(yaml.safe_load_all(path.read_text(encoding="utf-8")))

@@ -75,6 +75,58 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+#  E7 (product contract): unattended agent execution defaults to a
+# Docker-isolated sandbox. `LocalPythonSandbox` is a bare subprocess with no
+# container boundary — acceptable for interactive development where a human
+# is watching, unacceptable as the silent default for side-effect tool calls
+# an autonomous mission makes on its own. `development` must be an explicit,
+# logged opt-in; it must never be a silent fallback when Docker is missing.
+SANDBOX_PROFILE_ENV = "SCITEAM_SANDBOX_PROFILE"
+UNATTENDED_SANDBOX_PROFILE = "unattended"
+DEVELOPMENT_SANDBOX_PROFILE = "development"
+DEFAULT_SANDBOX_PROFILE = UNATTENDED_SANDBOX_PROFILE
+
+
+class SandboxUnavailableError(RuntimeError):
+    """Raised when the active profile requires an isolation backend that is
+    not installed/available. Callers must fail closed, not degrade to a
+    weaker sandbox implicitly."""
+
+
+def resolve_sandbox_profile(explicit: str | None = None) -> str:
+    """Resolve the active sandbox profile: explicit arg > env > product default."""
+    if explicit:
+        return explicit
+    return os.environ.get(SANDBOX_PROFILE_ENV) or DEFAULT_SANDBOX_PROFILE
+
+
+def build_sandbox(workspace: Path | str, *, profile: str | None = None) -> SandboxPort:
+    """Resolve the `SandboxPort` for `workspace` under the active profile.
+
+    - ``unattended`` (product default): requires the ``sciteam-sandbox-docker``
+      plugin to be installed; raises :class:`SandboxUnavailableError` rather
+      than silently degrading to :class:`LocalPythonSandbox` when it is not.
+    - ``development``: explicit, logged opt-in to the weaker
+      :class:`LocalPythonSandbox` isolation (no container boundary), intended
+      for interactive local debugging only.
+    """
+    resolved = resolve_sandbox_profile(profile)
+    if resolved == UNATTENDED_SANDBOX_PROFILE:
+        try:
+            from sciteam_sandbox_docker import DockerSandbox
+        except ImportError as exc:
+            raise SandboxUnavailableError(
+                "sandbox_profile=unattended requires the 'sciteam-sandbox-docker' "
+                "plugin; install it or explicitly opt into "
+                f"sandbox_profile={DEVELOPMENT_SANDBOX_PROFILE!r} to accept weaker, "
+                "uncontained isolation"
+            ) from exc
+        return DockerSandbox(workspace)
+    if resolved != DEVELOPMENT_SANDBOX_PROFILE:
+        raise SandboxUnavailableError(f"unknown sandbox_profile: {resolved!r}")
+    return LocalPythonSandbox(workspace)
+
+
 class LocalPythonSandbox:
     """Subprocess sandbox with no shell, bounded resources and path confinement."""
 

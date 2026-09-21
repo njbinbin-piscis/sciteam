@@ -30,10 +30,11 @@ from typing import Any
 
 import jsonschema
 
+from sciteam._paths import SCHEMAS_DIR
+
 SIGNAL_FILENAME = "retro_request.json"
 
-LAB_ROOT = Path(__file__).resolve().parents[1]
-_SCHEMA_PATH = LAB_ROOT / "schemas" / "retro_request.schema.json"
+_SCHEMA_PATH = SCHEMAS_DIR / "retro_request.schema.json"
 
 
 def _schema() -> dict[str, Any]:

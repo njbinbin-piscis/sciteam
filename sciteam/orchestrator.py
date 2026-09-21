@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -32,8 +33,11 @@ from sciteam.models import (
     is_terminal,
 )
 from sciteam.persist import snapshot_team_run
+from sciteam.recovery import has_snapshot, load_team_run_snapshot
 from sciteam.runtime import RuntimePort
 from sciteam.store import MemoryStore
+
+logger = logging.getLogger(__name__)
 
 
 def _new_id(prefix: str) -> str:
@@ -47,6 +51,13 @@ class CreateSpec:
     agents: list[dict[str, Any]]
     coordination: dict[str, Any] | None = None
     metadata: dict[str, Any] | None = None
+    # docs/28 阶段4 (E7 follow-up): opt-in stable id. `None` (the default)
+    # preserves this class's exact prior behavior — a fresh, random
+    # `team_<uuid>` id, so no existing caller changes behavior by omission.
+    # A caller that wants crash-safe resume-or-create for a given mission
+    # (see `TeamOrchestrator.create_or_resume_run`) supplies its own stable
+    # id here (e.g. derived from `MissionSpec.id`).
+    team_run_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -92,6 +103,30 @@ class TeamOrchestrator:
         if team_run_id not in self._deps:
             self._deps[team_run_id] = DepGraph()
         return self._deps[team_run_id]
+
+    def resumable(self, team_run_id: str) -> bool:
+        """True when a cold-start snapshot exists for `team_run_id` under
+        this orchestrator's `work_root` (docs/28 阶段4)."""
+        return has_snapshot(self._work_root, team_run_id)
+
+    def cold_resume(self, team_run_id: str) -> TeamRun:
+        """Reconstruct `TeamRun`/`WorkBoard`/`DepGraph`/inboxes for
+        `team_run_id` from its on-disk snapshot into *this* orchestrator
+        instance, e.g. after a process crash/restart.
+
+        Raises `sciteam.recovery.RecoveryError` if no snapshot exists.
+        Never re-invokes `self._runtime` for a work item the snapshot
+        already recorded as DONE/FAILED — `tick()`/`drive()` only claim
+        READY items, and this method restores every item's exact prior
+        state, so a mission whose result already counted cannot be
+        re-decided merely by resuming the process.
+        """
+        recovered = load_team_run_snapshot(self._work_root, team_run_id)
+        self._store.save(recovered.run)
+        self._boards[team_run_id] = recovered.board
+        self._deps[team_run_id] = recovered.deps
+        self._inboxes[team_run_id] = recovered.inboxes
+        return recovered.run
 
     def send_message(
         self,
@@ -242,8 +277,30 @@ class TeamOrchestrator:
         )
         board.post(help_item)
 
+    def create_or_resume_run(self, spec: CreateSpec) -> tuple[TeamRun, bool]:
+        """Resume-or-create for a caller-supplied stable `spec.team_run_id`.
+
+        docs/28 阶段4 (E7 follow-up): the primitive a crash-and-retry of the
+        *same* mission needs — cold-resuming the exact `TeamRun`/
+        `WorkBoard`/`DepGraph` a previous, interrupted attempt already
+        made progress on, instead of silently discarding that progress and
+        restarting the mission from scratch (`create_run` alone cannot do
+        this: it always builds a fresh `PENDING`, zero-round `TeamRun`).
+        Returns `(run, resumed)`.
+        """
+        if not spec.team_run_id:
+            raise ValueError("create_or_resume_run requires an explicit spec.team_run_id")
+        if self.resumable(spec.team_run_id):
+            return self.cold_resume(spec.team_run_id), True
+        return self.create_run(spec), False
+
     def create_run(self, spec: CreateSpec) -> TeamRun:
-        run_id = _new_id("team")
+        run_id = spec.team_run_id or _new_id("team")
+        if spec.team_run_id and (self._store.get(run_id) is not None or self.resumable(run_id)):
+            raise ValueError(
+                f"team_run_id {run_id!r} already exists or has a resumable snapshot; "
+                "use create_or_resume_run() for crash-safe resume-or-create semantics"
+            )
         root = self._work_root / run_id
         root.mkdir(parents=True, exist_ok=True)
         agents: list[AgentSlot] = []
@@ -741,5 +798,5 @@ class TeamOrchestrator:
             deps = self.deps_for(team_run_id)
             snapshot_team_run(run, board=board, deps=deps)
         except OSError:
-            pass
+            logger.warning("could not snapshot team run %s (continuing)", team_run_id)
         return run

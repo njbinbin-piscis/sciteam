@@ -23,6 +23,7 @@ from sciteam import (  # noqa: E402
     build_registry,
     resolve_start_params,
 )
+from sciteam._paths import ASSETS_ROOT, runs_root  # noqa: E402
 
 
 class FakeRuntime:
@@ -57,8 +58,8 @@ class FakeRuntime:
 
 
 async def _run(team_id: str, goal: str, run_name: str) -> dict:
-    assets = LAB_ROOT / "assets" / "teams" / "paradigms"
-    runs = LAB_ROOT / "runs" / run_name
+    assets = ASSETS_ROOT / "teams" / "paradigms"
+    runs = runs_root() / run_name
     work = runs / "workspace"
     runs.mkdir(parents=True, exist_ok=True)
 
@@ -67,7 +68,7 @@ async def _run(team_id: str, goal: str, run_name: str) -> dict:
     try:
         agents, coordination = resolve_start_params(team_id, registry=registry)
     except KeyError:
-        registry = build_registry(LAB_ROOT / "assets" / "teams")
+        registry = build_registry(ASSETS_ROOT / "teams")
         agents, coordination = resolve_start_params(team_id, registry=registry)
     runtime = FakeRuntime()
     orch = TeamOrchestrator(runtime=runtime, work_root=work)

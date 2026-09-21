@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from sciteam._paths import ASSETS_ROOT
 from sciteam.models import AssessmentDecision, RoundAssessment, TeamRun
 
 _REASON_CODES = {
@@ -216,9 +217,6 @@ class ScriptedAssessor:
         )
 
 
-_LAB_ROOT = Path(__file__).resolve().parents[1]
-
-
 def _read_text(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8") if path.is_file() else ""
@@ -256,7 +254,7 @@ class LlmAssessorPort:
         skill_text: str = "",
     ) -> None:
         self._runtime = runtime
-        self._assets_root = Path(assets_root) if assets_root else _LAB_ROOT / "assets"
+        self._assets_root = Path(assets_root) if assets_root else ASSETS_ROOT
         self._role_prompt_override = role_prompt
         self._skill_text_override = skill_text
 
@@ -359,7 +357,7 @@ def make_contract_coordinator(
     if live:
         if runtime is None:
             raise ValueError("make_contract_coordinator(live=True) requires runtime")
-        root = Path(assets_root) if assets_root else _LAB_ROOT / "assets"
+        root = Path(assets_root) if assets_root else ASSETS_ROOT
         return ContractCoordinator(LlmAssessorPort(runtime=runtime, assets_root=root))
     return ContractCoordinator(ScriptedAssessor())
 

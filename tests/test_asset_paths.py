@@ -11,6 +11,8 @@ from sciteam import asset_paths, experiment_pack, roster_policy
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
 
+from sciteam._paths import DATA_ROOT  # noqa: E402
+
 
 @pytest.fixture()
 def org_assets_copy(tmp_path):
@@ -18,7 +20,7 @@ def org_assets_copy(tmp_path):
     so reads-from-copy are distinguishable from reads-from-baseline."""
     root = tmp_path / "org_assets"
     for sub in ["skills", "prompts", "roles"]:
-        shutil.copytree(LAB_ROOT / "assets" / sub, root / sub)
+        shutil.copytree(DATA_ROOT / "assets" / sub, root / sub)
     marker = "MARKER-FROM-ORG-COPY"
     skill = root / "skills" / "lit.survey" / "SKILL.md"
     skill.write_text(skill.read_text(encoding="utf-8") + f"\n{marker}\n", encoding="utf-8")
@@ -32,9 +34,9 @@ def org_assets_copy(tmp_path):
 
 def test_default_root_unchanged(monkeypatch):
     monkeypatch.delenv(asset_paths.ENV_VAR, raising=False)
-    assert asset_paths.assets_root() == LAB_ROOT / "assets"
-    assert asset_paths.skills_dir() == LAB_ROOT / "assets" / "skills"
-    assert asset_paths.role_catalog_path() == LAB_ROOT / "assets" / "roles" / "CATALOG.yaml"
+    assert asset_paths.assets_root() == DATA_ROOT / "assets"
+    assert asset_paths.skills_dir() == DATA_ROOT / "assets" / "skills"
+    assert asset_paths.role_catalog_path() == DATA_ROOT / "assets" / "roles" / "CATALOG.yaml"
 
 
 def test_env_override(monkeypatch, org_assets_copy):
@@ -59,7 +61,7 @@ def test_half_empty_root_fails_fast(monkeypatch, tmp_path):
 
 
 def test_display_path_inside_and_outside_lab(tmp_path):
-    inside = LAB_ROOT / "assets" / "skills" / "lit.survey" / "SKILL.md"
+    inside = DATA_ROOT / "assets" / "skills" / "lit.survey" / "SKILL.md"
     assert asset_paths.display_path(inside) == "assets/skills/lit.survey/SKILL.md"
     outside = tmp_path / "x.md"
     assert asset_paths.display_path(outside) == str(outside)

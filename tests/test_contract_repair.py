@@ -15,7 +15,7 @@ import pytest
 from sciteam.llm import LlmResponse, LlmUsage
 from sciteam.llm_worker import LlmWorkerRuntime, PromptAssets
 
-from tests.conftest import LAB_ROOT
+from tests.conftest import DATA_ROOT
 
 GOOD_ARTIFACT = {
     "mission_id": "m1",
@@ -66,10 +66,10 @@ def _runtime(responses: list[str]) -> tuple[LlmWorkerRuntime, _Client]:
     runtime = LlmWorkerRuntime(
         client=client,
         assets=PromptAssets(
-            prompts_dir=LAB_ROOT / "assets" / "prompts",
-            skills_dir=LAB_ROOT / "assets" / "skills",
+            prompts_dir=DATA_ROOT / "assets" / "prompts",
+            skills_dir=DATA_ROOT / "assets" / "skills",
         ),
-        schemas_dir=LAB_ROOT / "schemas",
+        schemas_dir=DATA_ROOT / "schemas",
     )
     return runtime, client
 

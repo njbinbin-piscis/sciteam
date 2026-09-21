@@ -17,10 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
-
-LAB_ROOT = Path(__file__).resolve().parents[1]
 
 
 @dataclass(frozen=True)

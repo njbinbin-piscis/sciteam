@@ -7,10 +7,11 @@ Tool wrapper accepts 1–3 questions and is a terminal wizard action.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
-_SCHEMA_PATH = Path(__file__).resolve().parents[1] / "contracts" / "ask_question.schema.json"
+from sciteam._paths import CONTRACTS_DIR
+
+_SCHEMA_PATH = CONTRACTS_DIR / "ask_question.schema.json"
 
 _KINDS = frozenset({"quick_pick", "multi_select", "text_input"})
 

@@ -8,11 +8,10 @@ are whatever currently ships under assets/ + schemas/ — discovered at runtime.
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
 
-LAB_ROOT = Path(__file__).resolve().parents[1]
-PARADIGMS_DIR = LAB_ROOT / "assets" / "teams" / "paradigms"
-SCHEMAS_DIR = LAB_ROOT / "schemas"
+from sciteam._paths import ASSETS_ROOT, SCHEMAS_DIR
+
+PARADIGMS_DIR = ASSETS_ROOT / "teams" / "paradigms"
 
 
 @lru_cache(maxsize=1)
@@ -51,7 +50,8 @@ def registry_notes_for_plan(plan: dict | None) -> list[str]:
         if pid and pid not in paradigms:
             notes.append(
                 f"mission «{mid}» paradigm={pid!r} 不在平台范式注册表 "
-                f"(assets/teams/paradigms) — 须改用已注册模板 id，或改套系统种子脊骨"
+                f"(assets/teams/paradigms) — use a registered template id, or ship the "
+                f"paradigm from a plugin via register_paradigm_dir"
             )
         ec = mission.get("exit_contract")
         if isinstance(ec, dict):
@@ -63,6 +63,6 @@ def registry_notes_for_plan(plan: dict | None) -> list[str]:
             if eid and eid not in contracts:
                 notes.append(
                     f"mission «{mid}» exit_contract={eid!r} 不在契约注册表 "
-                    f"(schemas/*.schema.json) — 须改用已注册契约 id，或改套系统种子脊骨"
+                    f"(schemas/*.schema.json) — use a registered exit-contract id"
                 )
     return notes

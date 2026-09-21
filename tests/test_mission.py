@@ -144,6 +144,34 @@ class TestMissionRunner:
         # contract fails; the important invariant is rounds never exceed budget.
         assert outcome.rounds_used <= 1
 
+    async def test_stable_team_run_id_resumes_same_run_not_a_new_one(self, make_runner):
+        """docs/28 阶段4 (E7 follow-up): re-invoking `run()` with the same
+        `team_run_id` — as a fresh `MissionRunner`/`TeamOrchestrator` over the
+        same work_root, e.g. after a process crash+restart replays an
+        undecided mission — must cold-resume the *same* team run rather than
+        silently starting a second, indistinguishable one. In particular, a
+        mission that already finished must not re-invoke the worker runtime
+        a second time just because the process asking about it is new."""
+        spec = _spec()
+        runtime = ArtifactWritingRuntime({"m_hyp_wave_01": VALID_HYPOTHESES})
+
+        runner1 = make_runner(runtime)
+        first = await runner1.run(spec, team_run_id="stable-mission-1")
+        assert first.status == "completed"
+        assert first.team_run_id == "stable-mission-1"
+        calls_after_first = len(runtime.calls)
+        assert calls_after_first == 4  # debate_elo: 3 debaters + 1 judge
+
+        # Simulated restart: brand new MissionRunner/TeamOrchestrator, same
+        # work_root, same stable id, same already-decided mission.
+        runner2 = make_runner(runtime)
+        second = await runner2.run(spec, team_run_id="stable-mission-1")
+        assert second.team_run_id == "stable-mission-1"
+        assert second.status == "completed"
+        # No new worker invocations — resuming a finished run must not
+        # re-execute the work it already counted as done.
+        assert len(runtime.calls) == calls_after_first
+
 
 class TestContractCoordinatorGate:
     """The artifact gate is a generic data-driven completion condition."""
@@ -246,7 +274,7 @@ class TestContractCoordinatorGate:
         from sciteam.models import AssessmentDecision
         from sciteam.round_assessor import ScriptedAssessor
 
-        from tests.conftest import LAB_ROOT
+        from tests.conftest import DATA_ROOT
 
         draft = {
             "mission_id": "m_hyp",
@@ -269,7 +297,7 @@ class TestContractCoordinatorGate:
         # Point artifact_path at canonical name used by promote
         run.metadata["artifact_path"] = str(tmp_path / "candidate_hypotheses.json")
         run.metadata["exit_contract"] = "candidate_hypotheses"
-        run.metadata["schemas_dir"] = str(LAB_ROOT / "schemas")
+        run.metadata["schemas_dir"] = str(DATA_ROOT / "schemas")
         run.metadata["artifact_emit_roles"] = ["writer"]
         assessment = await ContractCoordinator(
             ScriptedAssessor({"promote_if_draft": True, "assessor_key": "round_assessor"})

@@ -14,7 +14,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-LAB_ROOT = Path(__file__).resolve().parents[1]
+from sciteam._paths import ASSETS_ROOT, DATA_ROOT
+
 ENV_VAR = "SCITEAM_ASSETS_ROOT"
 
 
@@ -30,7 +31,7 @@ def assets_root() -> Path:
     """
     raw = os.environ.get(ENV_VAR)
     if not raw:
-        return LAB_ROOT / "assets"
+        return ASSETS_ROOT
     root = Path(raw)
     if not root.is_dir():
         raise AssetsRootError(f"{ENV_VAR} points to a missing directory: {root}")
@@ -52,10 +53,11 @@ def role_catalog_path() -> Path:
 
 
 def display_path(path: Path) -> str:
-    """Stable human-readable path for manifests: LAB_ROOT-relative when
-    possible (default root), otherwise absolute (org asset copies live under
-    runs/ or arbitrary directories)."""
+    """Stable human-readable path for manifests: relative to the bundled data
+    root when possible (default root — yields ``assets/...``, the same string
+    the pre-packaging layout produced), otherwise absolute (org asset copies
+    live under runs/ or arbitrary directories)."""
     try:
-        return str(path.relative_to(LAB_ROOT))
+        return str(path.relative_to(DATA_ROOT))
     except ValueError:
         return str(path)

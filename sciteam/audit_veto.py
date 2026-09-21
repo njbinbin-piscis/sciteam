@@ -12,7 +12,7 @@ mechanically reopens the target when the writer is a seat this institution's
 own paradigm YAML has declared `may_veto_exit` for
 (`sciteam.team_loader.TeamConfig.may_veto_roles`) — an unauthorized seat's
 veto file is still schema-valid, still gets scanned, and is still silently
-not honored. This is the "最小权限语义" requirement from the same close-loop
+not honored. This is the least-privilege requirement from the same close-loop
 gap: an unauthorized seat's output does not gain institutional effect just
 because it is well-formed.
 
@@ -33,10 +33,11 @@ from typing import Any
 
 import jsonschema
 
+from sciteam._paths import SCHEMAS_DIR
+
 SIGNAL_FILENAME = "audit_veto.json"
 
-LAB_ROOT = Path(__file__).resolve().parents[1]
-_SCHEMA_PATH = LAB_ROOT / "schemas" / "audit_veto.schema.json"
+_SCHEMA_PATH = SCHEMAS_DIR / "audit_veto.schema.json"
 
 
 def _schema() -> dict[str, Any]:

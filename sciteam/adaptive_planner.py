@@ -13,6 +13,7 @@ can never be replaced or removed by a revision; revisions may only add nodes.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
@@ -20,6 +21,8 @@ from typing import Any, Protocol, runtime_checkable
 from sciteam.campaign import BudgetClock, PlannerDecision
 from sciteam.kb import CampaignKB
 from sciteam.mission import MissionOutcome, MissionSpec
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -350,7 +353,7 @@ class AdaptiveCampaignPlanner:
                         encoding="utf-8",
                     )
                 except OSError:
-                    pass
+                    logger.warning("could not write the plan-revision sidecar (continuing)")
             break
         return True
 

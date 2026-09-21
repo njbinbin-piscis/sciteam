@@ -41,8 +41,15 @@ __all__ = [
 # mid-round read/search surface at all (only a round-end `envelope["files"]`
 # write), which is what made the `build_fix_loop` seat web-search for a
 # local problem spec it could not `read` (HARNESS_SOTA_AUDIT.md).
+#
+# `context.read_archived` (docs/SESSION-KERNEL.md §5.1) joins this always-on
+# set for the same reason: a seat whose own earlier tool results were
+# mechanically compacted must always be able to recover them — that
+# capability cannot be something a skill pack opts into or out of, or
+# compaction becomes a silent, seat-dependent memory loss instead of an
+# audited, always-reversible one.
 FS_ALWAYS_CAPABILITIES = frozenset(
-    {"fs.read", "fs.write", "fs.edit", "fs.grep", "fs.find", "fs.list"}
+    {"fs.read", "fs.write", "fs.edit", "fs.grep", "fs.find", "fs.list", "context.read_archived"}
 )
 
 # Capabilities whose presence already justifies a process-level bash escape

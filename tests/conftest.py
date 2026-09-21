@@ -22,9 +22,10 @@ from sciteam import (  # noqa: E402
     TeamOrchestrator,
     build_registry,
 )
+from sciteam._paths import DATA_ROOT  # noqa: E402
 
-SCHEMAS_DIR = LAB_ROOT / "schemas"
-PARADIGMS_DIR = LAB_ROOT / "assets" / "teams" / "paradigms"
+SCHEMAS_DIR = DATA_ROOT / "schemas"
+PARADIGMS_DIR = DATA_ROOT / "assets" / "teams" / "paradigms"
 
 
 class ArtifactWritingRuntime:

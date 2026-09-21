@@ -52,6 +52,7 @@ from sciteam import (  # noqa: E402
     build_registry,
     make_contract_coordinator,
 )
+from sciteam._paths import ASSETS_ROOT, SCHEMAS_DIR, runs_root  # noqa: E402
 
 from harness.adapters.plan_loader import (  # noqa: E402
     build_planner_from_plan,
@@ -59,10 +60,9 @@ from harness.adapters.plan_loader import (  # noqa: E402
 )
 from harness.profiles import get_profile, list_profiles  # noqa: E402
 
-PARADIGMS_DIR = LAB_ROOT / "assets" / "teams" / "paradigms"
-SCHEMAS_DIR = LAB_ROOT / "schemas"
-PROMPTS_DIR = LAB_ROOT / "assets" / "prompts"
-SKILLS_DIR = LAB_ROOT / "assets" / "skills"
+PARADIGMS_DIR = ASSETS_ROOT / "teams" / "paradigms"
+PROMPTS_DIR = ASSETS_ROOT / "prompts"
+SKILLS_DIR = ASSETS_ROOT / "skills"
 
 
 async def run_open(
@@ -77,7 +77,7 @@ async def run_open(
     if not goal.strip():
         raise ValueError("--goal is required (the research question)")
 
-    run_dir = LAB_ROOT / "runs" / run_name
+    run_dir = runs_root() / run_name
     run_dir.mkdir(parents=True, exist_ok=True)
 
     from harness.adapters.seed_open_research import seed_open_research_plan
@@ -103,7 +103,7 @@ async def run_open(
         # call, not a scripted stub, when running against a real endpoint —
         # see `sciteam.round_assessor.make_contract_coordinator`.
         coordinator=make_contract_coordinator(
-            live=True, runtime=llm_runtime, assets_root=LAB_ROOT / "assets"
+            live=True, runtime=llm_runtime, assets_root=ASSETS_ROOT
         ),
     )
     runner = MissionRunner(

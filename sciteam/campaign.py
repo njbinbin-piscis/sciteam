@@ -14,6 +14,8 @@ from typing import Any, Protocol, runtime_checkable
 
 import yaml
 
+from sciteam.checkpoint import read_resume_state, record_mission_decision
+from sciteam.event_log import EventLog
 from sciteam.kb import CampaignKB
 from sciteam.mission import MissionOutcome, MissionRunner, MissionSpec
 from sciteam.trace import CampaignTrace
@@ -268,9 +270,15 @@ class Campaign:
         trace: CampaignTrace,
         budget: CampaignBudget | None = None,
         token_meter: Any = None,
+        ledger: EventLog | None = None,
     ) -> None:
         """`token_meter` is an optional zero-arg callable returning cumulative
-        token consumption; the clock charges deltas after each mission."""
+        token consumption; the clock charges deltas after each mission.
+
+        `ledger` makes the campaign's mission decisions part of the
+        institutional record — and is what `run(resume=True)` reads back.
+        Without one the campaign behaves exactly as before, minus the
+        ability to resume."""
         self.campaign_id = campaign_id
         self.goal = goal
         self._planner = planner
@@ -280,6 +288,7 @@ class Campaign:
         self._clock = BudgetClock(budget or CampaignBudget())
         self._token_meter = token_meter
         self._tokens_charged = 0
+        self._ledger = ledger
 
     @property
     def clock(self) -> BudgetClock:
@@ -293,14 +302,36 @@ class Campaign:
     def trace(self) -> CampaignTrace:
         return self._trace
 
-    async def run(self, *, max_missions_safety: int = 256) -> CampaignResult:
+    async def run(self, *, max_missions_safety: int = 256, resume: bool = False) -> CampaignResult:
+        """Drive the campaign to a stop.
+
+        With ``resume=True`` the prior decisions in the ledger are replayed
+        into the planner and the clock, and their missions are **not** run
+        again — see :mod:`sciteam.checkpoint` for why re-running a decided
+        mission would corrupt the record rather than merely waste time.
+        """
+        outcomes: list[MissionOutcome] = []
+        restored: list[str] = []
+        if resume:
+            if self._ledger is None:
+                raise ValueError("resume=True requires a ledger to resume from")
+            outcomes, restored = self._restore()
         self._trace.record(
-            "campaign_started",
+            "campaign_started" if not restored else "campaign_resumed",
             campaign_id=self.campaign_id,
             goal=self.goal,
             budget=self._clock.snapshot()["limits"],
+            **({"restored_missions": restored} if restored else {}),
         )
-        outcomes: list[MissionOutcome] = []
+        if self._ledger is not None:
+            self._ledger.append(
+                "run_started",
+                payload={
+                    "campaign_id": self.campaign_id,
+                    "goal": self.goal,
+                    "resumed_from": restored or None,
+                },
+            )
         stop_reason = "planner stopped"
         for _ in range(max(1, max_missions_safety)):
             decision = self._planner.next_mission(
@@ -323,6 +354,15 @@ class Campaign:
                 break
 
             spec = decision.mission
+            if spec.id in restored:
+                # Defence in depth. `_restore` already advanced the planner
+                # past every decided mission, so proposing one again means
+                # the planner is not deterministic under replay — which
+                # would silently re-run an act that already took effect.
+                raise RuntimeError(
+                    f"resume: planner re-proposed mission {spec.id!r}, whose outcome "
+                    "is already recorded as decided; refusing to execute it twice"
+                )
             self._trace.record(
                 "mission_started",
                 mission_id=spec.id,
@@ -338,6 +378,8 @@ class Campaign:
                 self._clock.charge_tokens(total - self._tokens_charged)
                 self._tokens_charged = total
             outcomes.append(outcome)
+            if self._ledger is not None:
+                record_mission_decision(self._ledger, outcome)
             self._trace.record(
                 "mission_finished",
                 mission_id=outcome.mission_id,
@@ -375,6 +417,33 @@ class Campaign:
             budget=self._clock.snapshot(),
             missions=len(outcomes),
         )
+        if self._ledger is not None:
+            self._ledger.append(
+                "run_finished",
+                payload={"stop_reason": stop_reason, "missions": len(outcomes)},
+            )
         return CampaignResult(
             campaign_id=self.campaign_id, stop_reason=stop_reason, outcomes=outcomes
         )
+
+    def _restore(self) -> tuple[list[MissionOutcome], list[str]]:
+        """Rebuild planner and clock state from decisions already recorded.
+
+        Deliberately *not* a generic state snapshot: replaying the actual
+        decisions through the planner's own ``observe`` is what guarantees
+        the resumed plan is the plan the crashed run would have had, rather
+        than a serialization of it that can drift as the planner evolves.
+        """
+        assert self._ledger is not None
+        state = read_resume_state(self._ledger)
+        if not state.outcomes:
+            return [], []
+        observe = getattr(self._planner, "observe", None)
+        for outcome in state.outcomes:
+            self._clock.charge_mission()
+            if callable(observe):
+                observe(outcome)
+        if state.tokens_charged:
+            self._clock.charge_tokens(state.tokens_charged)
+            self._tokens_charged = state.tokens_charged
+        return list(state.outcomes), state.decided_mission_ids
