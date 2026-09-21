@@ -168,6 +168,16 @@ tools:
     keywords: [shell, bash, command, workspace]
     test_ref: tests/test_fs_tools.py
 
+  - name: read_archived_result
+    version: "1"
+    capability: context.read_archived
+    summary: "Recover the full text behind a compacted tool-result pointer (docs/SESSION-KERNEL.md §5.1)."
+    permission: readonly
+    deterministic: true
+    cost_hint: low
+    keywords: [context, compaction, archive, recover, session]
+    test_ref: tests/test_context_tools.py
+
   - name: amendment_audit
     version: "1"
     capability: institution.audit
