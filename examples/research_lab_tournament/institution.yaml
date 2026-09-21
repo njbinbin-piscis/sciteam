@@ -1,0 +1,54 @@
+id: research_lab_tournament
+name: Autonomous Research Lab Hypothesis Tournament
+description: >
+  Institutional scientific hypothesis generation and peer review tournament.
+  Enforces blind review, falsifiability auditing, proximity quarantine, and
+  governed meta-review aggregation.
+members:
+  - key: generation
+    agent_id: generation
+    name: Hypothesis Generation Post
+    role: generation
+    authority: [may_propose_hypothesis]
+  - key: reflection
+    agent_id: reflection
+    name: Falsifiability & Skeptical Critic
+    role: reflection
+    authority: [may_critique, may_veto]
+  - key: ranking
+    agent_id: ranking
+    name: Blind Tournament Judge
+    role: ranking
+    authority: [may_rank_candidates]
+  - key: proximity
+    agent_id: proximity
+    name: Literature Proximity & Novelty Auditor
+    role: proximity
+    authority: [may_audit_prior_art]
+  - key: meta_review
+    agent_id: meta_review
+    name: Consensus Meta-Reviewer
+    role: meta_review
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Scientific Board Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: loop
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 2
+  stopping:
+    kind: judgment
+    max_iterations: 12
+  aggregation: meta_analysis
+  work_graph:
+    role_pipeline:
+      - generation
+      - reflection
+      - ranking
+      - proximity
+      - meta_review

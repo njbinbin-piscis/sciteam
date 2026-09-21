@@ -1,7 +1,7 @@
 # sciteam-plugin-example
 
 Reference plugin for `sciteam`'s plugin engine
-(`sciteam/plugin_api.py`, design: `docs/25-sciteam-plugin-architecture.md`
+(`sciteam/plugin_api.py`, guide: `docs/PLUGIN-GUIDE.md`
 in the companion research repo). It exists to be read, not to be useful —
 every extension point it touches is the minimum needed to prove the point:
 
@@ -25,6 +25,7 @@ pip install -e examples/plugins/sciteam-plugin-example
 
 ```python
 from sciteam.plugin_api import load_all_plugins
+from sciteam._paths import ASSETS_ROOT
 from sciteam.team_loader import build_registry
 from sciteam.wizard_tools import run_wizard_tool
 
@@ -32,8 +33,8 @@ registry = load_all_plugins(strict=True)
 print([m.id for m in registry.loaded_plugins])  # ['sciteam-plugin-example']
 
 teams = build_registry(
-    "assets/teams/paradigms",
-    extra_roots=registry.paradigm_dirs,
+    ASSETS_ROOT / "teams" / "paradigms",  # bundled templates
+    extra_roots=registry.paradigm_dirs,  # + the plugin's
 )
 assert teams.get("round_robin_review") is not None
 
@@ -57,4 +58,5 @@ Copy this directory, rename the package and the entry-point key under
 — every event a hook can subscribe to, which two are blockable and why,
 the version-compatibility rule, and what a plugin is explicitly *not*
 allowed to do (override a builtin, sandbox escape, hot reload) — is in
-`docs/25-sciteam-plugin-architecture.md`.
+[`docs/PLUGIN-GUIDE.md`](../../../docs/PLUGIN-GUIDE.md), with the versioning
+rules in [`docs/COMPATIBILITY.md`](../../../docs/COMPATIBILITY.md).

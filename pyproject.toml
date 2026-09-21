@@ -1,17 +1,31 @@
 [project]
 name = "sciteam"
-version = "0.1.0"
+version = "0.3.0.dev0"
 description = "Reference runtime for Institution Engineering: agents occupy institutional seats, not just prompted roles"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
   "pyyaml>=6.0",
   "jsonschema>=4.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/njbinbin-piscis/sciteam"
+Issues = "https://github.com/njbinbin-piscis/sciteam/issues"
+Changelog = "https://github.com/njbinbin-piscis/sciteam/blob/main/CHANGELOG.md"
+
+[project.scripts]
+sciteam = "sciteam.cli:main"
+
+# The entry-point group third-party plugins register under (see
+# docs/PLUGIN-GUIDE.md). sciteam itself ships no plugins; this declaration
+# only documents that the group belongs to this ecosystem.
+[project.entry-points."sciteam.plugins"]
+
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff>=0.6"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff>=0.6", "build>=1.2"]
 
 [tool.ruff]
 target-version = "py311"
@@ -30,8 +44,13 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["sciteam*"]
+
+# Institution manifests, prompts, skills, schemas and contracts are runtime
+# data and ship inside the wheel (sciteam/data/**); see sciteam/_paths.py.
+[tool.setuptools.package-data]
+sciteam = ["py.typed", "data/**/*"]

@@ -10,10 +10,12 @@ correct, not just the Python.
 
 from __future__ import annotations
 
-import sciteam_plugin_example as plugin_module
+import pytest
 from sciteam.plugin_api import PluginAPI, PluginRegistry, load_all_plugins
 from sciteam.team_loader import build_registry
 from sciteam.wizard_tools import run_wizard_tool
+
+plugin_module = pytest.importorskip("sciteam_plugin_example")
 
 
 def test_register_direct():

@@ -1,4 +1,4 @@
-"""Reference SciTeam plugin (docs/25-sciteam-plugin-architecture.md, P3).
+"""Reference SciTeam plugin (docs/PLUGIN-GUIDE.md).
 
 Demonstrates the three concrete plugin extension points wired in P1/P2 —
 without a single line of ``sciteam/`` itself needing to change for any of

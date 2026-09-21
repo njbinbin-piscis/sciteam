@@ -1,0 +1,93 @@
+name: Release
+
+# Publishes to PyPI when a `v*` tag is pushed, via Trusted Publishing
+# (OIDC) — no API token is stored in this repository. One-time setup:
+# on PyPI, add a trusted publisher for project `sciteam` with
+# owner `njbinbin-piscis`, repository `sciteam`, workflow `release.yml`,
+# environment `pypi`.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify the tag before publishing anything
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install and test
+        run: |
+          python -m pip install -e ".[dev]"
+          ruff check sciteam harness tests
+          ruff format --check sciteam harness tests
+          python -m pytest -q
+
+      - name: Tag must match the package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(python -c 'import sciteam; print(sciteam.__version__)')"
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag $tag != sciteam.__version__ $pkg" >&2
+            exit 1
+          fi
+
+      - name: CHANGELOG must mention this version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: grep -q "## \[${GITHUB_REF_NAME#v}\]" CHANGELOG.md
+
+  build:
+    name: build sdist + wheel
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build
+        run: |
+          python -m pip install build
+          python -m build
+
+      - name: The wheel must be self-sufficient
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/venv/bin/sciteam" demo --mode full > /dev/null
+          "$RUNNER_TEMP/venv/bin/sciteam" paradigms list > /dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1

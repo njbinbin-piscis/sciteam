@@ -34,9 +34,13 @@ general case; this repository is the existence proof you can run.
 ## 60-second quickstart (no API key required)
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python harness/run_canonical_institution_demo.py --mode full
+pip install sciteam        # or: pipx install sciteam
+sciteam demo --mode full
 ```
+
+(From a source checkout: `pip install -e ".[dev]"` and either `sciteam demo`
+or `python harness/run_canonical_institution_demo.py --mode full` — the
+script is a shim over the same `sciteam.canonical_demo` module.)
 
 This runs a small, real repo-level bug-fix task through six declared
 seats (implementer, auditor, chair — plus a bystander with no seat at
@@ -71,12 +75,34 @@ you for free:
    plus one YAML manifest — nothing about *this* task is hard-coded into
    the engine.
 
+And none of it has to be taken on trust. The run leaves a hash-chained
+ledger you can check yourself:
+
+```console
+$ sciteam ledger show ./runs/canonical_institution_demo/full
+   3 x artifact_submitted   bystander      [may_emit_artifact]
+   4 + artifact_accepted    implementer    [may_emit_artifact]
+   5 + audit_reported       auditor        [may_assess_round]
+   6 + veto_issued          auditor        [may_veto]
+   7 + reopened             planner        [may_revise_plan]
+   8 + artifact_accepted    implementer    [may_emit_artifact]
+  10 + closed               chair          [may_close]
+
+$ sciteam ledger verify ./runs/canonical_institution_demo/full
+ok    .../ledger.jsonl  11 entries, head e05565d7c96a073e…
+```
+
+The `x` on entry 3 is the argument in one character: the bystander's patch
+physically exists, and the record says it never counted. Edit, reorder or
+delete any line and `sciteam ledger verify` exits non-zero and names the
+break — which is what makes it evidence rather than a log.
+
 ### See why the guardrails matter: run the ablations
 
 ```bash
-.venv/bin/python harness/run_canonical_institution_demo.py --mode prompt_only
-.venv/bin/python harness/run_canonical_institution_demo.py --mode no_separation
-.venv/bin/python harness/run_canonical_institution_demo.py --mode no_recovery
+sciteam demo --mode prompt_only
+sciteam demo --mode no_separation
+sciteam demo --mode no_recovery
 ```
 
 - `prompt_only` (no machine-checked tests, chair accepts the
@@ -96,7 +122,7 @@ you for free:
 ### Change the rule, not the code
 
 ```bash
-.venv/bin/python harness/run_canonical_institution_demo.py --mode full --config-swap
+sciteam demo --mode full --config-swap
 ```
 
 Switches "one auditor approves" to "two-auditor committee, both must
@@ -114,10 +140,38 @@ not logic your engine owns.**
 | Authority check | An artifact only counts if the emitting seat is authorized | `sciteam/worker_common.py` (`is_artifact_role`), `sciteam/exit_artifact.py` |
 | Veto → mechanical reopen | An authorized veto re-enters the DAG at the vetoed node, not a hand-rolled retry | `sciteam/audit_veto.py`, `sciteam/adaptive_planner.py` |
 | Behavioral shadow | Simulate a candidate rule change against recorded authority-relevant events before promoting it | `sciteam/behavioral_shadow.py` |
-| Amendment + rollback | Institution changes are append-only, hash-chained, and revertible | `sciteam/amendment.py` |
+| Amendment + rollback | Institution changes go through a status state machine and are revertible from archived before/after pairs (refusing on drift) | `sciteam/amendment.py` |
+| Institutional ledger | Append-only, hash-chained record of who acted, under what authority, whether it counted, and under which rule version — with tamper detection, replay and per-seat cost attribution | `sciteam/event_log.py`, `sciteam ledger verify\|show\|replay\|cost` |
+| Crash-safe resume | A killed run restarts from its ledger: decided missions are replayed into the planner and clock, never re-executed, and the resumed run extends the same hash chain | `sciteam/checkpoint.py`, `Campaign.run(resume=True)`, `sciteam ledger resume-state` |
+| Mutation testing | Break your institution on purpose (merge work and judgment, misspell an authority, duplicate a seat key) and check the loader notices — with declared *equivalent* mutants that must survive, so a score of 1.0 means strictness, not brittleness | `sciteam/mutation.py`, `sciteam mutate` |
+| Provenance | Every run records what it pinned (build, Python, dependencies, plugins, `SCITEAM_*` overrides with credentials redacted) **and what it could not** — a hosted model endpoint is always reported as uncontrolled rather than silently assumed reproducible | `sciteam/provenance.py`, `sciteam env` |
+| `RuntimePort` resilience | Composable timeout, exponential backoff with jitter, and stateful circuit breaker for remote backends — all failures map to first-class `AgentOutcome` states rather than uncaught crashes | `sciteam/resilience.py`, `ResilientRuntimePort` |
 | `RuntimePort` | The one seam between "institution" and "model" — plug in any LLM/agent backend | `sciteam/runtime.py`, `sciteam/llm_worker.py` |
+| Scaffolding | Generate runnable, testable institutional MAS projects from 21 bundled paradigms | `sciteam/scaffold.py`, `sciteam init` |
+| Ledger view | Export interactive, self-contained HTML trajectories with zero external CDN dependencies | `sciteam/ledger_view.py`, `sciteam ledger view` |
 | Plan revision policy | How the campaign DAG grows/reopens in response to outcomes is itself a pluggable policy, not engine logic | `sciteam/adaptive_planner.py` (`PlanReviser`, `CompositeReviser`) |
 | Plugin engine | Discover/register third-party runtimes, tools, domain ports, paradigms, and institutional event hooks — without editing `sciteam/` | `sciteam/plugin_api.py` (see "Extending SciTeam" below) |
+
+## Command line
+
+```text
+sciteam init       <template> [-t DIR] [-n NAME] [--list]  # scaffold runnable institutional project
+sciteam demo       [--mode full|prompt_only|no_separation|no_recovery] [--config-swap] [--out DIR]
+sciteam validate   <manifest.yaml | dir> ...   # load-time institutional invariants, exit 1 on any failure
+sciteam paradigms  list [--with-plugins]       # bundled coordination templates
+sciteam plugins    list [--strict] [--json]    # discovered entry-point plugins
+sciteam ledger     verify|show|replay|cost|resume-state|view <run dir | ledger.jsonl>
+sciteam mutate     <manifest.yaml | dir> [-v]  # break institutions on purpose, check the loader notices
+sciteam env        [--against <run dir>]       # provenance fingerprint, and what it cannot pin
+sciteam version    [--json]
+```
+
+The CLI is a thin shell over library functions the tests already cover; it
+adds no behaviour and has no `--force`. Run output goes under `./runs/` (or
+`$SCITEAM_RUNS_ROOT`), never into the installed package. All runtime data
+(manifests, prompts, skills, schemas) ships inside the wheel under
+`sciteam/data/`, so a plain `pip install` is self-sufficient — see
+`sciteam/_paths.py`.
 
 ## Bring your own model
 
@@ -157,7 +211,8 @@ coordination:
 
 Load it with `sciteam.team_loader.load_team_configs`, run it with
 `sciteam.orchestrator.TeamOrchestrator` or the higher-level
-`sciteam.campaign.Campaign`. See `assets/teams/paradigms/` for ~18
+`sciteam.campaign.Campaign`. See `sciteam/data/assets/teams/paradigms/`
+(`sciteam paradigms list`) for 21
 ready-made coordination templates (adversarial pair, debate + Elo,
 fan-out/gather, generator/critic, pipeline chain, planning council,
 retro council, standing watch, ...) — each is a manifest, none require
@@ -170,8 +225,7 @@ backends, tools, domain integrations, and coordination templates are meant
 to arrive as **plugins** — ordinary, separately-installable Python packages
 discovered via standard `importlib.metadata` entry points (the same
 mechanism `pytest`/`coverage.py`/SQLAlchemy dialects use), never as PRs
-against this repo. Full design: `docs/25-sciteam-plugin-architecture.md`
-in the companion research repo.
+against this repo. Full guide: [`docs/PLUGIN-GUIDE.md`](docs/PLUGIN-GUIDE.md).
 
 A plugin is one function:
 
@@ -225,6 +279,22 @@ python3 -c "from sciteam.plugin_api import load_all_plugins; \
              print([m.id for m in load_all_plugins(strict=True).loaded_plugins])"
 ```
 
+### Official provider plugins
+
+SciTeam maintains official, zero-core-dependency plugins under [`plugins/`](plugins/):
+
+* [`sciteam-runtime-anthropic`](plugins/sciteam-runtime-anthropic): Anthropic Claude Messages API adapter (`claude-3-5-sonnet`, `claude-3-7-sonnet`), mapping native tool-use and error dispositions (401 fatal, 429/529 recoverable).
+* [`sciteam-runtime-deepseek`](plugins/sciteam-runtime-deepseek): DeepSeek API adapter (`deepseek-chat`, `deepseek-reasoner` / R1), automatically isolating chain-of-thought into `RunSpec.metadata["reasoning_content"]` for auditing without corrupting exit artifacts.
+* [`sciteam-tool-mcp`](plugins/sciteam-tool-mcp): Model Context Protocol (MCP) tool bridge adapting external MCP tools into governed `ToolSpec` instances, protected by pre-execution `tool_call` hooks.
+* [`sciteam-sandbox-docker`](plugins/sciteam-sandbox-docker): Docker container sandbox implementing `SandboxPort` (`run` and `certify`), executing programs under hermetic Linux container isolation driven by manifest `guard` declarations.
+
+### Production reference deployments
+
+SciTeam provides complete reference deployments under [`examples/`](examples/):
+
+* [`examples/github_pr_review`](examples/github_pr_review): GitHub PR Review and Merge Control institution with separation of powers between author, quality reviewer, security scanner, and release assembler, enforcing committee voting and authorized security vetoes.
+* [`examples/research_lab_tournament`](examples/research_lab_tournament): Autonomous Research Lab hypothesis tournament with generation, skeptical falsifiability critique, blind pairwise ranking, literature proximity novelty auditing, and consensus meta-review.
+
 ## What this is not
 
 - Not a benchmark. There is no leaderboard here, and the canonical demo
@@ -240,15 +310,29 @@ python3 -c "from sciteam.plugin_api import load_all_plugins; \
   but are a separate, budget-gated exercise — see the paper's
   reproducibility section for what was actually run with real models
   and what remains future work.
-- v0.1: the public API (`sciteam.__all__`) is stable-ish but not yet
-  semver'd. Expect breaking changes before v1.0.
+- Pre-1.0: the public API (`sciteam.__all__`) and CLI follow semver from
+  0.2.0 onward (see `CHANGELOG.md`); breaking changes bump the minor
+  version until 1.0. `PLUGIN_API_VERSION` is versioned separately.
+
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [`docs/CONCEPTS.md`](docs/CONCEPTS.md) | seats, authority, counts-as, recovery, amendment, ledger — the six terms everything else is built from |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | module map, dependency direction, what a run actually does |
+| [`docs/PARADIGMS-GUIDE.md`](docs/PARADIGMS-GUIDE.md) | 21 built-in coordination paradigms and when-to-use decision matrix |
+| [`docs/PLUGIN-GUIDE.md`](docs/PLUGIN-GUIDE.md) | writing a plugin; the four rules and why they exist |
+| [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) | what semver covers, and why `PLUGIN_API_VERSION` is separate |
+| [`SECURITY.md`](SECURITY.md) | trust model, sandbox limits, what this explicitly does not defend against |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | plugin-or-PR decision table, conventions, local checks |
+| [`CHANGELOG.md`](CHANGELOG.md) | release history |
 
 ## Status
 
-- 376 tests passing, 3 skipped, 0 failing on this export's test subset
+- 572 tests passing, 4 skipped, 0 failing on this export's test subset
   (`ruff check` / `ruff format --check` / `pytest` all clean in CI — see
-  the badge above), plus a separately-tested example plugin package
-  (`examples/plugins/sciteam-plugin-example/`).
+  the badge above), plus 4 official provider plugin packages under `plugins/`
+  and an example plugin package (`examples/plugins/sciteam-plugin-example/`).
 - MIT licensed.
 - Companion paper: *"Institution Engineering: [title TBD]"* (arXiv,
   forthcoming) — link will be added here on submission.

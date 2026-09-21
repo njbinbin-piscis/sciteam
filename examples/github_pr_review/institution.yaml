@@ -1,0 +1,43 @@
+id: github_pr_review
+name: GitHub PR Review and Merge Control
+description: >
+  Institutional governance for automated Pull Request review and merge control.
+  Enforces mechanical separation of powers between PR author, quality reviewer,
+  adversarial security red team, and release assembler. Merging requires committee
+  approval; security failures issue authorized vetoes that reopen the fix task.
+members:
+  - key: implementer
+    agent_id: implementer
+    name: PR Author
+    role: implementer
+    authority: [may_propose_patch]
+  - key: reviewer
+    agent_id: reviewer
+    name: Code Quality Auditor
+    role: reviewer
+    authority: [may_review_code]
+  - key: red_team
+    agent_id: red_team
+    name: Security Vulnerability Scanner
+    role: red_team
+    authority: [may_deny, may_veto]
+  - key: assembler
+    agent_id: assembler
+    name: Release / Merge Assembler
+    role: assembler
+    emits_exit_artifact: true
+  - key: round_assessor
+    agent_id: round_assessor
+    name: Committee Round Assessor
+    role: round_assessor
+    authority: [may_assess_round]
+coordination:
+  topology: route
+  scheduling:
+    employment: true
+    mode: barrier
+    max_parallel: 2
+  stopping:
+    kind: judgment
+    max_iterations: 10
+  human_gate: false
