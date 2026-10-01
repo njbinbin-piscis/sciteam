@@ -1,0 +1,40 @@
+validators:
+  tests:
+    command: "python -m pytest -q -x -p no:cacheprovider"
+    timeout_s: 900
+  acceptance:
+    command: "{task.acceptance}"
+    timeout_s: 900
+
+requirements:
+  - name: tasks-auditable
+    act: task_create
+    require: [{field: acceptance}, {field: reviewer}]
+  - name: submit-validated
+    act: task_transition
+    transition: submit
+    require: [{evidence: commit}, {validate: [tests, acceptance]}]
+  - name: four-eyes
+    act: task_transition
+    transition: approve
+    require: [{distinct: [actor, task.assignee]}]
+
+approvals:
+  - name: release-signoff
+    act: task_transition
+    transition: approve
+    where: {task_label: release}
+    approver: "kind:human"
+
+facts:
+  - name: accepted
+    subject: task
+    when: {event: task_status_changed, to: done}
+    require: [{validated: tests}, {approved_by: "!task.assignee"}]
+    revoke_when: {event: task_status_changed, transition: reopen}
+
+ledger:
+  - {name: delivered, when: {fact: accepted}, to: task.assignee, amount: 10}
+  - {name: reviewed, when: {fact: accepted}, to: task.reviewer, amount: 3}
+  - {name: red-build, when: {validation: failed}, to: act.actor, amount: -2}
+  - {name: sent-back, when: {transition: reject}, to: task.assignee, amount: -3}

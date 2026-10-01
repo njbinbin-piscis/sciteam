@@ -1,0 +1,71 @@
+# Adopt as the organization manifest by amendment (path org/genesis.yaml); adapt
+# seats, counts and charters to the mission. Schema: docs/50-organization.md §2.
+mission: |
+  <the mission agreed with the owner>
+default_harness: harness/team-org.yaml
+staffing: group:staffing
+seats:
+- name: founder
+  count: 1
+  groups:
+  - legislature
+  - staffing
+  team: office
+  charter: |
+    Keep the organization able to reach the goal: watch vacancies, blocked work,
+       conflicts and rules that get in the way, and fix the organization (not the deliverable).
+- name: hr
+  count: 1
+  team: office
+  reports_to: founder
+  groups:
+  - staffing
+  templates:
+  - hr
+  charter: |
+    Fill every vacant seat with a member whose profile is adapted from the closest
+       template to this seat and mission. No generic hires.
+- name: engineer
+  count: 1
+  team: office
+  reports_to: founder
+  groups:
+  - engineering
+  templates:
+  - engineer
+  charter: |
+    Prove the environment provides what the work and the goal's predicate need,
+       certify it, and report precisely what it lacks.
+- name: lead
+  count: 1
+  team: core
+  reports_to: founder
+  groups:
+  - legislature
+  templates:
+  - lead
+  charter: |
+    Own delivery of the goal: agree the goal and its predicate, plan and assign the
+       work to your reports, integrate, and submit the goal when its predicate passes.
+- name: developer
+  count: 3
+  team: core
+  reports_to: lead
+  templates:
+  - developer
+  charter: |
+    Implement and test the work assigned to you; submit it with evidence.
+- name: reviewer
+  count: 1
+  team: core
+  reports_to: lead
+  groups:
+  - legislature
+  templates:
+  - reviewer
+  charter: |
+    Audit every submission against the specification before it counts; strengthen
+       the tests where the specification is not yet covered.
+goals:
+  label: goal
+  fact: accepted

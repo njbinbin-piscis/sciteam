@@ -1,0 +1,59 @@
+# Rules in force. The legislature amends this file, the communication policy and the
+# organization manifest by the procedure in the constitution. Vocabulary: `rules` tool.
+validators:
+  acceptance:
+    command: "{task.acceptance}"
+    timeout_s: 900
+  env-python:
+    command: "python -c 'import sys; assert sys.version_info >= (3, 11), sys.version'"
+    timeout_s: 120
+  env-pytest:
+    command: "python -m pytest --version"
+    timeout_s: 120
+
+environments:
+  workspace: {probes: [env-python, env-pytest]}
+
+requirements:
+  - name: goal-has-predicate
+    act: task_create
+    where: {task_label: goal, task_is_root: true}
+    require: [{field: acceptance}]
+  - name: goal-validated
+    act: task_transition
+    transition: submit
+    where: {task_label: goal}
+    require: [{validate: [acceptance]}]
+  # 凡有产出必须审计：每个任务都带验收命令，每次提交都运行它，`accepted` 才对所有任务可达
+  - name: work-has-predicate
+    act: task_create
+    require: [{field: acceptance}]
+  - name: work-validated
+    act: task_transition
+    transition: submit
+    require: [{validate: [acceptance]}]
+  - name: four-eyes
+    act: task_transition
+    transition: approve
+    require: [{distinct: [actor, task.assignee]}]
+  - name: work-needs-environment
+    act: task_transition
+    transition: start
+    require: [{certificate: workspace}]
+
+approvals:
+  - name: goal-signoff
+    act: task_create
+    where: {task_label: goal, task_is_root: true}
+    approver: "kind:human"
+
+facts:
+  - name: accepted
+    subject: task
+    when: {event: task_status_changed, to: done}
+    require: [{validated: acceptance}]
+    revoke_when: {event: task_status_changed, transition: reopen}
+
+ledger:
+  - {name: delivered, when: {fact: accepted}, to: task.assignee, amount: 10}
+  - {name: red-build, when: {validation: failed}, to: act.actor, amount: -2}

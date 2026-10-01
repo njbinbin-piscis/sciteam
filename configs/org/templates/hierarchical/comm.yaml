@@ -1,0 +1,109 @@
+# Adopt as the communication policy by amendment (path comm/genesis.yaml).
+name: hierarchical
+description: 'Hierarchy. You may message privately only your manager and your direct reports, and @mention
+  only people in your team or your manager. Only a manager assigns work, and only to direct reports; nobody
+  claims. Each team has a room #team-<team>. Humans may talk to anyone.'
+rules:
+- name: human-any
+  act: post_message
+  via: dm
+  from: kind:human
+  to: '*'
+- name: dm-up
+  act: post_message
+  via: dm
+  from: '*'
+  to: self.manager | human
+- name: dm-down
+  act: post_message
+  via: dm
+  from: '*'
+  to: self.reports
+- name: rooms
+  act: post_message
+  via: room|task
+  from: '*'
+- name: mention-human
+  act: mention
+  from: kind:human
+  to: '*'
+- name: mention
+  act: mention
+  from: '*'
+  to: self.team | self.manager | self.reports | human
+- name: create-task
+  act: task_create
+  from: '*'
+- name: edit-task
+  act: task_update
+  from: task.creator | task.assignee
+- name: assign
+  act: task_transition
+  transition: assign
+  from: '*'
+  to: self.reports
+- name: human-assign
+  act: task_transition
+  transition: assign
+  from: kind:human
+  to: '*'
+- name: work
+  act: task_transition
+  transition: start|block|unblock|submit|unassign
+  from: task.assignee
+- name: review
+  act: task_transition
+  transition: approve|reject
+  from: task.reviewer
+- name: owner
+  act: task_transition
+  transition: reopen|cancel|unassign
+  from: task.creator | kind:human
+- name: hire
+  act: hire
+  from: group:staffing
+- name: dismiss
+  act: dismiss
+  from: group:staffing
+- name: certify
+  act: certify_environment
+  from: group:engineering
+- name: revoke
+  act: revoke_environment
+  from: group:engineering
+- name: org-seats-dm
+  act: post_message
+  via: dm
+  from: role:founder | role:hr | role:engineer
+  to: '*'
+- name: to-org-seats
+  act: post_message
+  via: dm
+  from: '*'
+  to: role:founder | role:hr | role:engineer | human
+- name: org-seats-mention
+  act: mention
+  from: role:founder | role:hr | role:engineer
+  to: '*'
+- name: mention-org-seats
+  act: mention
+  from: '*'
+  to: role:founder | role:hr | role:engineer | human
+rooms:
+- name: team-{team}
+  for_each: team
+  members: team:{team}
+  topic: team room
+wake_on:
+- dm
+- mention
+- thread_reply
+- task_assigned
+- task_ready
+- task_review
+- task_returned
+- timer
+limits:
+  message_chars: 8000
+  messages_per_agent_per_min: 12
+  messages_per_pair_per_10min: 40

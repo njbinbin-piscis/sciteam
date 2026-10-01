@@ -1,0 +1,7 @@
+# X-inst `prompt_only`: the same roles and prompts, nothing enforced — no mechanical check on
+# submit, no separation check on approve; done counts as accepted.
+facts:
+  - name: accepted
+    subject: task
+    when: {event: task_status_changed, to: done}
+    revoke_when: {event: task_status_changed, transition: reopen}

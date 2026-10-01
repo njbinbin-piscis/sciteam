@@ -1,0 +1,10 @@
+# X-inst (docs/60 §6): a fixed institution, identical principles in every arm; the arms differ
+# only in the rules file, the communication policy and the organization (overlays).
+name: x-inst
+principles: |
+  1. The team exists to deliver the owner's goal, the root task labelled `goal`. Only the
+     institution establishes that the goal is met; the run ends when it is.
+  2. Members are honest: they report what they did and found, including failures, and never
+     present assumptions or recollections as facts.
+  3. Gaming a check is a failure of the same kind as breaking the build.
+rules: institution/x-inst-rules.yaml

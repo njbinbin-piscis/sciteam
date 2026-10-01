@@ -1,0 +1,23 @@
+name: workflow
+description: >-
+  Fixed workflow (DAG). Agents do not talk to each other: no private messages, no rooms, no
+  mentions. The tasks and their dependencies are defined up front; you are woken when a task
+  is assigned to you, becomes ready, needs your review or is sent back. Write what the next
+  step needs in the task's discussion and in the submitted artifacts. You may message the
+  human owner if you are blocked.
+rules:
+  - {name: human-any, act: post_message, via: dm, from: "kind:human", to: "*"}
+  - {name: to-human, act: post_message, via: dm, from: "*", to: "human"}
+  - {name: task-notes, act: post_message, via: task, from: "task.party"}
+  - {name: mention-human, act: mention, from: "*", to: "human"}
+  - {name: human-mention, act: mention, from: "kind:human", to: "*"}
+  - {name: human-tasks, act: task_create, from: "kind:human"}
+  - {name: human-assign, act: task_transition, transition: assign, from: "kind:human", to: "*"}
+  - {name: work, act: task_transition, transition: "start|block|unblock|submit", from: "task.assignee"}
+  - {name: review, act: task_transition, transition: "approve|reject", from: "task.reviewer"}
+  - {name: owner, act: task_transition, transition: "reopen|cancel", from: "kind:human"}
+wake_on: [task_assigned, task_ready, task_review, task_returned, timer, dm]
+limits:
+  message_chars: 8000
+  messages_per_agent_per_min: 12
+  messages_per_pair_per_10min: 40

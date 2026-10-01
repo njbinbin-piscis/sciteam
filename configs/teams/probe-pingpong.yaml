@@ -1,0 +1,16 @@
+# C6 probe (docs/31-runtime.md §12): the human asks for an exchange that has no natural end.
+# Expected: the run ends by itself — either the agents stop, or a rate limit / the storm breaker
+# stops them — and never loops until the budget runs out.
+name: probe-pingpong
+comm_policy: comm/flat.yaml
+runtime: runtime/probe.yaml
+members:
+- {id: x, role: worker, team: core, harness: harness/team-default.yaml}
+- {id: y, role: worker, team: core, harness: harness/team-default.yaml}
+- {id: owner, kind: human, role: owner}
+kickoff:
+- by: owner
+  to: '@x'
+  text: "Play a counting game with your teammate y over direct messages: send y the number 1, and whenever
+    either of you receives a number, reply to the other with the next integer and ask them to
+    confirm it. Keep going."

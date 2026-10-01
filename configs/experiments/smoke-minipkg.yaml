@@ -1,0 +1,19 @@
+# End-to-end smoke of the experiment runner (docs/60 §10 step 1); not a result.
+name: smoke-minipkg
+hypothesis: The runner drives, audits, grades and measures both arms without manual steps.
+primary: score
+theta: 1.0
+tasks: tasksets/minipkg.yaml
+repeats: 1
+parallel: 2
+arms:
+- {name: single, team: teams/x-single.yaml}
+- {name: genesis, team: teams/genesis-minipkg.yaml}
+owner:
+  mode: auto-approve
+  nudges: 1
+  nudge_text: >-
+    I have nothing to add: you have the specification and the goal. Decide yourselves; if the
+    work is complete and recorded as such, you are done.
+  max_rounds: 20
+audit: python bench/team/check.py {run} --json {out}

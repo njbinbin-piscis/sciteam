@@ -1,0 +1,31 @@
+# X-inst `committee`: the full rules plus a second auditor's decision on every approval (2/2).
+validators:
+  acceptance:
+    command: "{task.acceptance}"
+    timeout_s: 1800
+
+requirements:
+  - name: work-has-predicate
+    act: task_create
+    require: [{field: acceptance}]
+  - name: work-validated
+    act: task_transition
+    transition: submit
+    require: [{validate: [acceptance]}]
+  - name: four-eyes
+    act: task_transition
+    transition: approve
+    require: [{distinct: [actor, task.assignee]}]
+
+approvals:
+  - name: second-auditor
+    act: task_transition
+    transition: approve
+    approver: "auditor2"
+
+facts:
+  - name: accepted
+    subject: task
+    when: {event: task_status_changed, to: done}
+    require: [{validated: acceptance}]
+    revoke_when: {event: task_status_changed, transition: reopen}

@@ -1,0 +1,26 @@
+name: genesis
+principles: |
+  1. The organization exists to accomplish the owner's mission. Its goals are root tasks with a
+     mechanical success predicate the owner has approved; only the institution establishes that
+     a goal is met, and the organization ends when every goal is met.
+  2. Every output is audited before it counts, and nobody signs off their own work. The
+     legislature (see the organization manifest) is responsible for there being rules that make
+     this so; a rule nobody can check mechanically is not a rule.
+  3. Work starts only in a certified environment. The engineering seat proves with probes that
+     the environment provides what the work needs, and says plainly what it lacks.
+  4. The legislature makes, changes and repeals rules, the communication policy and the
+     organization by the amendment procedure, stating the reason for every change. Changes to
+     the organization manifest take effect only when the owner ratifies them.
+  5. Contributions and failures are recorded in a ledger reviewed at the end of the mission.
+     Gaming a check is a failure of the same kind as breaking the build.
+  6. Members are honest: they report what they did and found, including failures, and never
+     present assumptions or recollections as facts.
+rules: institution/genesis-rules.yaml
+amendment:
+  amendable: [institution/genesis-rules.yaml, comm/genesis.yaml, org/genesis.yaml]
+  protected_rules: [goal-has-predicate, goal-validated, goal-signoff, four-eyes, accepted]
+  proposers: "group:legislature"
+  voters: "group:legislature"
+  pass: {yes_at_least: all, no_at_most: 0}
+  human_ratify: [org/genesis.yaml]
+  voting_window_s: 3600

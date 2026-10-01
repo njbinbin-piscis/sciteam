@@ -1,0 +1,29 @@
+name: wave
+description: >-
+  Waves. A coordinator plans work in waves: every task of wave k+1 depends (FS) on all tasks
+  of wave k, so a wave starts only when the previous one is done. Workers talk only to the
+  coordinator (private messages, mentions); the coordinator may talk to everyone, creates and
+  assigns tasks and reviews results.
+selectors:
+  coordinator: "role:lead"
+rules:
+  - {name: human-any, act: post_message, via: dm, from: "kind:human", to: "*"}
+  - {name: coord-dm, act: post_message, via: dm, from: "$coordinator", to: "*"}
+  - {name: worker-dm, act: post_message, via: dm, from: "*", to: "$coordinator | human"}
+  - {name: task-notes, act: post_message, via: task, from: "task.party"}
+  - {name: rooms, act: post_message, via: room, from: "$coordinator | kind:human"}
+  - {name: coord-mention, act: mention, from: "$coordinator | kind:human", to: "*"}
+  - {name: worker-mention, act: mention, from: "*", to: "$coordinator | human"}
+  - {name: create-task, act: task_create, from: "$coordinator | kind:human"}
+  - {name: edit-task, act: task_update, from: "$coordinator | kind:human"}
+  - {name: assign, act: task_transition, transition: assign, from: "$coordinator | kind:human", to: "*"}
+  - {name: work, act: task_transition, transition: "start|block|unblock|submit", from: "task.assignee"}
+  - {name: review, act: task_transition, transition: "approve|reject", from: "task.reviewer"}
+  - {name: owner, act: task_transition, transition: "reopen|cancel|unassign", from: "$coordinator | kind:human"}
+rooms:
+  - {name: announcements, members: "*", topic: "coordinator announcements (workers read only)"}
+wake_on: [dm, mention, task_assigned, task_ready, task_review, task_returned, timer]
+limits:
+  message_chars: 8000
+  messages_per_agent_per_min: 12
+  messages_per_pair_per_10min: 40

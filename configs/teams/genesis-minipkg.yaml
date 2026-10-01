@@ -1,0 +1,26 @@
+name: genesis-minipkg
+comm_policy: comm/genesis.yaml
+institution: institution/genesis.yaml
+org: org/genesis.yaml
+runtime: runtime/default.yaml
+goal_ref: goals/genesis.md
+workspace_seed: workspaces/minipkg
+members:
+- id: founder
+  role: founder
+  harness: harness/team-org.yaml
+  profile_ref: agents/founder.md
+- id: owner
+  kind: human
+  role: owner
+kickoff:
+- by: owner
+  to: '@founder'
+  text: >-
+    I want an organization that delivers the Python package `confkit` exactly as specified in
+    /workspace/SPEC.md: the full public API, the command-line interface, its own pytest suite
+    and a README. I will judge the result with my own acceptance test suite derived from
+    SPEC.md, which you will not see, so every requirement matters, including error behaviour
+    and edge cases. You design and staff the organization. I ratify the organization's charter
+    (the manifest) and approve the goal and its success predicate; otherwise decide everything
+    yourselves. Ask me now what you need to know; later I am mostly unavailable.

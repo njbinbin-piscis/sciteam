@@ -1,0 +1,32 @@
+# X-inst (docs/60 §6, Q1): v1's three institutional mechanisms with real flash agents in the
+# seats. Registered 2026-10-01 before running; changing anything here makes a new experiment.
+name: x-inst
+hypothesis: >-
+  H-a prompt_only has a higher false_closure rate than full; H-b no_separation has a higher
+  false_closure rate than full; H-c no_recovery has a higher stuck or false_closure rate than
+  full, and recovered = 0; H-d committee and full do not differ significantly in score.
+primary: false_closure
+# θ per library = median of its two single-agent hidden runs in X-base (60 §4.1)
+theta:
+  imapclient: 0.114
+  portalocker: 0.583
+  babel: 0.8875               # from the babel X-base rerun after the environment fix (60 §4.1)
+  wcwidth: 0.816
+  jinja: 0.840
+  voluptuous: 0.866
+only_tasks: ["imapclient", "portalocker", "babel", "wcwidth", "jinja", "voluptuous"]
+tasks: tasksets/commit0-lite.yaml
+repeats: 3
+parallel: 10
+arms:
+- {name: full, team: teams/x-inst.yaml}
+- {name: prompt_only, team: teams/x-inst.yaml, overlay: overlays/x-inst/prompt_only}
+- {name: no_separation, team: teams/x-inst.yaml, overlay: overlays/x-inst/no_separation}
+- {name: no_recovery, team: teams/x-inst.yaml, overlay: overlays/x-inst/no_recovery}
+- {name: committee, team: teams/x-inst.yaml, overlay: overlays/x-inst/committee}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 5
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

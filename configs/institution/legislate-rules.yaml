@@ -1,0 +1,12 @@
+# Rules in force. The committee amends this file (and the communication policy) by the
+# procedure in the constitution. Vocabulary: see docs/40-institution.md §4–§5.
+validators:
+  tests:
+    command: "python -m pytest -q -x -p no:cacheprovider"
+    timeout_s: 900
+
+requirements:
+  - name: four-eyes
+    act: task_transition
+    transition: approve
+    require: [{distinct: [actor, task.assignee]}]

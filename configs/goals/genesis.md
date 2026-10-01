@@ -1,0 +1,1 @@
+Found and run an organization that accomplishes the owner's mission. The mission, as agreed with the owner, is in the organization manifest (your briefing's Organization section); the owner's own words are in their messages. The organization ends when every goal is met.

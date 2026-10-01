@@ -1,0 +1,27 @@
+name: flat-guarded
+description: >-
+  Flat team, except that developers may not message each other privately: private messages
+  must involve the lead, the reviewer or a human. Anyone may @mention anyone, create rooms and
+  tasks, assign work to anyone and claim open tasks. Everyone is in #general.
+rules:
+  - {name: dm-committee, act: post_message, via: dm, from: "*", to: "role:lead | role:reviewer | kind:human"}
+  - {name: dm-from-committee, act: post_message, via: dm, from: "role:lead | role:reviewer | kind:human", to: "*"}
+  - {name: rooms, act: post_message, via: "room|task", from: "*"}
+  - {name: mention, act: mention, from: "*", to: "*"}
+  - {name: create-room, act: create_room, from: "*"}
+  - {name: room-members, act: add_member, from: "*", to: "*"}
+  - {name: room-leave, act: remove_member, from: "*", to: "self"}
+  - {name: create-task, act: task_create, from: "*"}
+  - {name: edit-task, act: task_update, from: "task.party"}
+  - {name: assign, act: task_transition, transition: assign, from: "*", to: "*"}
+  - {name: claim, act: task_transition, transition: claim, from: "kind:agent"}
+  - {name: work, act: task_transition, transition: "start|block|unblock|submit|unassign", from: "task.assignee"}
+  - {name: review, act: task_transition, transition: "approve|reject", from: "task.reviewer"}
+  - {name: owner, act: task_transition, transition: "reopen|cancel|unassign", from: "task.creator | kind:human"}
+rooms:
+  - {name: general, members: "*", topic: "whole team"}
+wake_on: [dm, mention, thread_reply, task_assigned, task_ready, task_review, task_returned, timer]
+limits:
+  message_chars: 8000
+  messages_per_agent_per_min: 12
+  messages_per_pair_per_10min: 40

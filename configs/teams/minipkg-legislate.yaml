@@ -1,0 +1,52 @@
+name: minipkg-legislate
+comm_policy: comm/flat-guarded.yaml
+institution: institution/legislate.yaml
+runtime: runtime/default.yaml
+goal_ref: goals/minipkg.md
+workspace_seed: workspaces/minipkg
+members:
+- id: lead
+  role: lead
+  team: core
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/lead.md
+- id: dev1
+  role: worker
+  team: core
+  manager: lead
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/developer.md
+- id: dev2
+  role: worker
+  team: core
+  manager: lead
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/developer.md
+- id: dev3
+  role: worker
+  team: core
+  manager: lead
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/developer.md
+- id: rev
+  role: reviewer
+  team: qa
+  manager: lead
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/reviewer.md
+- id: owner
+  kind: human
+  role: owner
+kickoff:
+- by: owner
+  to: '@lead'
+  text: 'Please get the team to deliver the goal in your briefing (implement /workspace/SPEC.md). I am
+    not available until the end; decide everything yourselves. The lead and the reviewer form the committee
+    that governs the team''s rules: they are deliberately minimal now, and the committee may change them
+    (and the communication policy) by the amendment procedure whenever that serves the goal.'
+- by: owner
+  to: '@rev'
+  text: 'The team is implementing /workspace/SPEC.md, led by the lead. I am not available until the end;
+    decide everything yourselves. The lead and the reviewer form the committee that governs the team''s
+    rules: they are deliberately minimal now, and the committee may change them (and the communication
+    policy) by the amendment procedure whenever that serves the goal.'

@@ -1,0 +1,17 @@
+# Single-agent arm (docs/60 §7): one agent, no institution, the same kickoff as the teams.
+name: x-single
+comm_policy: comm/flat.yaml
+runtime: runtime/default.yaml
+workspace_seed: "{task.seed}"
+members:
+- id: solo
+  role: worker
+  harness: harness/team-default.yaml
+  profile_ref: profiles/solo.md
+- id: owner
+  kind: human
+  role: owner
+kickoff:
+- by: owner
+  to: '@solo'
+  text: "{task.brief}"

@@ -1,0 +1,100 @@
+name: minipkg-workflow
+comm_policy: comm/workflow.yaml
+runtime: runtime/default.yaml
+goal_ref: goals/minipkg.md
+workspace_seed: workspaces/minipkg
+members:
+- id: lead
+  role: lead
+  team: core
+  harness: harness/team-default.yaml
+  profile_ref: profiles/lead.md
+- id: dev1
+  role: worker
+  team: core
+  manager: lead
+  harness: harness/team-default.yaml
+  profile_ref: profiles/developer.md
+- id: dev2
+  role: worker
+  team: core
+  manager: lead
+  harness: harness/team-default.yaml
+  profile_ref: profiles/developer.md
+- id: dev3
+  role: worker
+  team: core
+  manager: lead
+  harness: harness/team-default.yaml
+  profile_ref: profiles/developer.md
+- id: rev
+  role: reviewer
+  team: qa
+  manager: lead
+  harness: harness/team-default.yaml
+  profile_ref: profiles/reviewer.md
+- id: owner
+  kind: human
+  role: owner
+tasks:
+- key: design
+  by: owner
+  title: Design confkit
+  assignee: lead
+  estimate_h: 1
+  description: 'Read SPEC.md and write docs/DESIGN.md: module layout of confkit/, the internal data model
+    (how layers, sections, raw values and interpolation markers are represented), and the exact function
+    signatures each module exposes to the others. Create the package skeleton (confkit/__init__.py exporting
+    the public names, stub modules) so the implementation tasks can proceed in parallel. Submit with the
+    paths.'
+- key: parse
+  by: owner
+  title: Syntax and value typing (SPEC §2)
+  assignee: dev1
+  reviewer: rev
+  deps:
+  - design
+  estimate_h: 3
+  description: Implement SPEC §2 (lines, sections, assignments, continuation, inline comments, value typing,
+    ParseError with line/source) following docs/DESIGN.md, with tests in tests/.
+- key: resolve
+  by: owner
+  title: Interpolation, layers, env overrides (SPEC §3-§5)
+  assignee: dev2
+  reviewer: rev
+  deps:
+  - design
+  estimate_h: 3
+  description: Implement SPEC §3, §4 and §5 following docs/DESIGN.md, with tests in tests/. Coordinate
+    through docs/DESIGN.md and the task discussions; the parser is built in parallel.
+- key: api
+  by: owner
+  title: Schema, Config API, dumps (SPEC §6-§7)
+  assignee: dev3
+  reviewer: rev
+  deps:
+  - design
+  estimate_h: 3
+  description: Implement SPEC §6 and §7 (validation, Config class, dumps round trip) and wire loads/load
+    together, following docs/DESIGN.md, with tests in tests/.
+- key: cli
+  by: owner
+  title: CLI and README (SPEC §8-§9)
+  assignee: dev1
+  reviewer: rev
+  deps:
+  - parse
+  - resolve
+  - api
+  estimate_h: 2
+  description: Implement python -m confkit (SPEC §8) and README.md, with CLI tests.
+- key: accept
+  by: owner
+  title: Acceptance pass against the whole SPEC
+  assignee: rev
+  deps:
+  - cli
+  estimate_h: 2
+  description: Go through SPEC.md section by section, add tests for every requirement not yet covered,
+    fix defects (or send them back through the task discussions), make sure the whole suite passes, then
+    submit.

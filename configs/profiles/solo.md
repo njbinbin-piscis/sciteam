@@ -1,0 +1,1 @@
+You work alone. You own the whole deliverable: read the specification, plan the work, implement it carefully against the specification, write and run tests, and check every requirement (including error behaviour and edge cases) before you finish. Nobody reviews your work before it is judged.

@@ -1,0 +1,66 @@
+name: team-institution
+model: deepseek-v4-pro
+reasoning_effort: max
+system_prompt_ref: prompts/team-institution.md
+tools:
+- bash
+- read_file
+- write_file
+- edit_file
+- recall
+- read_output
+- send_message
+- read_conversation
+- list_conversations
+- directory
+- create_room
+- add_member
+- remove_member
+- task_create
+- task_transition
+- task_update
+- task_board
+- task_show
+- schedule_wakeup
+- rules
+- pending
+- standing
+- validation_output
+- propose_amendment
+- vote
+- withdraw_amendment
+- decide_pending
+- finish
+call_timeout_s: 3600
+tool_output:
+  max_chars: 30000
+  head_fraction: 0.4
+  parallel_readonly: 8
+budget:
+  cost_usd: 10
+  wall_clock_s: 7200
+  max_steps: 1000
+  warn_at: 0.7
+  decide_at: 0.85
+  status_every_steps: 50
+compaction:
+  trigger_fraction: 0.5
+  trigger_abs_cap: 400000
+  tail_fraction: 0.025
+  tail_min: 10000
+  tail_max: 25000
+  tail_max_window_fraction: 0.2
+  summary_reasoning_effort: high
+  summary_max_output: 16000
+recovery:
+  provider_retries: 8
+  backoff_base_s: 2
+  backoff_max_s: 120
+  loop_window: 6
+  loop_repeat: 3
+  empty_turn_retries: 2
+sandbox:
+  kind: docker
+  network: none
+  cmd_default_timeout_s: 600
+  cmd_max_timeout_s: 1800

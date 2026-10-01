@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sciteam"
+version = "0.1.0"
+description = "Institutional multi-agent system for research work"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+  "pydantic>=2.7",
+  "httpx>=0.27",
+  "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.5"]
+bench = ["swebench>=4", "datasets", "pyarrow", "pandas"]
+
+[project.scripts]
+sciteam = "sciteam.cli.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sciteam"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+  "live: needs real API key or docker images (deselected by default)",
+]
+addopts = "-m 'not live'"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = ["bench/commit0/repos", "bench/commit0/logs", "bench/commit0/seeds", "bench/commit0/seeds-visible"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["SIM105"]

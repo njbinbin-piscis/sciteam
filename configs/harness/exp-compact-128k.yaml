@@ -1,0 +1,39 @@
+# H2/H3 对照实验（docs/91 §9.5）：与 coder-default 只差压缩触发线。
+name: exp-compact-128k
+model: deepseek-flash
+reasoning_effort: max
+system_prompt_ref: prompts/coder.md
+tools: [bash, read_file, write_file, edit_file, recall, read_output, finish]
+call_timeout_s: 3600
+tool_output:
+  max_chars: 30000
+  head_fraction: 0.4
+  parallel_readonly: 8
+budget:
+  cost_usd: 50
+  wall_clock_s: 10800
+  max_steps: 3000
+  warn_at: 0.70
+  decide_at: 0.85
+  status_every_steps: 50
+compaction:
+  trigger_fraction: 0.5
+  trigger_abs_cap: 128000
+  tail_fraction: 0.025
+  tail_min: 10000
+  tail_max: 25000
+  tail_max_window_fraction: 0.20
+  summary_reasoning_effort: high
+  summary_max_output: 16000
+recovery:
+  provider_retries: 8
+  backoff_base_s: 2
+  backoff_max_s: 120
+  loop_window: 6
+  loop_repeat: 3
+  empty_turn_retries: 2
+sandbox:
+  kind: docker
+  network: none
+  cmd_default_timeout_s: 900
+  cmd_max_timeout_s: 3600

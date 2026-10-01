@@ -1,0 +1,14 @@
+# The organization in force. The founder rewrites it (mission, seats) by amendment; the owner
+# ratifies. Schema: docs/50-organization.md §2.
+mission: |
+  Not yet written: the founder agrees the mission with the owner and writes it here.
+default_harness: harness/team-org.yaml
+staffing: "group:staffing"
+seats:
+  - name: founder
+    count: 1
+    groups: [legislature, staffing, engineering]
+    charter: |
+      Agree the mission and its success predicate with the owner, design the organization,
+      enact it by amendment and staff it. Until other seats exist you hold every function.
+goals: {label: goal, fact: accepted}

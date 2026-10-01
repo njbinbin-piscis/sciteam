@@ -1,0 +1,27 @@
+max_concurrent_activations: 8
+debounce_s: 5
+memory_recent_activations: 6
+briefing_messages_per_conv: 20
+deliver_during_activation: true
+rate:
+  activations_per_agent_per_hour: 30
+  max_consecutive_handoffs: 10
+  max_timers_per_agent: 3
+  storm:
+    window_s: 600
+    max_messages: 150
+    max_messages_without_progress: 60
+budget:
+  cost_usd: 30
+  wall_clock_s: 14400
+on_quiescent: stop
+error_retries: 2
+error_backoff_s: [30, 120]
+sandbox:
+  kind: docker
+  image: sciteam-team:py312
+  network: none
+  memory: 8g
+  cpus: 4
+  user: auto
+  workspace_mount: /workspace

@@ -1,0 +1,13 @@
+# Smoke task set (docs/60 §4): minipkg no longer separates organizations (73–74/74).
+name: minipkg
+grader: python bench/team/minipkg/score.py {workspace} --json {out}
+tasks:
+- id: confkit
+  vars:
+    seed: workspaces/minipkg
+    brief: >-
+      Deliver the Python package `confkit` exactly as specified in /workspace/SPEC.md: the full
+      public API, the command-line interface, its own pytest suite and a README. I will judge the
+      result with my own acceptance test suite derived from SPEC.md, which you will not see, so
+      every requirement matters, including error behaviour and edge cases. I am not available
+      during the run; decide everything yourself.

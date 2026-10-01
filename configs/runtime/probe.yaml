@@ -1,0 +1,28 @@
+# Short real-model probes: same scheduler settings as default.yaml, tighter breaker and budget.
+max_concurrent_activations: 8
+debounce_s: 5
+memory_recent_activations: 6
+briefing_messages_per_conv: 20
+deliver_during_activation: true
+rate:
+  activations_per_agent_per_hour: 30
+  max_consecutive_handoffs: 10
+  max_timers_per_agent: 3
+  storm:
+    window_s: 600
+    max_messages: 150
+    max_messages_without_progress: 30
+budget:
+  cost_usd: 3
+  wall_clock_s: 3600
+on_quiescent: stop
+error_retries: 2
+error_backoff_s: [30, 120]
+sandbox:
+  kind: docker
+  image: sciteam-team:py312
+  network: none
+  memory: 2g
+  cpus: 1
+  user: auto
+  workspace_mount: /workspace

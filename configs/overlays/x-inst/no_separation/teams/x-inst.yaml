@@ -1,0 +1,27 @@
+# X-inst `no_separation`: the implementer is its own reviewer; no auditor.
+name: x-inst
+comm_policy: comm/x-inst.yaml
+institution: institution/x-inst.yaml
+org: org/x-inst.yaml
+runtime: runtime/default.yaml
+workspace_seed: "{task.seed}"
+members:
+- id: implementer
+  role: implementer
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/implementer.md
+- id: owner
+  kind: human
+  role: owner
+tasks:
+- key: goal
+  by: owner
+  title: "Deliver the goal described in the kickoff"
+  labels: [goal]
+  assignee: implementer
+  reviewer: implementer
+  acceptance: "python -m pytest -q -p no:cacheprovider team_tests"
+kickoff:
+- by: owner
+  to: '@implementer'
+  text: "{task.brief}"

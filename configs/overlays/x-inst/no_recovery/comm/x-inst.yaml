@@ -1,0 +1,22 @@
+# X-inst `no_recovery`: the reviewer can only approve; nothing can be returned or reopened.
+name: x-inst
+description: >-
+  Small fixed team. Anyone may message anyone; the assignee works the task, the reviewer
+  approves it; submitted work cannot be returned.
+rules:
+  - {name: dm, act: post_message, via: dm, from: "*", to: "*"}
+  - {name: rooms, act: post_message, via: "room|task", from: "*"}
+  - {name: mention, act: mention, from: "*", to: "*"}
+  - {name: create-task, act: task_create, from: "*"}
+  - {name: edit-task, act: task_update, from: "task.party"}
+  - {name: assign, act: task_transition, transition: assign, from: "*", to: "*"}
+  - {name: work, act: task_transition, transition: "start|block|unblock|submit|unassign", from: "task.assignee"}
+  - {name: review, act: task_transition, transition: "approve", from: "task.reviewer"}
+  - {name: owner, act: task_transition, transition: "cancel|unassign", from: "task.creator | kind:human"}
+rooms:
+  - {name: general, members: "*", topic: "whole team"}
+wake_on: [dm, mention, thread_reply, task_assigned, task_ready, task_review, task_returned, timer]
+limits:
+  message_chars: 8000
+  messages_per_agent_per_min: 12
+  messages_per_pair_per_10min: 40

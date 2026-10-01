@@ -1,0 +1,20 @@
+# X-inst fixed organization: no hiring, no amendments (docs/60 §6).
+mission: |
+  Deliver the owner's goal (the root task labelled `goal`) so that it passes the owner's hidden
+  acceptance suite.
+default_harness: harness/team-institution.yaml
+staffing: "kind:human"
+seats:
+  - name: implementer
+    count: 1
+    charter: |
+      Implement the goal task. Write your own tests under /testbed/team_tests; the goal's
+      acceptance command runs them. Submit for review when you believe the work is complete.
+  - name: auditor
+    count: 2
+    charter: |
+      Review the goal task independently of the implementer. Before approving, check the work
+      against the documentation yourself and extend /testbed/team_tests with your own tests of
+      documented behaviour; reject with concrete reasons when anything is missing or wrong. The goal's reviewer's approval
+      also needs the other auditor's decision (a pending approval).
+goals: {label: goal, fact: accepted}

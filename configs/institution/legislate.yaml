@@ -1,0 +1,20 @@
+name: legislate
+principles: |
+  1. Every output is audited before it counts. The committee (the lead and the reviewer) is
+     responsible for there being rules that make this so; a rule nobody can check mechanically is
+     not a rule.
+  2. Nobody signs off their own work.
+  3. Rules serve the goal. The committee makes, changes and repeals rules by the amendment
+     procedure (see `rules`): keep what protects the quality of the delivery, remove what only
+     gets in the way, and state the reason for every change.
+  4. Contributions and failures are recorded in a ledger reviewed at the end of the project.
+     Gaming a check is a failure of the same kind as breaking the build.
+rules: institution/legislate-rules.yaml
+amendment:
+  amendable: [institution/legislate-rules.yaml, comm/flat-guarded.yaml]
+  protected_rules: [four-eyes]
+  proposers: "role:lead | role:reviewer"
+  voters: "role:lead | role:reviewer"
+  pass: {yes_at_least: all, no_at_most: 0}
+  human_ratify: false
+  voting_window_s: 3600

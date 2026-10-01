@@ -1,0 +1,39 @@
+name: terminal-default
+model: deepseek-flash
+reasoning_effort: max
+system_prompt_ref: prompts/terminal.md
+tools: [bash, read_file, write_file, edit_file, recall, read_output, finish]
+call_timeout_s: 3600
+tool_output:
+  max_chars: 30000
+  head_fraction: 0.4
+  parallel_readonly: 8
+budget:
+  # wall_clock_s is replaced per task by the Terminal-Bench driver (task agent timeout - margin)
+  cost_usd: 50
+  wall_clock_s: 10800
+  max_steps: 3000
+  warn_at: 0.70
+  decide_at: 0.85
+  status_every_steps: 50
+compaction:
+  trigger_fraction: 0.5
+  trigger_abs_cap: 400000
+  tail_fraction: 0.025
+  tail_min: 10000
+  tail_max: 25000
+  tail_max_window_fraction: 0.20
+  summary_reasoning_effort: high
+  summary_max_output: 16000
+recovery:
+  provider_retries: 8
+  backoff_base_s: 2
+  backoff_max_s: 120
+  loop_window: 6
+  loop_repeat: 3
+  empty_turn_retries: 2
+sandbox:
+  kind: docker-attach
+  network: task
+  cmd_default_timeout_s: 300
+  cmd_max_timeout_s: 7200

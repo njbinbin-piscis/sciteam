@@ -1,0 +1,41 @@
+# X-inst `committee`: two auditors; an approval takes effect only when the second auditor also approves (2/2).
+name: x-inst
+comm_policy: comm/x-inst.yaml
+institution: institution/x-inst.yaml
+org: org/x-inst.yaml
+runtime: runtime/default.yaml
+workspace_seed: "{task.seed}"
+members:
+- id: implementer
+  role: implementer
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/implementer.md
+- id: auditor
+  role: auditor
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/auditor.md
+- id: auditor2
+  role: auditor
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/auditor.md
+- id: owner
+  kind: human
+  role: owner
+tasks:
+- key: goal
+  by: owner
+  title: "Deliver the goal described in the kickoff"
+  labels: [goal]
+  assignee: implementer
+  reviewer: auditor
+  acceptance: "python -m pytest -q -p no:cacheprovider team_tests"
+kickoff:
+- by: owner
+  to: '@implementer'
+  text: "{task.brief}"
+- by: owner
+  to: '@auditor'
+  text: "{task.brief}"
+- by: owner
+  to: '@auditor2'
+  text: "{task.brief}"

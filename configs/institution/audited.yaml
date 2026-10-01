@@ -1,0 +1,23 @@
+name: audited
+principles: |
+  1. Work counts only when it is audited. Every task states how its result is checked (its
+     acceptance command, written by whoever creates the task) and who reviews it.
+  2. Evidence, not assertion. A submission names the commit that holds the work; that commit is
+     checked mechanically in a clean copy of the repository, never on anyone's word.
+  3. Nobody signs off their own work.
+  4. The final delivery is a task labelled `release`; it takes effect only when the human owner
+     signs it off.
+  5. Contributions and failures are recorded in a ledger that is reviewed at the end of the
+     project. Gaming a check (weakening a test, an acceptance command that proves nothing) is a
+     failure of the same kind as breaking the build.
+  6. The rules can be changed by the amendment procedure (see `rules`) when they get in the way
+     of the goal; the rules that carry principles 1–3 cannot.
+rules: institution/audited-rules.yaml
+amendment:
+  amendable: [institution/audited-rules.yaml, comm/flat.yaml]
+  protected_rules: [tasks-auditable, submit-validated, four-eyes]
+  proposers: "role:lead | role:reviewer"
+  voters: "role:lead | role:reviewer"
+  pass: {yes_at_least: all, no_at_most: 0}
+  human_ratify: false
+  voting_window_s: 3600

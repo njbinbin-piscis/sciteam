@@ -1,0 +1,98 @@
+[
+  {
+    "lib": "babel",
+    "total": 5663,
+    "reference": 1.0,
+    "seed": 0.0
+  },
+  {
+    "lib": "cachetools",
+    "total": 215,
+    "reference": 1.0,
+    "seed": 0.7116279069767442
+  },
+  {
+    "lib": "chardet",
+    "total": 376,
+    "reference": 1.0,
+    "seed": 0.0026595744680851063
+  },
+  {
+    "lib": "cookiecutter",
+    "total": 367,
+    "reference": 1.0,
+    "seed": 0.043596730245231606
+  },
+  {
+    "lib": "deprecated",
+    "total": 171,
+    "reference": 1.0,
+    "seed": 0.09941520467836257
+  },
+  {
+    "lib": "imapclient",
+    "total": 267,
+    "reference": 1.0,
+    "seed": 0.0
+  },
+  {
+    "lib": "jinja",
+    "total": 851,
+    "reference": 1.0,
+    "seed": 0.0
+  },
+  {
+    "lib": "marshmallow",
+    "total": 1229,
+    "reference": 0.9983726606997559,
+    "seed": 0.0
+  },
+  {
+    "lib": "minitorch",
+    "total": 230,
+    "reference": 0.06521739130434782,
+    "seed": 0.0
+  },
+  {
+    "lib": "parsel",
+    "total": 206,
+    "reference": 1.0,
+    "seed": 0.0
+  },
+  {
+    "lib": "portalocker",
+    "total": 36,
+    "reference": 1.0,
+    "seed": 0.0
+  },
+  {
+    "lib": "pyjwt",
+    "total": 259,
+    "reference": 1.0,
+    "seed": 0.003861003861003861
+  },
+  {
+    "lib": "simpy",
+    "total": 140,
+    "reference": 1.0,
+    "seed": 0.5928571428571429
+  },
+  {
+    "lib": "tinydb",
+    "total": 201,
+    "reference": 1.0,
+    "seed": 0.0
+  },
+  {
+    "lib": "voluptuous",
+    "total": 149,
+    "reference": 1.0,
+    "seed": 0.0
+  },
+  {
+    "lib": "wcwidth",
+    "total": 38,
+    "reference": 1.0,
+    "seed": 0.02631578947368421
+  }
+]

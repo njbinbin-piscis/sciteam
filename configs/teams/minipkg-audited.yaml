@@ -1,0 +1,56 @@
+name: minipkg-audited
+comm_policy: comm/flat.yaml
+institution: institution/audited.yaml
+runtime: runtime/default.yaml
+goal_ref: goals/minipkg.md
+workspace_seed: workspaces/minipkg
+members:
+- id: lead
+  role: lead
+  team: core
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/lead.md
+- id: dev1
+  role: worker
+  team: core
+  manager: lead
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/developer.md
+- id: dev2
+  role: worker
+  team: core
+  manager: lead
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/developer.md
+- id: dev3
+  role: worker
+  team: core
+  manager: lead
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/developer.md
+- id: rev
+  role: reviewer
+  team: qa
+  manager: lead
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/reviewer.md
+- id: owner
+  kind: human
+  role: owner
+tasks:
+- key: release
+  by: owner
+  title: Release confkit
+  description: 'The final delivery: the complete confkit package per SPEC.md with its tests and README.
+    Submit it when everything is integrated; the owner signs it off.'
+  assignee: lead
+  reviewer: rev
+  labels:
+  - release
+  acceptance: python -m pytest -q -p no:cacheprovider && python -c 'import confkit'
+kickoff:
+- by: owner
+  to: '@lead'
+  text: Please get the team to deliver the goal in your briefing (implement /workspace/SPEC.md). I am
+    not available until the end; decide everything yourselves. The release task T1 is yours; I will sign
+    it off at the end.

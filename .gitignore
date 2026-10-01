@@ -1,0 +1,23 @@
+.venv/
+**/.venv/
+**/*-venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.env
+third_party/
+runs/
+# Vendored baseline installs and downloaded benchmark trees (not source).
+bench/tb/tb21/
+bench/tb/tblite/
+bench/swebench/*.parquet
+bench/swebench/pull_log.jsonl
+bench/swebench/pull_stdout.log
+bench/swebench/*.jsonl
+bench/commit0/repos/
+bench/commit0/logs/
+bench/commit0/seeds/
+bench/commit0/.commit0.yaml
+bench/commit0/.grade-*.lock
+bench/commit0/seeds-visible/

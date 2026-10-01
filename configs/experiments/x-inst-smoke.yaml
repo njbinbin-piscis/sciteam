@@ -1,0 +1,22 @@
+# X-inst smoke (docs/60 §10): every arm once on one library, to prove the arms run end to end
+# before the registered experiment; not a result.
+name: x-inst-smoke
+hypothesis: Every X-inst arm opens, runs, closes or stops, is audited and graded without manual steps.
+primary: score
+theta: 0.9
+only_tasks: ["tinydb"]
+tasks: tasksets/commit0-lite.yaml
+repeats: 1
+parallel: 5
+arms:
+- {name: full, team: teams/x-inst.yaml}
+- {name: prompt_only, team: teams/x-inst.yaml, overlay: overlays/x-inst/prompt_only}
+- {name: no_separation, team: teams/x-inst.yaml, overlay: overlays/x-inst/no_separation}
+- {name: no_recovery, team: teams/x-inst.yaml, overlay: overlays/x-inst/no_recovery}
+- {name: committee, team: teams/x-inst.yaml, overlay: overlays/x-inst/committee}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 5
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

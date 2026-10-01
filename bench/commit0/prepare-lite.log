@@ -1,0 +1,617 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Cloning repository for split: tinydb
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:07:33,006 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:07:34,142 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:07:34,376 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:07:34,607 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:07:34,847 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:07:34,848 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:07:35,615 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:07:35,851 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:07:36,078 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:07:36,321 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:07:36,341 - commit0.harness.setup - INFO - Repository already exists at /home/uuu/Projects/SciTeam/bench/commit0/repos/tinydb. Fetching updates.
+2026-10-01 03:07:37,511 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: tinydb
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:07:41,939 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:07:43,071 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:07:43,312 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:07:43,550 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:07:43,799 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:07:43,799 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:07:44,342 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:07:44,578 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:07:44,822 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:07:45,059 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:03<00:00,  3.20s/it]Building repo images: 100%|██████████| 1/1 [00:03<00:00,  3.20s/it]
+All repo images built successfully.
+sha256:23383baaca3fb58e39bdc29de439b6b4086608a2a740b5d3b1366e99f3a839a6
+Cloning repository for split: simpy
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:07:54,039 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:07:55,201 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:07:55,486 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:07:55,794 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:07:56,093 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:07:56,094 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:07:56,852 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:07:57,140 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:07:57,421 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:07:57,706 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:07:57,725 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/simpy.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/simpy
+2026-10-01 03:08:00,373 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: simpy
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:08:04,765 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:08:05,885 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:08:06,126 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:08:06,358 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:08:06,605 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-01 03:08:07,158 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:08:07,409 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:08:07,642 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:08:07,886 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:08:07,887 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.36s/it]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.36s/it]
+All repo images built successfully.
+sha256:61ce34c25ec848a634eb33cad0e8ffe25393d9486e10e087af270df855ae8810
+Cloning repository for split: deprecated
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:09:37,113 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:09:38,261 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:09:38,542 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:09:38,823 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:09:39,106 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:09:39,107 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:09:39,889 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:09:40,176 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:09:40,457 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:09:40,742 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:09:40,766 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/deprecated.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/deprecated
+2026-10-01 03:09:42,692 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: deprecated
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:09:47,351 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:09:48,307 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:09:48,542 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:09:48,775 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:09:49,024 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:09:49,025 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:09:49,782 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:09:50,029 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:09:50,268 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:09:50,506 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.23s/it]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.23s/it]
+All repo images built successfully.
+sha256:7d931674a999fd623dc2c2b8572ef915397f86e0a1e24189a3d9dbbcffd412f1
+Cloning repository for split: wcwidth
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:10:50,744 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:10:51,683 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:10:51,912 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:10:52,153 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:10:52,405 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:10:52,406 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:10:52,962 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:10:53,199 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:10:53,440 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:10:53,682 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:10:53,703 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/wcwidth.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/wcwidth
+2026-10-01 03:10:56,107 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: wcwidth
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:11:00,756 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:11:01,907 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:11:02,188 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:11:02,471 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:11:02,768 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-01 03:11:03,559 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:11:03,846 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:11:04,126 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:11:04,411 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.85s/it]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.85s/it]
+All repo images built successfully.
+sha256:a184026805bad29dc3e547ae172dc683b8c3372ecb415c042bdd7e90fd7d546e
+Cloning repository for split: voluptuous
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:11:48,756 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:11:49,633 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:11:49,861 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:11:50,089 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:11:50,330 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:11:50,330 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:11:51,084 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:11:51,320 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:11:51,550 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:11:51,781 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:11:51,803 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/voluptuous.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/voluptuous
+2026-10-01 03:11:54,739 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: voluptuous
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:11:59,475 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:12:00,595 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:12:00,875 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:12:01,164 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:12:01,468 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:12:01,468 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:12:02,013 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:12:02,300 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:12:02,585 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:12:02,876 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.12s/it]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.13s/it]
+All repo images built successfully.
+sha256:f81d8ef07756ff33eafc792c9ca34d0cd58cad66022f51a413520b2ddeb173dd
+Cloning repository for split: cachetools
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:12:51,392 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:12:52,290 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:12:52,516 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:12:52,748 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:12:52,993 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:12:52,994 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:12:53,766 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:12:54,002 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:12:54,233 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:12:54,469 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:12:54,497 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/cachetools.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/cachetools
+2026-10-01 03:12:56,692 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: cachetools
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:13:01,221 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:13:02,106 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:13:02,347 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:13:02,596 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:13:02,843 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:13:02,844 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:13:03,657 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:13:03,891 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:13:04,128 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:13:04,362 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.08s/it]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.08s/it]
+All repo images built successfully.
+sha256:faae4971fcd757e093503c3b9436409022a6fc66fe01f5c0933b852632563a8f
+Cloning repository for split: imapclient
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:13:46,172 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:13:47,289 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:13:47,521 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:13:47,757 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:13:48,004 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:13:48,004 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:13:48,550 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:13:48,790 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:13:49,028 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:13:49,265 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:13:49,289 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/imapclient.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/imapclient
+2026-10-01 03:13:51,909 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: imapclient
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:13:56,070 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:13:57,221 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:13:57,452 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:13:57,682 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:13:57,923 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-01 03:13:58,437 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:13:58,684 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:13:58,923 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:13:59,155 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:13:59,156 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.78s/it]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.78s/it]
+All repo images built successfully.
+sha256:d206b99b3506b5d30763ad39b95271db34ffb2218bb5c99f3308e666ace0a2ea
+Cloning repository for split: marshmallow
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:15:06,873 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:15:07,791 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:15:08,067 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:15:08,349 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:15:08,649 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:15:08,650 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:15:09,185 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:15:09,520 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:15:09,805 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:15:10,101 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:15:10,123 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/marshmallow.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/marshmallow
+2026-10-01 03:15:13,159 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: marshmallow
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:15:17,571 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:15:18,710 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:15:18,945 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:15:19,183 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:15:19,440 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:15:19,440 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:15:19,969 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:15:20,216 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:15:20,459 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:15:20,702 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.49s/it]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.49s/it]
+All repo images built successfully.
+sha256:7bfccfb414130ac23b3f7972cc235f1e12fa2a6d4d3e16901cfad494181860ad
+Cloning repository for split: jinja
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:16:12,110 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:16:13,243 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:16:13,485 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:16:13,753 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:16:14,003 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:16:14,004 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:16:14,573 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:16:14,818 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:16:15,056 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:16:15,300 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:16:15,321 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/jinja.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/jinja
+2026-10-01 03:16:18,478 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: jinja
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:16:23,211 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:16:24,118 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:16:24,395 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:16:24,677 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:16:24,970 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:16:24,970 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:16:25,502 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:16:25,789 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:16:26,070 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:16:26,354 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.30s/it]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.30s/it]
+All repo images built successfully.
+sha256:cb1a6458242642b846a8d7b8db8e9256a2635a2eef885eae380858159f57f006
+Cloning repository for split: cookiecutter
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:17:41,142 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:17:42,078 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:17:42,350 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:17:42,631 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:17:42,914 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:17:42,914 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:17:43,550 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:17:43,834 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:17:44,110 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:17:44,398 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:17:44,420 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/cookiecutter.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/cookiecutter
+2026-10-01 03:17:46,437 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: cookiecutter
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:17:50,770 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:17:51,914 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:17:52,149 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:17:52,384 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:17:52,635 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:17:52,636 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:17:53,161 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:17:53,394 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:17:53,627 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:17:53,869 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.33s/it]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.33s/it]
+All repo images built successfully.
+sha256:d68ef9076172bf79cf2141303fbbc3e380eec24af3edc7bf728fe53e702eeb86
+Cloning repository for split: portalocker
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:18:46,260 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:18:47,432 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:18:47,711 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:18:47,994 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:18:48,293 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-01 03:18:48,849 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:18:49,137 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:18:49,419 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:18:49,703 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:18:49,734 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/portalocker.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/portalocker
+2026-10-01 03:18:51,463 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: portalocker
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:18:56,178 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:18:57,326 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:18:57,606 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:18:57,892 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:18:58,185 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:18:58,186 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:18:58,705 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:18:58,999 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:18:59,282 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:18:59,571 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.61s/it]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.61s/it]
+All repo images built successfully.
+sha256:03d04480813268d4de44e221917671d89aa13985552e8f8c4a5e005bcf39172f
+Cloning repository for split: parsel
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:20:08,372 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:20:09,279 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:20:09,516 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:20:09,810 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:20:10,090 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:20:10,091 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:20:10,636 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:20:10,882 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:20:11,119 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:20:11,369 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:20:11,389 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/parsel.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/parsel
+2026-10-01 03:20:13,825 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: parsel
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:20:18,334 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:20:19,458 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:20:19,738 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:20:20,024 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:20:20,323 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:20:20,323 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:20:21,105 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:20:21,387 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:20:21,667 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:20:21,956 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.83s/it]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.83s/it]
+All repo images built successfully.
+sha256:1a35ddf6116ed89e67375c6ecb0eda44f54ba2f14dfb9424dbab99d7ced3483a
+Cloning repository for split: pyjwt
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:21:29,429 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:21:30,603 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:21:30,836 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:21:31,072 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:21:31,322 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:21:31,322 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:21:31,926 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:21:32,164 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:21:32,393 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:21:32,633 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:21:32,652 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/pyjwt.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/pyjwt
+2026-10-01 03:21:35,057 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: pyjwt
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:21:39,517 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:21:40,716 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:21:40,943 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:21:41,173 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:21:41,416 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-01 03:21:42,181 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:21:42,413 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:21:42,651 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:21:42,890 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.30s/it]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.30s/it]
+All repo images built successfully.
+sha256:a7574f0e79d1abb44bca2c53872d56ffe17a424121607eafd1524ca7a5ae20ef
+Cloning repository for split: chardet
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:23:02,710 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:23:03,618 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:23:03,892 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:23:04,181 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:23:04,470 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-01 03:23:05,257 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:23:05,543 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:23:05,817 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:23:06,104 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:23:06,105 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:23:06,123 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/chardet.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/chardet
+2026-10-01 03:23:08,644 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: chardet
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:23:12,917 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:23:13,793 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:23:14,033 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:23:14,267 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:23:14,504 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:23:14,505 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:23:15,347 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:23:15,589 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:23:15,824 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:23:16,061 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.94s/it]Building repo images: 100%|██████████| 1/1 [00:10<00:00, 10.94s/it]
+All repo images built successfully.
+sha256:6988930f2bbfe1091e6bfd5c10291ba5a45b63fc52576ace4a28f7618b4ebcbf
+Cloning repository for split: babel
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:24:33,179 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:24:34,319 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:24:34,557 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:24:34,787 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:24:35,036 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-01 03:24:35,817 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:24:36,055 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:24:36,291 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:24:36,533 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:24:36,534 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:24:36,572 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/babel.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/babel
+2026-10-01 03:24:39,377 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: babel
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:24:43,854 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:24:44,744 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:24:44,978 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:24:45,207 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:24:45,451 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-01 03:24:46,236 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:24:46,467 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:24:46,705 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:24:46,938 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.41s/it]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.42s/it]
+All repo images built successfully.
+sha256:154769acddc187f1004d8f6df6095e5664b962c069738b109010e402c888fc4e
+Cloning repository for split: minitorch
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Base directory: /home/uuu/Projects/SciTeam/bench/commit0/repos
+Commit0 dot file path: .commit0.yaml
+2026-10-01 03:25:49,833 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:25:50,755 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:25:50,989 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:25:51,225 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:25:51,473 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:25:51,473 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:25:52,242 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:25:52,486 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:25:52,717 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:25:52,961 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-01 03:25:52,982 - commit0.harness.setup - INFO - Cloning https://github.com/commit-0/minitorch.git into /home/uuu/Projects/SciTeam/bench/commit0/repos/minitorch
+2026-10-01 03:25:55,437 - commit0.harness.setup - INFO - Checked out the base branch: commit0
+Building repository for split: minitorch
+Dataset name: wentingzhao/commit0_combined
+Dataset split: test
+Number of workers: 8
+2026-10-01 03:26:00,143 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:26:01,287 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/wentingzhao/commit0_combined/wentingzhao/commit0_combined.py "HTTP/1.1 404 Not Found"
+2026-10-01 03:26:01,566 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:26:01,849 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/revision/944c325cf7899ee75dcf3ec3c42a631a253c7737 "HTTP/1.1 200 OK"
+2026-10-01 03:26:02,144 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/.huggingface.yaml "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:26:02,145 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-01 03:26:02,669 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=wentingzhao/commit0_combined "HTTP/1.1 200 OK"
+2026-10-01 03:26:02,953 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:26:03,239 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/wentingzhao/commit0_combined/tree/944c325cf7899ee75dcf3ec3c42a631a253c7737?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-01 03:26:03,584 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/wentingzhao/commit0_combined/resolve/944c325cf7899ee75dcf3ec3c42a631a253c7737/dataset_infos.json "HTTP/1.1 404 Not Found"
+Base image commit0.base:latest already exists, skipping build.
+Base images built successfully.
+Total repo images to build: 1
+Building repo images:   0%|          | 0/1 [00:00<?, ?it/s]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.19s/it]Building repo images: 100%|██████████| 1/1 [00:11<00:00, 11.19s/it]
+All repo images built successfully.
+ERROR: failed to build: failed to solve: Canceled: context canceled

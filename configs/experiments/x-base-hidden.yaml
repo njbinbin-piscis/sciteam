@@ -1,0 +1,20 @@
+# X-base (docs/60 §10 step 2): single agent on Commit0 lite with the upstream tests hidden —
+# the setting of the main experiments. Calibrates the grader and selects commit0-inst.
+name: x-base-hidden
+hypothesis: >-
+  Descriptive, no directional hypothesis: per-library pass rates of one flash agent without the
+  upstream tests; used to select commit0-inst (60 §4: libraries with 20%–80% pass rate).
+primary: score
+# minitorch excluded: its reference scores 0.065 (bench/commit0/calibration.json; 60 §4 rule)
+only_tasks: ["babel", "cachetools", "chardet", "cookiecutter", "deprecated", "imapclient", "jinja", "marshmallow", "parsel", "portalocker", "pyjwt", "simpy", "tinydb", "voluptuous", "wcwidth"]
+tasks: tasksets/commit0-lite.yaml
+repeats: 2
+parallel: 8
+arms:
+- {name: single, team: teams/x-single.yaml}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 5
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

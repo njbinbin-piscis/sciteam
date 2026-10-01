@@ -1,0 +1,17 @@
+# C3 probe (docs/31-runtime.md §12): a human speaks in a three-agent room and mentions one agent.
+# Expected: only @b is activated; @a and @c see the exchange only if something else wakes them.
+name: probe-mention
+comm_policy: comm/flat.yaml
+runtime: runtime/probe.yaml
+members:
+- {id: a, role: worker, team: core, harness: harness/team-default.yaml}
+- {id: b, role: worker, team: core, harness: harness/team-default.yaml}
+- {id: c, role: worker, team: core, harness: harness/team-default.yaml}
+- {id: owner, kind: human, role: owner}
+rooms:
+- {name: lab, members: [a, b, c, owner], topic: "three-person lab room"}
+kickoff:
+- by: owner
+  to: '#lab'
+  text: "@b please compute 6*7 with python in your shell and post the result here in #lab. Nobody
+    else needs to do anything."

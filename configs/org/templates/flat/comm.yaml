@@ -1,0 +1,103 @@
+# Adopt as the communication policy by amendment (path comm/genesis.yaml).
+name: flat
+description: 'Flat team. Anyone may message or @mention anyone, create rooms and tasks, assign work to
+  anyone and claim open tasks. Everyone is in #general.'
+rules:
+- name: dm
+  act: post_message
+  via: dm
+  from: '*'
+  to: '*'
+- name: rooms
+  act: post_message
+  via: room|task
+  from: '*'
+- name: mention
+  act: mention
+  from: '*'
+  to: '*'
+- name: create-room
+  act: create_room
+  from: '*'
+- name: room-members
+  act: add_member
+  from: '*'
+  to: '*'
+- name: room-leave
+  act: remove_member
+  from: '*'
+  to: self
+- name: create-task
+  act: task_create
+  from: '*'
+- name: edit-task
+  act: task_update
+  from: task.party
+- name: assign
+  act: task_transition
+  transition: assign
+  from: '*'
+  to: '*'
+- name: claim
+  act: task_transition
+  transition: claim
+  from: kind:agent
+- name: work
+  act: task_transition
+  transition: start|block|unblock|submit|unassign
+  from: task.assignee
+- name: review
+  act: task_transition
+  transition: approve|reject
+  from: task.reviewer
+- name: owner
+  act: task_transition
+  transition: reopen|cancel|unassign
+  from: task.creator | kind:human
+- name: hire
+  act: hire
+  from: group:staffing
+- name: dismiss
+  act: dismiss
+  from: group:staffing
+- name: certify
+  act: certify_environment
+  from: group:engineering
+- name: revoke
+  act: revoke_environment
+  from: group:engineering
+- name: org-seats-dm
+  act: post_message
+  via: dm
+  from: role:founder | role:hr | role:engineer
+  to: '*'
+- name: to-org-seats
+  act: post_message
+  via: dm
+  from: '*'
+  to: role:founder | role:hr | role:engineer | human
+- name: org-seats-mention
+  act: mention
+  from: role:founder | role:hr | role:engineer
+  to: '*'
+- name: mention-org-seats
+  act: mention
+  from: '*'
+  to: role:founder | role:hr | role:engineer | human
+rooms:
+- name: general
+  members: '*'
+  topic: whole team
+wake_on:
+- dm
+- mention
+- thread_reply
+- task_assigned
+- task_ready
+- task_review
+- task_returned
+- timer
+limits:
+  message_chars: 8000
+  messages_per_agent_per_min: 12
+  messages_per_pair_per_10min: 40
