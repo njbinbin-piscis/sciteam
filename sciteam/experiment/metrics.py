@@ -67,6 +67,9 @@ def run_metrics(evs: list[Event], check: dict[str, Any], score: dict[str, Any] |
         "owner_decisions": owner.get("decisions", 0),
         "owner_reviews": owner.get("reviews", 0),
         "owner_nudges": owner.get("nudges", 0),
+        # what the provider says it ran: a rolling alias can change underneath a fixed name
+        "models_seen": sorted({e.payload["model"] for e in evs
+                               if e.type == "model_returned" and e.payload.get("model")}),
         "interpreter_digest": cfg.get("interpreter_digest", ""),
         "config_digest": cfg.get("digest", ""),
     }

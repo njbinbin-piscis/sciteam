@@ -29,6 +29,9 @@ class TaskSet(BaseModel):
     grader: str                            # command; {workspace} {out} {task.*}; cwd = repo root
     vars: dict[str, str] = Field(default_factory=dict)            # defaults for every task
     patches: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    # name -> command ({task.*}; cwd = repo root) whose output identifies something the
+    # interpreter digest cannot see: grader, environment, task seed (ExperimentIdentity)
+    identity: dict[str, str] = Field(default_factory=dict)
     tasks: list[TaskSpec]
 
 
@@ -44,6 +47,8 @@ class ExperimentSpec(BaseModel):
     hypothesis: str
     primary: str
     theta: float | dict[str, float] | None = None   # false_closure threshold; per task id (§5)
+    # external success predicate: score >= success (task semantics, not a baseline; §5)
+    success: float | dict[str, float] | None = None
     tasks: str                             # task set file relative to configs
     only_tasks: list[str] = Field(default_factory=list)
     repeats: int

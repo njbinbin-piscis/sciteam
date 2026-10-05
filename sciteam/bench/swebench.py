@@ -19,6 +19,7 @@ from sciteam.harness import Harness, HarnessConfig
 from sciteam.harness.tools.base import ToolContext
 from sciteam.kernel import BlobStore, ConfigStore, EventStore, new_id
 from sciteam.providers.llm import load_models, make_provider
+from sciteam.providers.llm.types import HALT_REASONS
 from sciteam.providers.sandbox import DockerSandbox, DockerSandboxConfig
 
 TASK_TEMPLATE = """<issue>
@@ -233,8 +234,6 @@ async def run_swebench(*, dataset: Path, ids: list[str] | None, harness_cfg: str
 
 # Outcomes caused by the provider account or the driver, not by the agent: rerun on resume.
 INFRA_REASONS = {"provider_quota", "provider_unavailable", "auth"}
-# The whole run stops: every further activation would fail the same way.
-HALT_REASONS = {"provider_quota", "auth"}
 
 
 def latest_results(path: Path) -> dict[str, dict[str, Any]]:

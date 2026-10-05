@@ -38,3 +38,52 @@ deepseek-v4-pro:
   peak_weekdays_only: true
   concurrency_limit: 500
   forced_tool_choice: false
+
+# --- Added 2026-10-03 (docs/60 §4.2: model diversity as a factor). Keys live in .env only. ---
+# Reasoning is left to each model's own default: the adapter's `thinking`/`reasoning_effort`
+# fields are DeepSeek-specific, so reasoning.supported is false and nothing is sent or passed
+# back. Runs on these models are therefore NOT comparable to deepseek-flash at effort=max.
+# Probed 2026-10-03: streaming-free tool call + tool-result turn work for all three.
+# Alibaba prices: Beijing region, CNY (help.aliyun.com model-studio, checked 2026-10-03),
+# converted at 7.0 CNY/USD; a lower rate can only overstate cost.
+qwen3.8-max:
+  provider: openai_compat
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api_key_env: DASHSCOPE_API_KEY
+  wire_model: qwen3.8-max
+  context_window: 1000000
+  max_output_tokens: 131072
+  pricing_usd_per_mtok:
+    standard: {cache_hit: 0.2143, cache_miss: 1.7143, output: 5.1429}
+  concurrency_limit: 32
+  forced_tool_choice: false
+
+qwen3.8-flash:
+  provider: openai_compat
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api_key_env: DASHSCOPE_API_KEY
+  wire_model: qwen3.8-flash
+  context_window: 1000000
+  max_output_tokens: 131072
+  pricing_usd_per_mtok:
+    standard: {cache_hit: 0.0143, cache_miss: 0.1143, output: 0.3857}
+  concurrency_limit: 32
+  forced_tool_choice: false
+
+# Xiaomi pay-as-you-go, overseas USD list (mimo.mi.com pay-as-you-go.md, checked 2026-10-03).
+# Listed limit is 100 RPM, so concurrency stays low.
+mimo-v2.6-flash:
+  provider: openai_compat
+  base_url: https://api.xiaomimimo.com/v1
+  api_key_env: MIMO_API_KEY
+  wire_model: mimo-v2.6-flash
+  context_window: 1000000
+  max_output_tokens: 128000
+  pricing_usd_per_mtok:
+    standard: {cache_hit: 0.0028, cache_miss: 0.14, output: 0.28}
+  concurrency_limit: 8
+  forced_tool_choice: false
+
+# SiliconFlow (SILICONFLOW_API_KEY) is also configured in .env. No entries yet: it resells
+# DeepSeek-V4-Flash/Pro, Qwen3.8-27B, GLM-5.x, Kimi etc.; add one with its listed price when an
+# experiment needs it, so cost accounting never runs on a guessed price.

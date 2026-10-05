@@ -4,6 +4,7 @@ the existing team runtime with an automatic owner, then audited, graded and meas
 The runner adds no runtime semantics: every owner decision is an ordinary human Act."""
 
 import asyncio
+import hashlib
 import json
 import shlex
 import subprocess
@@ -173,6 +174,24 @@ def _sh(cmd: str, log: Path) -> int:
                                cwd=Path(__file__).resolve().parents[2])
 
 
+IDENTITY = "identity.json"
+
+
+def capture_identity(ts: TaskSet, tvars: dict[str, str], dest: Path) -> dict[str, str]:
+    """Run the task set's identity commands once, when the run is created; a resumed run
+    keeps what it started with. Each value is the sha256 of the command's output."""
+    if dest.exists():
+        return json.loads(dest.read_text())
+    ident = {}
+    for name, cmd in ts.identity.items():
+        p = subprocess.run(render(cmd, tvars), shell=True, capture_output=True, timeout=1800)
+        ident[name] = (hashlib.sha256(p.stdout).hexdigest() if p.returncode == 0
+                       else f"error:{p.returncode}")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(ident, indent=2))
+    return ident
+
+
 def run_one(configs_dir: Path, spec_path: str, out: Path, key: RunKey) -> dict:
     from sciteam.org import team as org_team
     from sciteam.runtime import team
@@ -187,6 +206,8 @@ def run_one(configs_dir: Path, spec_path: str, out: Path, key: RunKey) -> dict:
     tdir = task_overlay(configs_dir, arm, ts, task, rd.parent / f"overlay-r{key.r}")
     overlays = overlays_for(configs_dir, arm, tdir)
     tf = ConfigStore(configs_dir, overlays).load(arm.team, TeamFile)
+    tv = task_vars(ts, task)
+    identity = capture_identity(ts, tv, rd / IDENTITY)
     if not (rd / "run.json").exists():
         opener = org_team.opener_for(configs_dir, arm.team, overlays)
         team.create_run(rd, team=arm.team, configs_dir=configs_dir, overlays=overlays,
@@ -196,7 +217,6 @@ def run_one(configs_dir: Path, spec_path: str, out: Path, key: RunKey) -> dict:
     check_out, score_out = rd / "check.json", rd / "score.json"
     q = shlex.quote
     _sh(spec.audit.format(run=q(str(rd)), out=q(str(check_out))), log)
-    tv = task_vars(ts, task)
     _sh(render(ts.grader, tv).format(workspace=q(str(rd / "workspace")), out=q(str(score_out))),
         log)
     check = json.loads(check_out.read_text()) if check_out.exists() else {}
@@ -208,7 +228,7 @@ def run_one(configs_dir: Path, spec_path: str, out: Path, key: RunKey) -> dict:
         store.close()
     result = {"arm": key.arm, "task": key.task, "r": key.r,
               "audit_ok": bool(check), "graded": score is not None,
-              **run_metrics(evs, check, score, owner)}
+              **run_metrics(evs, check, score, owner), "identity": identity}
     (rd / RESULT).write_text(json.dumps(result, indent=2))
     return result
 

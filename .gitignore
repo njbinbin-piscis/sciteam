@@ -21,3 +21,9 @@ bench/commit0/seeds/
 bench/commit0/.commit0.yaml
 bench/commit0/.grade-*.lock
 bench/commit0/seeds-visible/
+
+# SciCode-Verified upstream clone, venv, and run outputs (data md5-pinned; see docs/60 §4.2)
+bench/scicode/upstream/
+bench/scicode/.venv/
+bench/scicode/*.log
+bench/scicode/envs/

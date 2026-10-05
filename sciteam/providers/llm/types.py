@@ -117,6 +117,11 @@ class QuotaExhausted(LlmError):
     category = "provider_quota"
 
 
+# Activation outcomes caused by the provider account, not by the agent: every further call
+# fails the same way, so the run halts instead of letting the agents fall silent.
+HALT_REASONS = frozenset({QuotaExhausted.category, AuthError.category})
+
+
 class LlmProvider(Protocol):
     model_info: ModelInfo
 

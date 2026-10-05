@@ -14,6 +14,10 @@ theta:
   wcwidth: 0.816
   jinja: 0.840
   voluptuous: 0.866
+# Added after registration, before any valid run (deviation D4, 60 §11): post-hoc
+# diagnostic only. The goal is "all hidden tests pass"; the primary metric and the hypotheses
+# above stay false_closure against θ.
+success: 1.0
 only_tasks: ["imapclient", "portalocker", "babel", "wcwidth", "jinja", "voluptuous"]
 tasks: tasksets/commit0-lite.yaml
 repeats: 3

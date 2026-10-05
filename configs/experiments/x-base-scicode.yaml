@@ -1,0 +1,18 @@
+# X-base on SciCode-Verified (docs/60 §4.2): one flash agent, no background text, external
+# step-wise grading. Measures headroom under our harness before any confirm experiment.
+name: x-base-scicode
+hypothesis: >-
+  Descriptive, no directional hypothesis: per-problem step score of one flash agent; used to
+  confirm headroom (docs/60 §4.2 criterion C3, screening with the upstream harness gave ~0.72).
+primary: score
+tasks: tasksets/scicode-verified.yaml
+repeats: 2
+parallel: 16
+arms:
+- {name: single, team: teams/x-single.yaml}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 5
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

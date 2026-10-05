@@ -201,6 +201,53 @@ def test_theta_per_task(tmp_path):
     assert s["arms"]["a"]["false_closure"] == 0.5
 
 
+def test_closure_split_judges_closure_by_task_success_not_baseline():
+    from sciteam.experiment.report import closure_metrics
+
+    theta, success = {"x": 0.1}, 1.0
+    low = closure_metrics({"task": "x", "score": 0.12, "closed": True}, theta, success)
+    # above the single-agent baseline, yet the system declared an unmet goal met
+    assert low == {"false_closure": False, "institutional_false_closure": True,
+                   "true_closure": False, "below_single": False}
+    full = closure_metrics({"task": "x", "score": 1.0, "closed": True}, theta, success)
+    assert full["true_closure"] and not full["institutional_false_closure"]
+    single = closure_metrics({"task": "x", "score": 0.05, "closed": None}, theta, success)
+    assert single["institutional_false_closure"] is None and single["below_single"] is True
+
+
+def test_hierarchical_ci_resamples_repeats_within_tasks():
+    from sciteam.experiment.report import hierarchical_ci
+
+    base = {"a": [0.0, 0.0], "b": [0.0, 0.0]}
+    same = {"a": [0.5, 0.5], "b": [0.5, 0.5]}
+    assert hierarchical_ci(base, same) == (0.5, 0.5)       # no spread anywhere
+    noisy = {"a": [0.0, 1.0], "b": [0.0, 1.0]}
+    lo, hi = hierarchical_ci(base, noisy)
+    assert lo < 0.5 < hi                                   # spread of repeats shows up
+
+
+def test_identity_drift_flags_differing_conditions_on_one_task():
+    from sciteam.experiment.report import identity_drift
+
+    runs = [{"task": "x", "identity": {"grader": "g1"}, "models_seen": ["m"]},
+            {"task": "x", "identity": {"grader": "g2"}, "models_seen": ["m"]},
+            {"task": "y", "identity": {"grader": "g1"}, "models_seen": ["m"]}]
+    assert identity_drift(runs) == [{"task": "x", "component": "grader", "values": 2}]
+
+
+def test_identity_is_captured_once_per_run(tmp_path):
+    from sciteam.experiment.runner import capture_identity
+    from sciteam.experiment.spec import TaskSet
+
+    ts = TaskSet(name="t", grader="-", tasks=[], identity={"seed": "echo {task.lib}",
+                                                           "broken": "exit 3"})
+    dest = tmp_path / "identity.json"
+    first = capture_identity(ts, {"lib": "tinydb"}, dest)
+    assert first["broken"] == "error:3" and len(first["seed"]) == 64
+    ts.identity["seed"] = "echo changed"
+    assert capture_identity(ts, {"lib": "tinydb"}, dest) == first   # a resumed run keeps it
+
+
 def test_report_invalid_with_two_interpreters(tmp_path):
     out = tmp_path / "out"
     out.mkdir()

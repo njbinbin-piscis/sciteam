@@ -8,7 +8,7 @@ import yaml
 from sciteam.comm import Act
 from sciteam.kernel.ids import new_id
 from sciteam.providers.llm.fakes import TEST_MODEL, call, estimate_tokens
-from sciteam.providers.llm.types import AssistantTurn, Usage
+from sciteam.providers.llm.types import AssistantTurn, QuotaExhausted, Usage
 from sciteam.runtime.team import RunLocked, TeamRun, create_run, run_team
 
 REPO_CONFIGS = Path(__file__).resolve().parents[2] / "configs"
@@ -358,6 +358,22 @@ async def test_storm_breaker(tmp_path):
     llms = {"dev1": FnLlm(loop=pingpong("dev2")), "dev2": FnLlm(loop=pingpong("dev1"))}
     assert await go(run, llms) == "breaker:storm"
     assert events(run, "breaker_tripped")[0].payload["kind"] == "storm"
+
+
+async def test_provider_quota_trips_breaker_instead_of_quiescence(tmp_path):
+    # An empty account is not the agents falling silent: the run halts as a breaker, so an
+    # experiment excludes it instead of scoring it (docs/60 §2.5).
+    run = setup(tmp_path, runtime={"on_quiescent": "wait"},
+                tasks=[{"key": "a", "by": "owner", "title": "A", "assignee": "dev1"}])
+    llms = {"dev1": FnLlm([QuotaExhausted("Insufficient Balance")])}
+    assert await go(run, llms) == "breaker:provider"
+    tripped = events(run, "breaker_tripped")
+    assert [e.payload["reason"] for e in tripped] == ["provider_quota"]
+    assert not events(run, "run_quiescent")
+    # Folding the log again (resume, replay) must not trip it a second time.
+    tr = TeamRun(run, models={"scripted": TEST_MODEL})
+    tr.close()
+    assert len(events(run, "breaker_tripped")) == 1
 
 
 # ---- crash recovery -----------------------------------------------------------------------

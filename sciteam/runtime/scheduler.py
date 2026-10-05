@@ -14,6 +14,7 @@ from sciteam.comm.view import CommView
 from sciteam.kernel.clock import Clock
 from sciteam.kernel.events import Event, EventStore
 from sciteam.kernel.ids import new_id
+from sciteam.providers.llm.types import HALT_REASONS
 from sciteam.runtime.agent import AgentRunner, activation_stream
 from sciteam.runtime.attention import (
     AttentionItem,
@@ -82,6 +83,7 @@ class Scheduler:
         self.quiescent_logged = False
         self._msgs: deque[datetime] = deque()
         self._last_progress: datetime | None = None
+        self._halt: dict[str, str] | None = None   # provider failure no activation can avoid
         self._cursor = 0
         self._tasks: dict[str, asyncio.Task] = {}
         self._wake = asyncio.Event()
@@ -115,9 +117,9 @@ class Scheduler:
         elif t == "run_stop_requested":
             self.stop_requested = True
         elif t == "breaker_tripped":
-            self.paused = p["kind"]
+            self.paused, self._halt = p["kind"], None
         elif t == "breaker_reset":
-            self.paused = None
+            self.paused, self._halt = None, None
         elif t == "run_stopped":
             self.stopped = p["reason"]
         elif t == "run_resumed":
@@ -166,6 +168,8 @@ class Scheduler:
                                      summary=(p.get("summary") or "")[:2000],
                                      reason=p.get("reason")))
         st.memory = st.memory[-self.cfg.memory_recent_activations:]
+        if outcome == "error" and p.get("reason") in HALT_REASONS and not self.paused:
+            self._halt = {"agent": agent, "reason": p["reason"]}
         if outcome == "error" and p.get("reason") != "cancelled":
             st.errors += 1
             if st.errors > self.cfg.error_retries:
@@ -215,6 +219,9 @@ class Scheduler:
     def _check_breakers(self, now: datetime) -> None:
         if self.paused:
             return
+        if self._halt:
+            self._trip("provider", self._halt)
+            return
         b = self.cfg.budget
         elapsed = (now - self.started_at).total_seconds() if self.started_at else 0.0
         if self.cost_usd >= b.cost_usd or elapsed >= b.wall_clock_s:
@@ -234,7 +241,7 @@ class Scheduler:
         self.store.append(RUN, "breaker_tripped", {"kind": kind, **detail}, actor="system")
         self.paused = kind
         # Batch runs have nobody to press resume, so any breaker ends them.
-        if kind == "budget" or self.cfg.on_quiescent == "stop":
+        if kind in ("budget", "provider") or self.cfg.on_quiescent == "stop":
             self.stop_requested = True
 
     # ---- activations --------------------------------------------------------------------

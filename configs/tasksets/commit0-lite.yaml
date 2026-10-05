@@ -45,6 +45,11 @@ patches:
         - env-python
         - env-pytest
         - env-parity
+identity:
+  grader: sha256sum bench/commit0/grade.py && .venv/bin/python -c "import importlib.metadata as m; print(m.version('commit0'))"
+  sandbox_image: docker image inspect -f '{{.Id}}' {task.image}
+  official_image: docker image inspect -f '{{.Id}}' wentingzhao/$(echo {task.lib} | tr A-Z a-z):v0
+  seed: cd {task.seed} && find . -type f -print0 | sort -z | xargs -0 sha256sum
 tasks:
 - id: tinydb
   vars:

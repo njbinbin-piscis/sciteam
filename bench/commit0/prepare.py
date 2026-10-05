@@ -198,6 +198,17 @@ def write_taskset(path: Path, name: str, metas: list[dict], visible: bool = Fals
                 "environments": {"workspace": {
                     "probes": ["env-python", "env-pytest", "env-parity"]}}},
         },
+        # What the interpreter digest cannot see; any change between arms on one task is
+        # reported as identity drift (docs/60 §3.4).
+        "identity": {
+            "grader": "sha256sum bench/commit0/grade.py && .venv/bin/python -c "
+                      "\"import importlib.metadata as m; print(m.version('commit0'))\"",
+            "sandbox_image": "docker image inspect -f '{{.Id}}' {task.image}",
+            "official_image": "docker image inspect -f '{{.Id}}' "
+                              "wentingzhao/$(echo {task.lib} | tr A-Z a-z):v0",
+            "seed": "cd {task.seed} && find . -type f -print0 | sort -z "
+                    "| xargs -0 sha256sum",
+        },
         "tasks": [{"id": m["lib"], "vars": {"lib": m["lib"], "seed": str(seeds / m["lib"]),
                                               "image": m["image"], "test_dir": m["test_dir"]}}
                   for m in metas],
