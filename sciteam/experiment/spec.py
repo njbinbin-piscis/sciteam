@@ -15,6 +15,8 @@ class Arm(BaseModel):
     name: str
     team: str                              # team file relative to configs, may use {task.*}
     overlay: str | None = None             # config overlay dir relative to configs
+    # config path -> mapping deep-merged after the task set's patches, for this arm only
+    patches: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
 
 class TaskSpec(BaseModel):

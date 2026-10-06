@@ -58,8 +58,10 @@ def task_overlay(configs_dir: Path, arm: Arm, ts: TaskSet, task: TaskSpec, dest:
     base = [str(configs_dir / arm.overlay)] if arm.overlay else []
     cs = ConfigStore(configs_dir, base)
     files = {arm.team: dump(render_obj(yaml.safe_load(cs.load_text(arm.team)), tv))}
-    for path, patch in {**ts.patches, **task.patches}.items():
-        files[path] = patched_text(files.get(path) or cs.load_text(path), render_obj(patch, tv))
+    for patches in ({**ts.patches, **task.patches}, arm.patches):
+        for path, patch in patches.items():
+            files[path] = patched_text(files.get(path) or cs.load_text(path),
+                                       render_obj(patch, tv))
     for path, text in files.items():
         (dest / path).parent.mkdir(parents=True, exist_ok=True)
         (dest / path).write_text(text)

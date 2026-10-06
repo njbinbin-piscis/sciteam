@@ -26,7 +26,10 @@
   {
     "pid": "12",
     "steps": 14,
-    "disagree": [],
+    "disagree": [
+      "12.13",
+      "12.14"
+    ],
     "seed_score": 0.0
   },
   {
@@ -56,7 +59,9 @@
   {
     "pid": "17",
     "steps": 2,
-    "disagree": [],
+    "disagree": [
+      "17.1"
+    ],
     "seed_score": 0.0
   },
   {
@@ -122,7 +127,10 @@
   {
     "pid": "30",
     "steps": 3,
-    "disagree": [],
+    "disagree": [
+      "30.1",
+      "30.2"
+    ],
     "seed_score": 0.0
   },
   {
@@ -196,19 +204,25 @@
   {
     "pid": "43",
     "steps": 3,
-    "disagree": [],
+    "disagree": [
+      "43.3"
+    ],
     "seed_score": 0.0
   },
   {
     "pid": "45",
     "steps": 4,
-    "disagree": [],
+    "disagree": [
+      "45.1"
+    ],
     "seed_score": 0.0
   },
   {
     "pid": "46",
     "steps": 4,
-    "disagree": [],
+    "disagree": [
+      "46.1"
+    ],
     "seed_score": 0.0
   },
   {
@@ -238,7 +252,10 @@
   {
     "pid": "54",
     "steps": 4,
-    "disagree": [],
+    "disagree": [
+      "54.2",
+      "54.3"
+    ],
     "seed_score": 0.0
   },
   {
@@ -274,7 +291,9 @@
   {
     "pid": "60",
     "steps": 5,
-    "disagree": [],
+    "disagree": [
+      "60.4"
+    ],
     "seed_score": 0.0
   },
   {
@@ -286,13 +305,18 @@
   {
     "pid": "62",
     "steps": 5,
-    "disagree": [],
+    "disagree": [
+      "62.2",
+      "62.4"
+    ],
     "seed_score": 0.0
   },
   {
     "pid": "63",
     "steps": 6,
-    "disagree": [],
+    "disagree": [
+      "63.1"
+    ],
     "seed_score": 0.0
   },
   {
@@ -322,7 +346,10 @@
   {
     "pid": "68",
     "steps": 8,
-    "disagree": [],
+    "disagree": [
+      "68.1",
+      "68.2"
+    ],
     "seed_score": 0.0
   },
   {
@@ -347,7 +374,8 @@
     "pid": "73",
     "steps": 9,
     "disagree": [
-      "73.6"
+      "73.6",
+      "73.9"
     ],
     "seed_score": 0.0
   },
@@ -372,19 +400,27 @@
   {
     "pid": "77",
     "steps": 12,
-    "disagree": [],
+    "disagree": [
+      "77.10"
+    ],
     "seed_score": 0.0
   },
   {
     "pid": "79",
     "steps": 4,
-    "disagree": [],
+    "disagree": [
+      "79.2",
+      "79.3",
+      "79.4"
+    ],
     "seed_score": 0.0
   },
   {
     "pid": "80",
     "steps": 7,
-    "disagree": [],
+    "disagree": [
+      "80.6"
+    ],
     "seed_score": 0.0
   }
 ]

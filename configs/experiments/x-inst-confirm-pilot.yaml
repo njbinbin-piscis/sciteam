@@ -1,0 +1,46 @@
+# Pilot for X-inst-confirm (docs/60 §6.4). Checks that every arm runs end to end and that the
+# auditor-only evidence reaches the validator and nobody else. Its results are NOT part of the
+# confirm experiment and are never reused.
+name: x-inst-confirm-pilot
+hypothesis: 'Infrastructure check, no scientific hypothesis: the held-out validator mounts only in the validation
+  sandbox, a failing validation blocks approval and returns a reason, the placebo looks the same to the members.'
+primary: score
+tasks: tasksets/scicode-verified.yaml
+only_tasks:
+- p46
+- p53
+- p68
+repeats: 1
+parallel: 9
+arms:
+- name: shared
+  team: teams/x-sci.yaml
+  patches:
+    harness/team-institution.yaml:
+      model: mimo-v2.6-flash
+- name: heldout
+  team: teams/x-sci.yaml
+  overlay: overlays/x-sci/heldout
+  patches:
+    runtime/default.yaml:
+      sandbox:
+        validator_mounts:
+        - bench/scicode/audit/{task.pid}:/audit:ro
+    harness/team-institution.yaml:
+      model: mimo-v2.6-flash
+- name: placebo
+  team: teams/x-sci.yaml
+  overlay: overlays/x-sci/placebo
+  patches:
+    runtime/default.yaml:
+      sandbox:
+        validator_mounts:
+        - bench/scicode/placebo:/audit:ro
+    harness/team-institution.yaml:
+      model: mimo-v2.6-flash
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: '-'
+  max_rounds: 8
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

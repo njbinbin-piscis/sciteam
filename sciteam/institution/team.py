@@ -97,10 +97,16 @@ class InstitutionTeamRun(TeamRun):
         return DockerSandbox(DockerSandboxConfig(
             image=sc.image, workdir=sc.workspace_mount, network="none", memory=sc.memory,
             cpus=sc.cpus, init_commands=sc.init_commands,
-            mounts=[f"{root.resolve()}:{sc.workspace_mount}"],
+            mounts=[f"{root.resolve()}:{sc.workspace_mount}",
+                    *(_abs_mount(m) for m in sc.validator_mounts)],
             labels={"sciteam.run": self.run_dir.name, "sciteam.role": "validator"},
             user=f"{os.getuid()}:{os.getgid()}" if sc.user == "auto" else sc.user,
             env={"HOME": "/tmp"}, platform=None))
+
+
+def _abs_mount(spec: str) -> str:
+    host, _, rest = spec.partition(":")
+    return f"{Path(host).resolve()}:{rest}"
 
 
 class InstitutionExtension:

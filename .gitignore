@@ -27,3 +27,4 @@ bench/scicode/upstream/
 bench/scicode/.venv/
 bench/scicode/*.log
 bench/scicode/envs/
+bench/scicode/audit/

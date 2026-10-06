@@ -1,0 +1,20 @@
+# X-base on SciCode-Verified with qwen3.8-flash as the single agent (docs/60 §6.4): is there headroom for
+# a weaker implementer? Same task set, protocol and grader as x-base-scicode (flash).
+name: x-base-scicode-qwen
+hypothesis: >-
+  Descriptive, no directional hypothesis: per-problem step score of one qwen3.8-flash agent; used to
+  choose the implementer model with headroom for the confirm experiment (docs/60 §6.4).
+primary: score
+tasks: tasksets/scicode-verified.yaml
+repeats: 2
+parallel: 16
+arms:
+- name: single
+  team: teams/x-single.yaml
+  patches: {harness/team-default.yaml: {model: qwen3.8-flash}}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 5
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

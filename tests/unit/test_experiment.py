@@ -89,6 +89,22 @@ def test_task_overlay_renders_vars_and_patches_the_arm_view(tmp_path):
     assert rt["debounce_s"] == 5
 
 
+def test_arm_patches_apply_after_task_patches_and_only_to_that_arm(tmp_path):
+    cfg = _world(tmp_path)
+    spec, ts = load_spec(ConfigStore(cfg), "experiments/e.yaml")
+    arm_a, arm_b = spec.arms
+    arm_b = arm_b.model_copy(update={"patches": {
+        "runtime/r.yaml": {"sandbox": {"validator_mounts": ["audit/{task.id}:/audit:ro"]}}}})
+    got = {}
+    for arm in (arm_a, arm_b):
+        dest = task_overlay(cfg, arm, ts, ts.tasks[0], tmp_path / f"ov-{arm.name}")
+        rt = yaml.safe_load(ConfigStore(cfg, overlays_for(cfg, arm, dest)).load_text("runtime/r.yaml"))
+        got[arm.name] = rt["sandbox"]
+    assert got["b"]["validator_mounts"] == ["audit/x:/audit:ro"]
+    assert got["b"]["image"] == "img-x"                      # the task set's patch is kept
+    assert "validator_mounts" not in got["a"]                # other arms never see the mount
+
+
 def test_unknown_task_variable_is_an_error():
     with pytest.raises(KeyError):
         render("{task.nope}", {"id": "x"})

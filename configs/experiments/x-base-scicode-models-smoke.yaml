@@ -1,0 +1,21 @@
+# Smoke only: do the other vendors' flash models drive the single-agent harness end to end?
+name: x-base-scicode-models-smoke
+hypothesis: Infrastructure check, no scientific hypothesis.
+primary: score
+tasks: tasksets/scicode-verified.yaml
+only_tasks: ["p14"]
+repeats: 1
+parallel: 2
+arms:
+- name: mimo
+  team: teams/x-single.yaml
+  patches: {harness/team-default.yaml: {model: mimo-v2.6-flash}}
+- name: qwen_flash
+  team: teams/x-single.yaml
+  patches: {harness/team-default.yaml: {model: qwen3.8-flash}}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 5
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

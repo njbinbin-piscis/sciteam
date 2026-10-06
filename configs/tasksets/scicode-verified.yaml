@@ -38,6 +38,8 @@ identity:
   env_2025: bench/scicode/envs/sci2025/bin/pip freeze
   sandbox_image: docker image inspect -f '{{.Id}}' sciteam-sci:v0
   seed: cd {task.seed} && sha256sum PROBLEM.md solution.py
+  compare: sha256sum bench/scicode/upstream/eval_clean/vendor/scicode/compare/cmp.py
+  audit: sha256sum bench/scicode/audit/{task.pid}/bundle.pkl bench/scicode/audit_check.py bench/scicode/placebo/check.py
 tasks:
 - id: p5
   vars:

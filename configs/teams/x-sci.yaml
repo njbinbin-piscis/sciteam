@@ -1,0 +1,34 @@
+# X-inst-confirm `shared` arm (docs/60 §6.4): implementer + auditor; acceptance is the team's own tests.
+name: x-sci
+comm_policy: comm/x-inst.yaml
+institution: institution/x-sci.yaml
+org: org/x-sci.yaml
+runtime: runtime/default.yaml
+workspace_seed: "{task.seed}"
+members:
+- id: implementer
+  role: implementer
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/sci-implementer.md
+- id: auditor
+  role: auditor
+  harness: harness/team-institution.yaml
+  profile_ref: profiles/sci-auditor.md
+- id: owner
+  kind: human
+  role: owner
+tasks:
+- key: goal
+  by: owner
+  title: "Deliver the goal described in the kickoff"
+  labels: [goal]
+  assignee: implementer
+  reviewer: auditor
+  acceptance: "python -m pytest -q -p no:cacheprovider team_tests"
+kickoff:
+- by: owner
+  to: '@implementer'
+  text: "{task.brief}"
+- by: owner
+  to: '@auditor'
+  text: "{task.brief}"

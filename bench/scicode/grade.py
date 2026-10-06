@@ -11,7 +11,8 @@ passes. Different from upstream: agents see all steps at once, may import any in
 and the code of later steps is present when an earlier step is tested. Scores are therefore not
 comparable with the SciCode leaderboard.
 
-Usage: python bench/scicode/grade.py <problem_id> <workspace> --json <out> [--only-cases 0,1]
+Usage: python bench/scicode/grade.py <problem_id> <workspace> --json <out>
+       [--only-cases 0,1] [--include-audit]
 """
 
 import argparse
@@ -30,9 +31,16 @@ GOLD_DIR = VENDOR / "eval_data"
 ENVS = [("2024", HERE / "envs" / "sci2024" / "bin" / "python"),
         ("2025", HERE / "envs" / "sci2025" / "bin" / "python")]
 SKIP = {("13", 5), ("62", 0), ("76", 2)}       # (problem_id, step index) the official harness skips
+AUDIT_MIN_CASES = 3                            # steps with fewer cases have no held-out case
 TIMEOUT_S = 1800
 MARK = "@@CASES@@"
 SOLUTION = "solution.py"
+
+
+def audit_case(n_cases: int) -> int | None:
+    """Index of the case reserved for the auditor's validator (docs/60 §6.4): the last one,
+    only for steps with at least AUDIT_MIN_CASES cases. Grading never uses it."""
+    return n_cases - 1 if n_cases >= AUDIT_MIN_CASES else None
 
 
 def problem(pid: str) -> dict:
@@ -79,7 +87,8 @@ def run_env(py: Path, text: str, n: int, tmp: Path) -> list[bool | None]:
     return [False] * n                    # module-level error: nothing ran
 
 
-def grade(pid: str, workspace: Path, only: set[int] | None = None) -> dict:
+def grade(pid: str, workspace: Path, only: set[int] | None = None,
+          include_audit: bool = False) -> dict:
     prob = problem(pid)
     sol = workspace / SOLUTION
     agent = sol.read_text() if sol.exists() else ""
@@ -93,7 +102,11 @@ def grade(pid: str, workspace: Path, only: set[int] | None = None) -> dict:
             if (pid, k) in SKIP or not s["test_cases"]:
                 continue
             sid = s["step_number"]
-            text = script(code, sid, s["test_cases"], only)
+            n = len(s["test_cases"])
+            use = set(range(n)) if only is None else set(only)
+            if not include_audit and audit_case(n) is not None:
+                use.discard(audit_case(n))
+            text = script(code, sid, s["test_cases"], use)
             per_env: dict[str, list[bool | None]] = {}
             for label, py in ENVS:
                 per_env[label] = run_env(py, text, len(s["test_cases"]), Path(td))
@@ -118,9 +131,11 @@ def main() -> None:
     ap.add_argument("workspace", type=Path)
     ap.add_argument("--json", type=Path, required=True)
     ap.add_argument("--only-cases", help="comma-separated case indices to evaluate")
+    ap.add_argument("--include-audit", action="store_true",
+                    help="also use the held-out case (only to compare with pre-split scores)")
     a = ap.parse_args()
     only = {int(x) for x in a.only_cases.split(",")} if a.only_cases else None
-    r = grade(a.pid, a.workspace.resolve(), only)
+    r = grade(a.pid, a.workspace.resolve(), only, a.include_audit)
     a.json.write_text(json.dumps(r, indent=2))
     print(json.dumps({k: r[k] for k in ("problem_id", "passed", "total", "score")}))
 

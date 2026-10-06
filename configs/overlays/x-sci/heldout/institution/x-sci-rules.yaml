@@ -1,0 +1,28 @@
+# `heldout` arm: approval also needs the auditor-only held-out cases to pass (docs/60 §6.4).
+validators:
+  acceptance:
+    command: "{task.acceptance}"
+    timeout_s: 1800
+  heldout:
+    command: "python /audit/check.py"
+    timeout_s: 3600
+
+requirements:
+  - name: work-has-predicate
+    act: task_create
+    require: [{field: acceptance}]
+  - name: work-validated
+    act: task_transition
+    transition: submit
+    require: [{validate: [acceptance]}]
+  - name: four-eyes
+    act: task_transition
+    transition: approve
+    require: [{distinct: [actor, task.assignee]}, {validate: [heldout]}]
+
+facts:
+  - name: accepted
+    subject: task
+    when: {event: task_status_changed, to: done}
+    require: [{validated: acceptance}]
+    revoke_when: {event: task_status_changed, transition: reopen}

@@ -32,6 +32,9 @@ class TeamSandboxConfig(BaseModel):
     init_commands: list[str] = Field(default_factory=list)
     workspace_mount: str = "/workspace"
     user: str | None = None               # "auto" = the host uid:gid (files stay user-owned)
+    # docker -v specs mounted only into the institution's validation sandbox, never into the
+    # members' sandboxes: evidence the members cannot read (host path relative to the cwd)
+    validator_mounts: list[str] = Field(default_factory=list)
 
 
 class RuntimeConfig(BaseModel):

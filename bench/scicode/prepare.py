@@ -87,6 +87,21 @@ def make_seeds() -> list[dict]:
     return metas
 
 
+COMPARE_URL = "https://raw.githubusercontent.com/scicode-bench/SciCode/main/src/scicode/compare/cmp.py"
+
+
+def ensure_compare() -> None:
+    """The verified repo does not ship scicode.compare (used by 23 steps' test cases); it is
+    part of the original SciCode package (Apache-2.0). Without it those steps can never pass."""
+    d = grade.VENDOR / "scicode" / "compare"
+    if (d / "cmp.py").exists():
+        return
+    import urllib.request
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "__init__.py").write_text("")
+    (d / "cmp.py").write_bytes(urllib.request.urlopen(COMPARE_URL, timeout=60).read())
+
+
 def check_dataset() -> str:
     """The grader reads the h5 on every run; verify it once against the release manifest."""
     manifest = json.loads((grade.UP / "scicode_verified" / "manifest.json").read_text())
@@ -118,6 +133,9 @@ def write_taskset(metas: list[dict]) -> None:
             "env_2025": "bench/scicode/envs/sci2025/bin/pip freeze",
             "sandbox_image": "docker image inspect -f '{{.Id}}' " + IMAGE,
             "seed": "cd {task.seed} && sha256sum PROBLEM.md solution.py",
+            "compare": "sha256sum bench/scicode/upstream/eval_clean/vendor/scicode/compare/cmp.py",
+            "audit": "sha256sum bench/scicode/audit/{task.pid}/bundle.pkl "
+                     "bench/scicode/audit_check.py bench/scicode/placebo/check.py",
         },
         "tasks": [{"id": f"p{m['pid']}",
                    "vars": {"pid": m["pid"], "seed": str(SEEDS / m["pid"]),
@@ -172,6 +190,7 @@ def main() -> None:
     ap.add_argument("--calibrate", metavar="UPSTREAM_RUN",
                     help="validate the grader against a scored upstream run, e.g. screen-flash-off")
     a = ap.parse_args()
+    ensure_compare()
     print("h5 md5", check_dataset())
     metas = make_seeds()
     if a.build_image:
