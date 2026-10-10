@@ -1,0 +1,16 @@
+# Smoke for x-base-labbench (docs/60 §4.4.1): wiring only (seed, answer file, grader), not data.
+name: x-base-labbench-smoke
+hypothesis: Wiring check, no hypothesis.
+primary: score
+tasks: tasksets/labbench-panel.yaml
+repeats: 1
+parallel: 4
+only_tasks: ["Prop-seq-gcpercent-0-twin", "RE-seq-lenfrags-3-twin", "ORF-seq-numlen-2-orig", "protocolqa-0-orig"]
+arms:
+- {name: single, team: teams/x-single.yaml}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 5
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

@@ -1,0 +1,25 @@
+# X-base on the LAB-Bench screening panel (docs/60 §4.4.1): one agent per item, flash and mimo,
+# 64 SeqQA items (32 public originals + 32 perturbed twins) and 16 ProtocolQA (options shuffled).
+name: x-base-labbench
+hypothesis: >-
+  Screening, registered predictions (docs/60 §4.4.1): (P1) computable SeqQA is near ceiling for a
+  tool-using agent (accuracy >= 0.9 on both originals and twins), so it has no headroom and serves
+  only as a tool-use sanity check; (P2) no large memorization gap: per-subtask paired
+  original - twin difference has a 95% bootstrap CI containing 0; (P3) ProtocolQA is where headroom
+  is, accuracy < 0.85 for at least one model. ProtocolQA is unperturbed and says nothing about
+  contamination.
+primary: score
+tasks: tasksets/labbench-panel.yaml
+repeats: 2
+parallel: 8
+arms:
+- {name: flash, team: teams/x-single.yaml}
+- name: mimo
+  team: teams/x-single.yaml
+  patches: {harness/team-default.yaml: {model: mimo-v2.6-flash}}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 5
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

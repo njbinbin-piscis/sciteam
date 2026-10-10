@@ -24,6 +24,10 @@ bench/commit0/seeds-visible/
 
 # SciCode-Verified upstream clone, venv, and run outputs (data md5-pinned; see docs/60 §4.2)
 bench/scicode/upstream/
+# LAB-Bench data carries a no-training canary: keep questions out of the repo, pin by hash (docs/60 §4.4.1)
+bench/labbench/upstream/
+bench/labbench/data/
+bench/labbench/seeds/
 bench/scicode/.venv/
 bench/scicode/*.log
 bench/scicode/envs/
