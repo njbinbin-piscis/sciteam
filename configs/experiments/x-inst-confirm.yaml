@@ -1,0 +1,66 @@
+# X-inst-confirm (docs/60 §6.4, registered 2026-10-06 before any confirm run).
+# Changing this file after launch makes a new experiment.
+name: x-inst-confirm
+hypothesis: >-
+  H1 heldout has a higher score than shared (independent evidence helps).
+  H2 placebo does not have a higher score than shared (an extra reject-rework
+  step without information does not help). SESOI = 0.05 on the paired mean
+  difference. Primary is continuous external score; institutional metrics
+  are secondary.
+primary: score
+success: 1.0
+tasks: tasksets/scicode-verified.yaml
+only_tasks:
+- p8
+- p12
+- p13
+- p14
+- p21
+- p22
+- p24
+- p26
+- p27
+- p28
+- p32
+- p33
+- p37
+- p39
+- p43
+- p48
+- p50
+- p55
+- p63
+- p73
+- p74
+- p76
+- p79
+- p80
+repeats: 8
+parallel: 16
+arms:
+- name: shared
+  team: teams/x-sci.yaml
+  patches:
+    harness/team-institution.yaml: {model: mimo-v2.6-flash}
+- name: heldout
+  team: teams/x-sci.yaml
+  overlay: overlays/x-sci/heldout
+  patches:
+    runtime/default.yaml:
+      sandbox:
+        validator_mounts: ["bench/scicode/audit/{task.pid}:/audit:ro"]
+    harness/team-institution.yaml: {model: mimo-v2.6-flash}
+- name: placebo
+  team: teams/x-sci.yaml
+  overlay: overlays/x-sci/placebo
+  patches:
+    runtime/default.yaml:
+      sandbox:
+        validator_mounts: ["bench/scicode/placebo:/audit:ro"]
+    harness/team-institution.yaml: {model: mimo-v2.6-flash}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 8
+audit: .venv/bin/python bench/team/check.py {run} --json {out}
