@@ -19,7 +19,7 @@ from sciteam.kernel.ids import new_id
 from sciteam.providers.llm.types import LlmProvider, ModelInfo, ToolSpec
 from sciteam.providers.sandbox import DockerSandbox, DockerSandboxConfig, LocalSandbox
 from sciteam.providers.sandbox.base import Sandbox
-from sciteam.runtime.config import RuntimeConfig
+from sciteam.runtime.config import RuntimeConfig, member_mounts
 
 LlmFactory = Callable[[str, ModelInfo], LlmProvider]   # (member id, model) -> provider
 
@@ -102,6 +102,11 @@ class AgentRunner:
                 return sb
             sc = self.runtime.sandbox
             if sc.kind == "local":
+                attrs = self.comm.view.members[agent].attrs
+                if (sc.private_mount or attrs.get("workspace_access", "rw") != "rw"
+                        or attrs.get("reads_private")):
+                    raise ValueError("private_mount, workspace_access and reads_private "
+                                     "need a docker team sandbox")
                 sb = LocalSandbox(self.workspace, init_commands=sc.init_commands)
             else:
                 if not sc.image:
@@ -109,7 +114,7 @@ class AgentRunner:
                 sb = DockerSandbox(DockerSandboxConfig(
                     image=sc.image, workdir=sc.workspace_mount, network=sc.network,
                     memory=sc.memory, cpus=sc.cpus, init_commands=sc.init_commands,
-                    mounts=[f"{self.workspace.resolve()}:{sc.workspace_mount}"],
+                    mounts=member_mounts(sc, self.workspace, agent, self.comm.view.members[agent].attrs),
                     labels={"sciteam.run": self.run_name, "sciteam.agent": agent},
                     user=f"{os.getuid()}:{os.getgid()}" if sc.user == "auto" else sc.user,
                     env={"HOME": "/tmp"}, platform=None))

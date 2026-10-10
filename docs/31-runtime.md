@@ -103,7 +103,7 @@ tick():
 2. **规则**：当前通信策略的自然语言摘要，以及 `directory()` 中「你可以联系谁、可以做什么」。
 3. **目标**：运行的初始目标（团队文件或 `sciteam team start --goal`）。
 4. **你的任务**：自己负责、评审、创建的未完成任务（状态、就绪情况）。
-5. **记忆**：最近 `memory_recent_activations` 次激活的 finish 摘要（时间、结局、摘要）。
+5. **记忆**：最近 `memory_recent_activations` 次激活的 finish 摘要（时间、结局、摘要）。成员属性 `memory_activations` 可以按成员覆盖这个条数。设为 `"0"` 时每次激活都不带以往摘要（无记忆激活，用于孤立重核，60 §13.2 G2）。它能读到哪些会话仍由通信策略决定。目前只能在团队文件的成员 `attrs` 里设置，manifest 席位还不能设置。
 6. **新动态**：本次送达的注意项，按会话分组渲染（作者、时间、msg_id、线程），每会话最多 `briefing_messages_per_conv` 条，多出的给出 `read_conversation` 提示；不唤醒的房间消息只给计数与最近几条。
 7. **收尾说明**：处理完新动态后以 `finish` 结束；需要别人答复用 `need_input`；工作未完需继续用 `handoff`。
 
@@ -162,6 +162,11 @@ rate:
 
 - 每个 agent 一个持久容器（整次运行复用），共享工作区以读写方式挂载到 `/workspace`。镜像、网络、资源由 `TeamSandboxConfig` 指定；`user: auto` 以宿主用户身份执行命令，工作区文件不会变成 root 所有。验收镜像 `sciteam-team:py312`（`bench/team/Dockerfile`：python 3.12、git、pytest、ruff，无网络）。
 - 并发写同一文件是 agent 之间要协调的事（和人一样）；工作区初始化为 git 仓库，简报提示用分支或按任务划分目录。运行时不加文件锁。
+- **私有工作区**（`sandbox.private_mount`，默认关闭）：设为某个路径（如 `/private`）后，成员 x 的私有目录 `<run>/private/x` 在每个挂载它的容器里都位于 `<private_mount>/x`。x 自己读写挂载；默认其他成员的容器不挂载它，所以彼此读不到。验证沙箱把全部私有目录只读挂载在同一路径下。同一个文件在所有视角下路径相同，所以验收命令可以直接引用（如 `test -s /private/prover1/results/k.md`），也可以比较多名成员的产物（如独立重复，60 §6.6）。只隔离文件；对话是否可见仍由通信策略决定，共享的 `/workspace` 照常对所有人可见。`LocalSandbox` 做不到隔离，配置了 `private_mount` 时直接报错。
+- **按成员的文件权限**（成员 `attrs`，60 §13.2 G3）：
+  - `workspace_access: ro`：共享 `/workspace` 只读挂载。用于「只能在私有目录交付」的成员，防止未验证的结论经工作区文件或 git 历史流到别人那里。
+  - `reads_private: a,b`：把所列成员的私有目录只读挂载到同一路径 `<private_mount>/<id>`。读权限要由读者一方声明，未被列出的成员看不到。需要 `private_mount`。
+  - 在 `LocalSandbox` 上设置这两项会直接报错，不会静默放宽。已用真实 Docker 验证：只读挂载拒绝写入，未授权成员看不到别人的目录。
 - 测试用 `LocalSandbox`（临时目录）。
 
 ## 8. 崩溃恢复

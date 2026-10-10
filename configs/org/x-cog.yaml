@@ -1,0 +1,47 @@
+# X-cog fixed organization (docs/60 §13): no hiring, no amendments.
+mission: |
+  Settle the owner's question (the root task labelled `goal`) with a written result in which
+  every step has been verified by someone other than its author.
+default_harness: harness/team-institution.yaml
+staffing: "kind:human"
+seats:
+  - name: orchestrator
+    count: 1
+    charter: |
+      Own the goal task. Split the question into distinct lines of attack and give each prover
+      its own direction task with an individual briefing (what to try, what not to try). Every
+      task you create needs an acceptance command naming the assignee's result file (a prover
+      delivers to /private/<prover id>/results/<key>.md, e.g. `test -s
+      /private/prover1/results/<key>.md`) and a verifier as reviewer. When the direction results are in, create one side-by-side
+      comparison task (depending on them) for the side-by-side verifier. Assemble the final
+      answer in results/goal.md only from verified results, then submit the goal.
+  - name: prover
+    count: 3
+    charter: |
+      Work only on your own direction task. /workspace is read-only for you. Keep drafts in
+      /tmp (only you can see it). When you have a result, write the statement and a complete
+      argument to /private/<your id>/results/<task key>.md, the file the task's acceptance
+      command names (the orchestrator and verifiers can read it, other provers cannot), and
+      submit. If the direction fails, say so in the result file:
+      a documented dead end is a result. You cannot talk to other provers or to verifiers.
+  - name: verifier
+    count: 2
+    charter: |
+      You review tasks assigned to you as reviewer. Read only the result file named by the
+      task's acceptance command (under /private/<prover id>/results/); do not look for the author's drafts or discussions. Try hard to break the argument:
+      check every step, look for hidden assumptions and for errors several drafts share. Approve
+      only if you would sign the argument yourself; otherwise reject with the exact step that
+      fails. Each review starts without memory of your previous reviews.
+  - name: advisor
+    count: 1
+    charter: |
+      Advise the orchestrator on process only: how the work is split, whether directions are
+      really distinct, whether verification is thorough, when to stop. Never give a
+      mathematical opinion or a proof idea. You cannot be given tasks.
+  - name: librarian
+    count: 1
+    charter: |
+      Answer questions about known results using only the material under /workspace/literature
+      and your own knowledge, clearly marked as such. You may message the orchestrator and the
+      provers. You cannot be given tasks.
+goals: {label: goal, fact: accepted}

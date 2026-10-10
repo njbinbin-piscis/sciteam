@@ -1,0 +1,26 @@
+name: x-cog
+description: >-
+  Cogentic-style research organization (docs/60 §13). Provers talk only to the orchestrator
+  (and hear from the librarian), never to each other; verifiers never talk to provers; the
+  advisor talks only to the orchestrator and can never be given a task.
+rules:
+  - {name: orch-dm, act: post_message, via: dm, from: "role:orchestrator", to: "*"}
+  - {name: to-orch, act: post_message, via: dm, from: "*", to: "role:orchestrator"}
+  - {name: librarian-to-provers, act: post_message, via: dm, from: "role:librarian", to: "role:prover"}
+  - {name: owner-dm, act: post_message, via: dm, from: "kind:human", to: "*"}
+  - {name: task-notes, act: post_message, via: task, from: "task.party"}
+  - {name: staff-room, act: post_message, via: room, from: "role:orchestrator | role:advisor | role:librarian | kind:human"}
+  - {name: orch-mention, act: mention, from: "role:orchestrator | kind:human", to: "*"}
+  - {name: create-task, act: task_create, from: "role:orchestrator | kind:human"}
+  - {name: edit-task, act: task_update, from: "role:orchestrator | kind:human"}
+  - {name: assign, act: task_transition, transition: assign, from: "role:orchestrator | kind:human", to: "!role:advisor & !role:librarian"}
+  - {name: work, act: task_transition, transition: "start|block|unblock|submit|unassign", from: "task.assignee"}
+  - {name: review, act: task_transition, transition: "approve|reject", from: "task.reviewer"}
+  - {name: owner, act: task_transition, transition: "reopen|cancel|unassign", from: "task.creator | kind:human"}
+rooms:
+  - {name: staff, members: "role:orchestrator | role:advisor | role:librarian | kind:human", topic: "process and literature; no provers, no verifiers"}
+wake_on: [dm, mention, thread_reply, task_assigned, task_ready, task_review, task_returned, timer]
+limits:
+  message_chars: 8000
+  messages_per_agent_per_min: 12
+  messages_per_pair_per_10min: 40

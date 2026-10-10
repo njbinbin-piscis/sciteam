@@ -1,0 +1,38 @@
+# X-cog: two ledgers (claimed vs verified), verification only by a non-author verifier seat,
+# and the goal settles only when every sub-result is verified (docs/60 §13.2).
+validators:
+  acceptance:
+    command: "{task.acceptance}"
+    timeout_s: 600
+
+requirements:
+  - name: work-has-predicate
+    act: task_create
+    require: [{field: acceptance}, {field: reviewer}]
+  - name: submit-with-evidence
+    act: task_transition
+    transition: submit
+    require: [{validate: [acceptance]}]
+  - name: not-own-work
+    act: task_transition
+    transition: approve
+    require: [{distinct: [actor, task.assignee]}]
+  - name: goal-on-verified-parts
+    act: task_transition
+    transition: submit
+    where: {task_is_root: true}
+    require: [{children_have: verified}]
+
+facts:
+  - name: claimed
+    when: {event: task_status_changed, to: in_review}
+    require: [{validated: acceptance}]
+    revoke_when: {event: task_status_changed, transition: reject}
+  - name: verified
+    when: {event: task_status_changed, to: done}
+    require: [{validated: acceptance}, {approved_by: "role:verifier"}, {distinct: [task.assignee, task.reviewer]}]
+    revoke_when: {event: task_status_changed, transition: reopen}
+  - name: accepted
+    when: {event: task_status_changed, to: done}
+    require: [{validated: acceptance}, {children_have: verified}]
+    revoke_when: {event: task_status_changed, transition: reopen}

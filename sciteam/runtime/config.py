@@ -1,5 +1,6 @@
 """Runtime configuration and team files (docs/31-runtime.md §1, docs/30 §8)."""
 
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -35,6 +36,48 @@ class TeamSandboxConfig(BaseModel):
     # docker -v specs mounted only into the institution's validation sandbox, never into the
     # members' sandboxes: evidence the members cannot read (host path relative to the cwd)
     validator_mounts: list[str] = Field(default_factory=list)
+    # member x's private directory <run>/private/x appears at <private_mount>/x in every
+    # container that mounts it: read-write for x, read-only for members whose `reads_private`
+    # names x and for the validation sandbox (which mounts all of them) (docs/31 §7)
+    private_mount: str | None = None
+
+
+def private_root(workspace: Path) -> Path:
+    return workspace.parent / "private"
+
+
+def member_mounts(sc: TeamSandboxConfig, workspace: Path, agent: str,
+                  attrs: dict[str, str] | None = None) -> list[str]:
+    """Member attributes: `workspace_access: ro` mounts the shared workspace read-only;
+    `reads_private: a,b` adds those members' private directories read-only."""
+    attrs = attrs or {}
+    access = attrs.get("workspace_access", "rw")
+    if access not in ("rw", "ro"):
+        raise ValueError(f"workspace_access must be rw or ro, got {access!r}")
+    mounts = [f"{workspace.resolve()}:{sc.workspace_mount}" + (":ro" if access == "ro" else "")]
+    peers = [x.strip() for x in attrs.get("reads_private", "").split(",") if x.strip()]
+    if peers and not sc.private_mount:
+        raise ValueError("reads_private needs private_mount")
+    if sc.private_mount:
+        root, base = private_root(workspace), sc.private_mount.rstrip("/")
+        own = root / agent
+        own.mkdir(parents=True, exist_ok=True)
+        mounts.append(f"{own.resolve()}:{base}/{agent}")
+        for peer in peers:
+            if peer == agent:
+                raise ValueError(f"{agent}: reads_private lists itself")
+            d = root / peer
+            d.mkdir(parents=True, exist_ok=True)
+            mounts.append(f"{d.resolve()}:{base}/{peer}:ro")
+    return mounts
+
+
+def validator_private_mounts(sc: TeamSandboxConfig, workspace: Path) -> list[str]:
+    if not sc.private_mount:
+        return []
+    root = private_root(workspace)
+    root.mkdir(parents=True, exist_ok=True)
+    return [f"{root.resolve()}:{sc.private_mount.rstrip('/')}:ro"]
 
 
 class RuntimeConfig(BaseModel):

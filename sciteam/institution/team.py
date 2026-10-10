@@ -27,7 +27,7 @@ from sciteam.kernel.events import Event
 from sciteam.providers.sandbox import DockerSandbox, DockerSandboxConfig, LocalSandbox
 from sciteam.providers.sandbox.base import Sandbox
 from sciteam.runtime.attention import AttentionItem
-from sciteam.runtime.config import TeamFile
+from sciteam.runtime.config import TeamFile, validator_private_mounts
 from sciteam.runtime.scheduler import Scheduler
 from sciteam.runtime.team import RUN_FILE, TeamRun
 
@@ -93,12 +93,15 @@ class InstitutionTeamRun(TeamRun):
     def _validation_sandbox(self, root: Path) -> Sandbox:
         sc = self.runtime.sandbox
         if sc.kind == "local":
+            if sc.private_mount:
+                raise ValueError("private_mount needs a docker team sandbox")
             return LocalSandbox(root, init_commands=sc.init_commands)
         return DockerSandbox(DockerSandboxConfig(
             image=sc.image, workdir=sc.workspace_mount, network="none", memory=sc.memory,
             cpus=sc.cpus, init_commands=sc.init_commands,
             mounts=[f"{root.resolve()}:{sc.workspace_mount}",
-                    *(_abs_mount(m) for m in sc.validator_mounts)],
+                    *(_abs_mount(m) for m in sc.validator_mounts),
+                    *validator_private_mounts(sc, self.workspace)],
             labels={"sciteam.run": self.run_dir.name, "sciteam.role": "validator"},
             user=f"{os.getuid()}:{os.getgid()}" if sc.user == "auto" else sc.user,
             env={"HOME": "/tmp"}, platform=None))

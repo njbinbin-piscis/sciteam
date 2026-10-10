@@ -8,7 +8,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel
 
-from sciteam.comm.model import TERMINAL
+from sciteam.comm.model import TERMINAL, Member
 from sciteam.comm.policy import CommPolicy, PolicyGate
 from sciteam.comm.view import CommView
 from sciteam.kernel.clock import Clock
@@ -27,6 +27,14 @@ from sciteam.runtime.config import RuntimeConfig
 
 RUN = "run"
 MAX_WAIT_S = 1.0
+
+
+def memory_limit(member: Member | None, default: int) -> int:
+    """Activation summaries carried into the next briefing; a member's `memory_activations`
+    attribute overrides the runtime default, and "0" makes every activation start blank
+    (docs/31 §5)."""
+    raw = member.attrs.get("memory_activations") if member is not None else None
+    return default if raw is None else max(0, int(raw))
 
 
 class AgentState(BaseModel):
@@ -167,7 +175,8 @@ class Scheduler:
         st.memory.append(MemoryEntry(ts=ev.ts.strftime("%m-%d %H:%M"), outcome=outcome,
                                      summary=(p.get("summary") or "")[:2000],
                                      reason=p.get("reason")))
-        st.memory = st.memory[-self.cfg.memory_recent_activations:]
+        keep = memory_limit(self.view.members.get(agent), self.cfg.memory_recent_activations)
+        st.memory = st.memory[-keep:] if keep > 0 else []
         if outcome == "error" and p.get("reason") in HALT_REASONS and not self.paused:
             self._halt = {"agent": agent, "reason": p["reason"]}
         if outcome == "error" and p.get("reason") != "cancelled":

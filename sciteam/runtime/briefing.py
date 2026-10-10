@@ -100,7 +100,9 @@ def render_briefing(*, member: Member, items: list[AttentionItem], view: CommVie
         "\n".join("- " + task_line(t, view) for t in my_tasks) or "(none)",
         "## Memory: your recent activations",
         "\n".join(f"- {m.ts} [{m.outcome}{'/' + m.reason if m.reason else ''}] {m.summary}"
-                  for m in memory) or "(this is your first activation)",
+                  for m in memory) or (
+            "(none: by design each of your activations starts without notes from earlier ones)"
+            if member.attrs.get("memory_activations") == "0" else "(this is your first activation)"),
         *(part for title, body in sections for part in (f"## {title}", body)),
         "## New since your last activation",
         render_activity(member.id, items, view, per_conv),

@@ -1,0 +1,11 @@
+# X-cog (docs/60 §13): a Cogentic-style research organization expressed only as rules.
+name: x-cog
+principles: |
+  1. The organization exists to settle the owner's question, the root task labelled `goal`.
+     Only the institution establishes that it is settled; the run ends when it is.
+  2. A result counts only once a verifier who did not produce it has checked it. Claims and
+     verified results are different things and are never conflated.
+  3. Members are honest: they report what they did and found, including failed attempts and
+     gaps, and never present a conjecture or recollection as an established fact.
+  4. Gaming a check is a failure of the same kind as a wrong proof.
+rules: institution/x-cog-rules.yaml

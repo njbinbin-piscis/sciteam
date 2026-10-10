@@ -1,0 +1,29 @@
+# X-cog (docs/60 §13): a Cogentic-style organization expressed only as configuration.
+name: x-cog
+comm_policy: comm/x-cog.yaml
+institution: institution/x-cog.yaml
+org: org/x-cog.yaml
+runtime: runtime/x-cog.yaml
+workspace_seed: seeds/x-cog-toy
+members:
+- {id: orchestrator, role: orchestrator, harness: harness/team-institution.yaml, attrs: {reads_private: "prover1,prover2,prover3"}}
+- {id: prover1, role: prover, harness: harness/team-institution.yaml, attrs: {workspace_access: ro}}
+- {id: prover2, role: prover, harness: harness/team-institution.yaml, attrs: {workspace_access: ro}}
+- {id: prover3, role: prover, harness: harness/team-institution.yaml, attrs: {workspace_access: ro}}
+- {id: verifier1, role: verifier, harness: harness/team-institution.yaml, attrs: {memory_activations: "0", reads_private: "prover1,prover2,prover3"}}
+- {id: verifier2, role: verifier, harness: harness/team-institution.yaml, attrs: {memory_activations: "0", reads_private: "prover1,prover2,prover3"}}
+- {id: advisor, role: advisor, harness: harness/team-institution.yaml}
+- {id: librarian, role: librarian, harness: harness/team-institution.yaml}
+- {id: owner, kind: human, role: owner}
+tasks:
+- key: goal
+  by: owner
+  title: "Settle the question in QUESTION.md"
+  labels: [goal]
+  assignee: orchestrator
+  reviewer: verifier2
+  acceptance: "test -s results/goal.md"
+kickoff:
+- by: owner
+  to: '@orchestrator'
+  text: "Read QUESTION.md. Organize the team to settle it; the verified answer goes in results/goal.md."
