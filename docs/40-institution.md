@@ -112,10 +112,11 @@ ledger:                                     # 奖惩记账；只记账，不自�
 | `{approved_by: <selector>}` | facts | 使任务进入 done 的 `approve`（或无评审人时的 `submit`）发起者满足选择器 |
 | `{children_have: <fact>}` | facts | 该任务的全部未取消子任务都具有该事实 |
 | `{certificate: <env>}` | requirements | 该环境证书现行有效（50 §5）：已由 `certify_environment` 签发，且签发时的探针指纹与现行规则一致 |
+| `{progress: {validator: v, identical_failures: k}}` | requirements | 无进展停止：该任务上验证器 v 最近 k 次已完成的运行全部失败，且失败输出末尾（`tail`）完全相同时，拒绝该 Act。拒绝理由给出规则名、失败次数和重复的输出，并提示取消任务或升级给所有者。只看同一任务、同一验证器；有一次通过或输出不同即重新计数。用途：失败信号不含可行动信息时，阻止「返工、同样失败」的死循环耗尽预算（60 D11） |
 
 `task.acceptance` 是任务的新字段（30 §5 同步）：可在创建时给出，也可用 `task_update` 修改。验收命令由任务创建者写，不由负责人写。
 
-条件在哪一段可用由 schema 检查（requirements：`field`、`evidence`、`validate`、`distinct`、`children_have`；facts：`field`、`distinct`、`validated`、`approved_by`、`children_have`），放错段的规则文件无法加载。
+条件在哪一段可用由 schema 检查（requirements：`field`、`evidence`、`validate`、`distinct`、`children_have`、`certificate`、`progress`；facts：`field`、`distinct`、`validated`、`approved_by`、`children_have`），放错段的规则文件无法加载。
 
 ## 6. 裁决流程
 
