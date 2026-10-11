@@ -140,25 +140,7 @@ class InstitutionGate:
         if k == "certificate":
             ok, why = self.inst.certificate(c.certificate)
             return None if ok else why
-        if k == "progress":
-            return self._progress(c.progress, task, view)
         return f"condition '{k}' only applies to facts"
-
-    def _progress(self, spec, task: Task | None, view: CommView) -> str | None:
-        if task is None:
-            return None
-        runs = sorted((v for v in self.inst.validations.values()
-                       if v.validator == spec.validator and v.status in ("passed", "failed")
-                       and v.act_id in self.inst.acts
-                       and act_task(self.inst.acts[v.act_id], view) is task),
-                      key=lambda v: v.done_seq)[-spec.identical_failures:]
-        if len(runs) < spec.identical_failures or any(v.status != "failed" for v in runs) \
-                or len({v.tail for v in runs}) != 1:
-            return None
-        return (f"no progress: the last {len(runs)} runs of validator {spec.validator} on "
-                f"{task.id} ({', '.join(v.id for v in runs)}) failed with identical output, so "
-                f"further rework through this route is refused. Cancel the task or escalate to "
-                f"the owner. Repeated output:\n{runs[-1].tail}")
 
     def _evidence(self, act: Act) -> str | None:
         ref = str(act.params.get("commit") or "").strip()

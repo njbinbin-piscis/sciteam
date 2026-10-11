@@ -1,5 +1,4 @@
-# `heldout-progress` arm: the `heldout` arm plus a no-progress stop (docs/40 §5, docs/60 D11):
-# after 3 identical held-out failures on a task, approval through this route is refused.
+# `heldout` arm: approval also needs the auditor-only held-out cases to pass (docs/60 §6.4).
 validators:
   acceptance:
     command: "{task.acceptance}"
@@ -19,8 +18,7 @@ requirements:
   - name: four-eyes
     act: task_transition
     transition: approve
-    require: [{distinct: [actor, task.assignee]},
-              {progress: {validator: heldout, identical_failures: 3}}, {validate: [heldout]}]
+    require: [{distinct: [actor, task.assignee]}, {validate: [heldout]}]
 
 facts:
   - name: accepted

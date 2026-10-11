@@ -1,0 +1,23 @@
+# `heldout-abandon` arm (docs/60 §6.7 item 7): the reviewer may also cancel (abandon) the task.
+name: x-inst
+description: >-
+  Small fixed team. Anyone may message anyone; the assignee works the task, the reviewer
+  approves or rejects it and may abandon (cancel) it, the owner may reopen or cancel.
+rules:
+  - {name: dm, act: post_message, via: dm, from: "*", to: "*"}
+  - {name: rooms, act: post_message, via: "room|task", from: "*"}
+  - {name: mention, act: mention, from: "*", to: "*"}
+  - {name: create-task, act: task_create, from: "*"}
+  - {name: edit-task, act: task_update, from: "task.party"}
+  - {name: assign, act: task_transition, transition: assign, from: "*", to: "*"}
+  - {name: work, act: task_transition, transition: "start|block|unblock|submit|unassign", from: "task.assignee"}
+  - {name: review, act: task_transition, transition: "approve|reject", from: "task.reviewer"}
+  - {name: owner, act: task_transition, transition: "reopen|cancel|unassign", from: "task.creator | kind:human"}
+  - {name: abandon, act: task_transition, transition: cancel, from: "task.reviewer"}
+rooms:
+  - {name: general, members: "*", topic: "whole team"}
+wake_on: [dm, mention, thread_reply, task_assigned, task_ready, task_review, task_returned, timer]
+limits:
+  message_chars: 8000
+  messages_per_agent_per_min: 12
+  messages_per_pair_per_10min: 40

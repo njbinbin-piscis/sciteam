@@ -50,8 +50,7 @@ class Constitution(_Strict):
 
 ROLE_REFS = ("actor", "task.assignee", "task.reviewer", "task.creator")
 TASK_FIELDS = ("acceptance", "reviewer", "estimate_h", "labels")
-REQUIREMENT_KEYS = ("field", "evidence", "validate", "distinct", "children_have", "certificate",
-                    "progress")
+REQUIREMENT_KEYS = ("field", "evidence", "validate", "distinct", "children_have", "certificate")
 FACT_KEYS = ("field", "distinct", "validated", "approved_by", "children_have")
 
 
@@ -83,18 +82,10 @@ Conditions (exactly one key each):
   members (requirements, facts)
 - {children_have: <fact>} — every non-cancelled subtask has that fact (requirements, facts)
 - {certificate: <environment>} — that environment certificate is in force (requirements)
-- {progress: {validator: <v>, identical_failures: <k>}} — denied once the task's last k finished
-  runs of validator v all failed with identical output: rework is not progressing; cancel the
-  task or escalate to the owner (requirements)
 - {validated: <validator>} — the validator passed on the task's latest submission (facts)
 - {approved_by: <selector>} — whoever moved the task to done matches the selector (facts)
 Selectors: role:<r>, kind:human|agent, team:<t>, group:<g>, a member id, task.assignee, task.reviewer,
 task.creator, combined with | & ! and parentheses."""
-
-
-class ProgressSpec(_Strict):
-    validator: str
-    identical_failures: int = Field(ge=2)
 
 
 class Condition(_Strict):
@@ -107,7 +98,6 @@ class Condition(_Strict):
     approved_by: str | None = None
     children_have: str | None = None
     certificate: str | None = None
-    progress: ProgressSpec | None = None
 
     @model_validator(mode="after")
     def _one(self):
@@ -218,8 +208,7 @@ class RulesFile(_Strict):
                 if c.key not in allowed:
                     raise ValueError(f"rule {r.name}: '{c.key}' cannot be used here; "
                                      f"allowed {allowed}")
-                for v in (c.validate_ or []) + ([c.validated] if c.validated else []) + \
-                        ([c.progress.validator] if c.progress else []):
+                for v in (c.validate_ or []) + ([c.validated] if c.validated else []):
                     if v not in self.validators:
                         raise ValueError(f"rule {r.name}: unknown validator '{v}'")
                 if c.children_have and c.children_have not in facts:

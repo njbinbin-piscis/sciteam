@@ -1,0 +1,34 @@
+# Pilot (docs/60 §6.7 item 7): stopping a stuck evidence gate by an agent's decision, not by code.
+# The institution grants the reviewer the authority to abandon (cancel) the goal task; the
+# reviewer's charter adds the duty to decide explicitly after three rejections. Same five
+# problems, team, model and held-out evidence as the x-inst-confirm `heldout` arm.
+name: x-abandon-pilot
+hypothesis: >-
+  Descriptive pilot, judged against the heldout arm on the same problems (36/40 budget-breaker
+  endings). Expect (a) budget-breaker endings in at most 4 of 10 runs; (b) the reviewer decides
+  explicitly (continue with a stated reason, or abandon) at the first review after its third
+  rejection in most runs that reach three rejections; (c) abandoned goals are truly unsolved:
+  external score < 1 in every abandoned run (an abandoned run scoring 1 is a false abandonment
+  and is reported individually). If (a) fails because reviewers never use the authority, the
+  duty text, not the institution, is the open question.
+primary: score
+success: 1.0
+tasks: tasksets/scicode-verified.yaml
+only_tasks: [p21, p55, p73, p79, p80]
+repeats: 2
+parallel: 10
+arms:
+- name: heldout-abandon
+  team: teams/x-sci.yaml
+  overlay: overlays/x-sci/heldout-abandon
+  patches:
+    runtime/default.yaml:
+      sandbox:
+        validator_mounts: ["bench/scicode/audit/{task.pid}:/audit:ro"]
+    harness/team-institution.yaml: {model: mimo-v2.6-flash}
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 8
+audit: .venv/bin/python bench/team/check.py {run} --json {out}
