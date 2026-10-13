@@ -32,3 +32,4 @@ bench/scicode/.venv/
 bench/scicode/*.log
 bench/scicode/envs/
 bench/scicode/audit/
+bench/xevid/bundles/

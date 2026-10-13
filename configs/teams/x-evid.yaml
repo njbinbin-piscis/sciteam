@@ -1,0 +1,34 @@
+# X-evid (docs/60 §6.6 v2): two independent implementers; each goal is accepted only when the
+# agreement validator finds the two private solutions agree. The validator command is the same
+# for both goals and is mounted by the arm (bench/xevid/agree.py and the problem's bundle).
+name: x-evid
+comm_policy: comm/x-inst.yaml
+institution: institution/x-evid.yaml
+runtime: runtime/x-evid.yaml
+workspace_seed: "{task.seed}"
+members:
+- {id: impl1, role: implementer, harness: harness/team-institution.yaml, profile_ref: profiles/xevid-impl1.md, attrs: {workspace_access: ro}}
+- {id: impl2, role: implementer, harness: harness/team-xevid-b.yaml, profile_ref: profiles/xevid-impl2.md, attrs: {workspace_access: ro}}
+- {id: owner, kind: human, role: owner}
+tasks:
+- key: goal-1
+  by: owner
+  title: "Deliver your solution to the problem in PROBLEM.md"
+  labels: [goal]
+  assignee: impl1
+  reviewer: owner
+  acceptance: "python /xevid/agree.py /xevid/bundle/bundle.json /private/impl1/solution.py /private/impl2/solution.py"
+- key: goal-2
+  by: owner
+  title: "Deliver your solution to the problem in PROBLEM.md"
+  labels: [goal]
+  assignee: impl2
+  reviewer: owner
+  acceptance: "python /xevid/agree.py /xevid/bundle/bundle.json /private/impl1/solution.py /private/impl2/solution.py"
+kickoff:
+- by: owner
+  to: '@impl1'
+  text: "Read /workspace/PROBLEM.md. Your goal task is your solution; it is accepted only when it agrees with the other implementer's."
+- by: owner
+  to: '@impl2'
+  text: "Read /workspace/PROBLEM.md. Your goal task is your solution; it is accepted only when it agrees with the other implementer's."

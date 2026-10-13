@@ -82,6 +82,10 @@ def main(argv: list[str] | None = None) -> None:
     xsub = x.add_subparsers(dest="exp_cmd", required=True)
     xr = xsub.add_parser("run", help="run every arm × task × repeat of a spec")
     xo = xsub.add_parser("one", help="run one arm/task/repeat (used by run)")
+    xr.add_argument("--poll-s", type=float, default=600.0,
+                    help="seconds between provider probes while paused")
+    xr.add_argument("--max-pause-h", type=float, default=48.0,
+                    help="give up after this many hours of waiting for the provider account")
     for p in (xr, xo):
         p.add_argument("spec", help="experiment spec relative to configs")
         p.add_argument("--out", type=Path, required=True)
@@ -144,7 +148,8 @@ def main(argv: list[str] | None = None) -> None:
         from sciteam.experiment import runner
 
         if a.exp_cmd == "run":
-            runner.run_all(a.configs, a.spec, a.out)
+            runner.run_all(a.configs, a.spec, a.out, poll_s=a.poll_s,
+                           max_pause_s=a.max_pause_h * 3600.0)
             from sciteam.experiment.report import render_report, summarize
 
             print(render_report(summarize(a.out)))

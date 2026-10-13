@@ -1,0 +1,20 @@
+# X-evid: one judgment, the agreement validator, which runs on submit. Acceptance = validated.
+validators:
+  acceptance:
+    command: "{task.acceptance}"
+    timeout_s: 1800
+
+requirements:
+  - name: work-has-predicate
+    act: task_create
+    require: [{field: acceptance}]
+  - name: submit-validated
+    act: task_transition
+    transition: submit
+    require: [{validate: [acceptance]}]
+
+facts:
+  - name: accepted
+    when: {event: task_status_changed, to: done}
+    require: [{validated: acceptance}]
+    revoke_when: {event: task_status_changed, transition: reopen}

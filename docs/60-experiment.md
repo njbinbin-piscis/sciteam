@@ -659,7 +659,13 @@ H-a、H-b、H-c（以 `false_closure` 计）**不被支持**，也不能据此�
 - **判定**：每一步、每个用例，两份输出按官方 `scicode.compare` 的容差比较。全部步骤、全部用例一致才通过；任一方运行崩溃、超时或无法取值，记为不一致（E3 的「无法比较」按此处理，这是保守口径，见 E3 局限）。
 - **同错同值**：两份都错且输出相同，会通过。这是 E3 测得的残余风险（同模型条件失败率 0.46–0.60 的那部分），登记时明确承认，不能宣称「闸门能抓住一切错误」。
 - **实现位置**：验证器是制度的一部分（机械核对事实），不由检查者判断。它只需要输入、两个提交的产物和容差，不需要标准答案。
-- **待实现**：（1）只含输入、不含数值的 `agree_bundle.pkl`，由 `e3_agree.py` 的 `split_case` 生成；（2）验证器脚本，读取两份 `/private/<id>/solution.py`；（3）团队配置：两名实现者各有 `private_mount`、工作区只读。
+- **实现状态（2026-10-14）**：（1）已完成：`bench/xevid/bundle.py` 为 64 题生成只含输入、不含数值的 `bundles/<pid>/bundle.json`（由 `e3_agree.split_case` 切分，不打开 HDF5）；（2）已完成：`bench/xevid/agree.py` 为仅依赖标准库的验证器，读取两份 `/private/<id>/solution.py`，崩溃、超时、取不到值均记为不一致，按 `scicode.compare` 的容差比较；（3）已完成：团队配置 `configs/teams/x-evid.yaml` 与运行时 `configs/runtime/x-evid.yaml`，两名实现者各有 `private_mount`，验证沙箱挂载整个私有根目录只读；对照臂不挂载验证器。
+- **验证器自检（p13）**：
+  - 同一份解答自配对，宿主机与 `sciteam-sci:v0` 验证沙箱内均为 `agree=true`，35 项全部检查、2 项排除，沙箱内耗时 480 秒。
+  - 两份不同解答（`x-base-scicode` 的 r1 与 r2，同为 flash）配对，`agree=false`，35 项中 12 项不一致，集中在步骤 13.8（3）、13.9（3）、13.10（3）、13.11（2）、13.15（1），单次耗时 697 秒。
+  - 与 E3 对照：flash × flash 在 p13 的 E3 记录中，13.8、13.9、13.10、13.11、13.14 的不一致都占多数。验证器标出了前四个步骤，但没有标出 13.14（E3 中 9 次不一致），而标出了 13.15（E3 中为不可比）。两者口径不同（E3 按用例与配对，验证器按一对解答的一步），差异要在登记前核对，不能当作一致。
+  - 运行成本：一次验证约 8–12 分钟。登记的 X-evid 每道题、每次重复都要验证一次，成本与时间要纳入登记的估算。
+- **待定（登记前）**：（a）上面 13.14 与 13.15 的差异；（b）`bench/team/check.py` 审计是否适用于 X-evid 规则；（c）`replicate-cross` 所用模型的余额；（d）成本估算。
 
 *臂（v2）*：
 
@@ -890,6 +896,7 @@ X-inst-confirm 的 `heldout` 作为上界参照，不重跑。E3 若显示同模
 | D10 | 2026-10-07 | D6 修复后，flash 摸底 128 个 run 的重判结果只存在 `/tmp/aud`，没有写回运行目录，且没有排除留出用例，与 mimo、qwen 口径不一致 | §6.4 引用的 flash 数字，以及选题时用到的 flash 均分 | 用当前判分器（排除留出用例）对 128 个工作区重判，输出在 `runs/exp/x-base-scicode/_regrade-d6/`；§6.5 的相关性分析使用这份数据。选题已经定稿，不因此改动。由此新增 §2 第 9 条（分析落盘） |
 | D11 | 2026-10-11 | X-inst-confirm 补跑后 84 个 run 以预算断路器结束（heldout 75、placebo 8、shared 1）。heldout 的主因是返工中连续 3 次以上完全相同的留出失败（79 个 run，其中 61 个是断路器 run）：信号只有步骤编号与异常类名，没有可行动内容，停机只有墙钟预算。另有 `audit_check.py` 单步超时 600 秒，判分器 1800 秒，不一致（超时仅 1 次）。`runs/x-inst-confirm.log` 中的 `breaker:provider` 是 10-07 欠费期间的残留，已核对事件库，无 provider 错误 | X-inst-confirm 的全部判定：两种口径都报告（§6.7），heldout 的 +0.12 到 +0.19 只作为范围，不作判定 | 不剔除、不重跑、不改原实验；数字由 `analyze.py confirm` 与 `analyze.py breakers` 重算并落盘。修复（无进展停机、留出超时对齐、placebo 卡死是否算缺陷）属于制度与判分规则的改动，只能在新登记的实验中生效，登记前不发射 X-evid 或 heldout 重跑 |
 | D12 | 2026-10-11 | `x-progress-pilot` 启动约 40 分钟后 MiMo 余额耗尽（402 `insufficient_balance`），10 个 run 中 9 个以 `breaker:provider` 结束，第 10 个被手动停止 | 预实验全部结果 | 整批作废，移到 `runs/exp/_void/x-progress-pilot-quota-20261011/`，不使用其中任何数字。`bench/await_mimo.sh` 等充值后自动按同一规格重新发射，解释器摘要 `e4363ee1490c`（含 `progress` 条件） |
+| D13 | 2026-10-14 | 额度耗尽时旧机制以 `breaker:provider` 结束 run 并写入 `result.json`，被当作基础设施失败，只能作废后整批重跑（D7、D12） | 不改动任何已完成 run 的结果；只改变之后的 run 行为 | 改为停机续跑（`sciteam/experiment/quota.py`）：`breaker:provider` 结束的 run 不写 `result.json`，写 `paused.json`。`sciteam exp run` 发射前探测规格用到的每个模型（一次 1 token 调用），未就绪则等待（`--poll-s` 默认 600 秒，`--max-pause-h` 默认 48 小时），充值后清除断路器并续跑未完成的 activation，失败的 activation 按 `retry` 重做。预算断路器仍按原规则结束 run。`bench/await_mimo.sh` 由此取代。解释器摘要随 `sciteam/` 源码改变：之后登记的实验使用新摘要，D7、D12 的历史结果不受影响。已有的 `result.json` 不会被覆盖，需要续跑旧的断路器 run 时须先人工删除它 |
 
 ## 12. 测试清单
 

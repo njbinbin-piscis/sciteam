@@ -11,11 +11,21 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 import yaml
 
 from sciteam.experiment.metrics import GOAL_REASONS, run_metrics
+from sciteam.experiment.quota import (
+    PAUSE_REASON,
+    PAUSED_MARK,
+    await_provider,
+    is_paused,
+    last_stop,
+    models_for_spec,
+    probe,
+)
 from sciteam.experiment.spec import (
     Arm,
     ExperimentSpec,
@@ -107,15 +117,6 @@ def _awaiting_owner(run_dir: Path, owner: str) -> tuple[list[str], list[str]]:
         tr.close()
 
 
-def _last_stop(run_dir: Path) -> str | None:
-    store = EventStore(run_dir / "events.db")
-    try:
-        stops = [e.payload.get("reason") for e in store.read_global(types={"run_stopped"})]
-    finally:
-        store.close()
-    return stops[-1] if stops else None
-
-
 def drive(run_dir: Path, spec: ExperimentSpec, tf: TeamFile) -> dict[str, int]:
     """Run the team to its end, acting as the owner between scheduler runs."""
     from sciteam.institution.team import decide
@@ -127,7 +128,7 @@ def drive(run_dir: Path, spec: ExperimentSpec, tf: TeamFile) -> dict[str, int]:
     for _ in range(spec.owner.max_rounds):
         tally["rounds"] += 1
         asyncio.run(run_team(run_dir, opener=open_run))
-        reason = _last_stop(run_dir)
+        reason = last_stop(run_dir)
         if reason in GOAL_REASONS or (reason or "").startswith("breaker"):
             break
         keys, reviews = _awaiting_owner(run_dir, owner) \
@@ -214,7 +215,17 @@ def run_one(configs_dir: Path, spec_path: str, out: Path, key: RunKey) -> dict:
         opener = org_team.opener_for(configs_dir, arm.team, overlays)
         team.create_run(rd, team=arm.team, configs_dir=configs_dir, overlays=overlays,
                         opener=opener)
+    elif is_paused(rd):
+        # Account topped up: clear the provider breaker; the scheduler resumes the run (D13).
+        team.reset(rd, breaker=True)
+        (rd / PAUSED_MARK).unlink(missing_ok=True)
     owner = drive(rd, spec, tf)
+    if is_paused(rd):
+        # Halted by the provider account again: no result, so the supervisor pauses and retries.
+        (rd / PAUSED_MARK).write_text(json.dumps(
+            {"stop": PAUSE_REASON, "note": "resume with `sciteam exp run` after topping up"},
+            indent=2))
+        return {"arm": key.arm, "task": key.task, "r": key.r, "status": "paused"}
     log = rd / "experiment.log"
     check_out, score_out = rd / "check.json", rd / "score.json"
     q = shlex.quote
@@ -235,24 +246,74 @@ def run_one(configs_dir: Path, spec_path: str, out: Path, key: RunKey) -> dict:
     return result
 
 
-def run_all(configs_dir: Path, spec_path: str, out: Path) -> list[dict]:
-    """Each run in its own process (one scheduler per process), `parallel` at a time."""
-    spec, ts = load_spec(ConfigStore(configs_dir), spec_path)
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "spec.yaml").write_text(ConfigStore(configs_dir).load_text(spec_path))
-    keys = plan(spec, ts)
+def _supervisor_log(out: Path):
+    path = out / "supervisor.log"
 
-    def one(k: RunKey) -> dict | None:
+    def say(msg: str) -> None:
+        line = f"{datetime.now().astimezone().isoformat(timespec='seconds')} {msg}"
+        print(line, flush=True)
+        with path.open("a") as f:
+            f.write(line + "\n")
+    return say
+
+
+def _launch(configs_dir: Path, spec_path: str, out: Path, keys: list[RunKey], parallel: int) -> None:
+    """Each run in its own process (one scheduler per process), `parallel` at a time."""
+    def one(k: RunKey) -> None:
         rd = k.dir(out)
-        if (rd / RESULT).exists():
-            return json.loads((rd / RESULT).read_text())
         rd.mkdir(parents=True, exist_ok=True)
         with (rd.parent / f"r{k.r}.driver.log").open("a") as f:
             subprocess.call([sys.executable, "-m", "sciteam.cli.main", "exp", "one", spec_path,
                              "--out", str(out), "--configs", str(configs_dir),
                              "--arm", k.arm, "--task", k.task, "--r", str(k.r)],
                             stdout=f, stderr=subprocess.STDOUT)
-        return json.loads((rd / RESULT).read_text()) if (rd / RESULT).exists() else None
 
-    with ThreadPoolExecutor(max_workers=spec.parallel) as ex:
-        return [r for r in ex.map(one, keys) if r is not None]
+    with ThreadPoolExecutor(max_workers=parallel) as ex:
+        list(ex.map(one, keys))
+
+
+def run_all(configs_dir: Path, spec_path: str, out: Path, *, poll_s: float = 600.0,
+            max_pause_s: float = 48 * 3600.0, probe_fn=probe, log=None) -> list[dict]:
+    """Supervise the experiment until every run has a result (docs/60 §11 D13).
+
+    Before each launch every model the spec uses is probed; while the account is not ready the
+    supervisor waits `poll_s` between probes, up to `max_pause_s` in total. A run halted by the
+    provider account pauses and is resumed by the next launch. Stops when all runs have results,
+    when the wait budget is spent, or after three launches without progress that needed no wait
+    (the probe passed but runs keep failing). Re-running the command is safe: finished runs are
+    skipped and paused runs resume."""
+    spec, ts = load_spec(ConfigStore(configs_dir), spec_path)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "spec.yaml").write_text(ConfigStore(configs_dir).load_text(spec_path))
+    keys = plan(spec, ts)
+    models = models_for_spec(configs_dir, spec, ts)
+    say = log or _supervisor_log(out)
+
+    def open_keys() -> list[RunKey]:
+        return [k for k in keys if not (k.dir(out) / RESULT).exists()]
+
+    waited, stalled = 0.0, 0
+    while open_keys():
+        ready, w = await_provider(models, poll_s=poll_s, max_wait_s=max_pause_s - waited,
+                                  probe_fn=probe_fn, log=say)
+        waited += w
+        if not ready:
+            say(f"stopped: provider not ready after {waited / 3600:.1f} h; "
+                f"{len(open_keys())} run(s) open; re-run to resume")
+            break
+        before = len(open_keys())
+        say(f"launching {before} open run(s), parallel {spec.parallel}")
+        _launch(configs_dir, spec_path, out, open_keys(), spec.parallel)
+        after = len(open_keys())
+        paused = [k for k in open_keys() if is_paused(k.dir(out))]
+        if paused:
+            say(f"{len(paused)} run(s) paused by the provider account")
+        if after == before and w == 0:
+            stalled += 1
+            if stalled >= 3:
+                say("stopped: three launches without progress although the probe passed")
+                break
+        else:
+            stalled = 0
+    return [json.loads((k.dir(out) / RESULT).read_text()) for k in keys
+            if (k.dir(out) / RESULT).exists()]

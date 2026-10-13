@@ -1,0 +1,9 @@
+# X-evid (docs/60 §6.6 v2): two independent implementers. A solution is accepted only when the
+# agreement validator finds it agrees with the other implementer's on every checkable input.
+name: x-evid
+principles: |
+  1. The question is settled only when the institution establishes that the two independent
+     solutions agree on every checkable test input.
+  2. The validator decides agreement, not any member. Members read its verdict and act on it.
+  3. Members work in private and never see each other's solution or any released answer.
+rules: institution/x-evid-rules.yaml
