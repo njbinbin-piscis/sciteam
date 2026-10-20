@@ -1,0 +1,24 @@
+# X-evid compute-control: same two implementers, same two-stage workflow, no comparison.
+# Both `submit` and `approve` only check that the two solution files exist (`present`).
+validators:
+  present:
+    command: "test -s /private/impl1/solution.py && test -s /private/impl2/solution.py"
+    timeout_s: 60
+
+requirements:
+  - name: goal-submit-present
+    act: task_transition
+    transition: submit
+    where: {task_label: goal}
+    require: [{validate: [present]}]
+  - name: goal-approve-present
+    act: task_transition
+    transition: approve
+    where: {task_label: goal}
+    require: [{distinct: [actor, task.assignee]}, {validate: [present]}]
+
+facts:
+  - name: accepted
+    when: {event: task_status_changed, to: done}
+    require: [{validated: present}]
+    revoke_when: {event: task_status_changed, transition: reopen}

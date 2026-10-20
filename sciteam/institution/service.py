@@ -132,7 +132,8 @@ class InstitutionService:
 
     def record_validation(self, validation_id: str, *, ok: bool, exit_code: int | None,
                           wall_s: float, output_blob: str | None, tail: str,
-                          cached_from: str | None = None, infra: bool = False) -> None:
+                          cached_from: str | None = None, infra: bool = False,
+                          inputs: str | None = None) -> None:
         with self.comm.lock:
             self.comm.catch_up()
             v = self.inst.validations[validation_id]
@@ -141,7 +142,8 @@ class InstitutionService:
             self.comm.record(INST_STREAM, "validation_finished", {
                 "validation_id": validation_id, "ok": ok, "exit_code": exit_code,
                 "wall_s": round(wall_s, 2), "output_blob": output_blob, "tail": tail,
-                "cached_from": cached_from, "infra": infra}, causation=v.seq)
+                "cached_from": cached_from, "infra": infra, "inputs": inputs},
+                causation=v.seq)
 
     # ---- amendments -----------------------------------------------------------------------
     def _amendments(self) -> int:

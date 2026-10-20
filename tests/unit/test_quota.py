@@ -213,4 +213,62 @@ def test_models_for_spec_resolves_each_agents_model_through_its_overlay():
     names = {m.name for m in models}
     assert names
     assert names <= set(load_models(CONFIGS / "models.yaml"))
-    assert "deepseek-flash" in names  # the default team harness model
+    assert names == {"mimo-v2.6-flash"}  # every arm patches the harness model
+
+
+def test_wall_clock_budget_excludes_paused_intervals_between_run_stopped_and_run_resumed(tmp_path):
+    """D20 regression test: waiting 7 hours for a provider top-up between run_stopped and
+    run_resumed must not count against the active wall_clock_s budget."""
+    from datetime import UTC, datetime, timedelta
+
+    from sciteam.comm.policy import CommPolicy
+    from sciteam.runtime.config import RuntimeConfig
+    from sciteam.runtime.scheduler import Scheduler
+
+    class FakeClock:
+        def __init__(self, t: datetime):
+            self.t = t
+
+        def now(self) -> datetime:
+            return self.t
+
+    t0 = datetime(2026, 10, 18, 23, 0, tzinfo=UTC)
+    clock = FakeClock(t0)
+    store = EventStore(tmp_path / "events.db", clock=clock)
+    store.append("run", "run_started", {"goal": "g"}, actor="system")
+
+    # 10 minutes into the run, provider quota is exhausted and the run stops
+    clock.t = t0 + timedelta(minutes=10)
+    store.append("run", "breaker_tripped", {"kind": "provider"}, actor="system")
+    store.append("run", "run_stopped", {"reason": "breaker:provider"}, actor="system")
+
+    # 7 hours later (> 6h wall_clock_s budget), quota is topped up and breaker reset
+    clock.t = t0 + timedelta(hours=7, minutes=10)
+    store.append("run", "breaker_reset", {"kind": "provider"}, actor="human")
+    store.append("run", "run_resumed", {"after": "breaker:provider"}, actor="human")
+
+    cfg = ConfigStore(CONFIGS).load("runtime/x-evid.yaml", RuntimeConfig)
+    cfg.budget.wall_clock_s = 21600  # 6 hours
+
+    class DummyRunner:
+        async def close(self) -> None:
+            pass
+
+    sched = Scheduler(
+        store=store,
+        policy=ConfigStore(CONFIGS).load("comm/x-evid.yaml", CommPolicy),
+        runtime=cfg,
+        runner=DummyRunner(),  # type: ignore[arg-type]
+        clock=clock,
+        goal="g",
+    )
+    sched.catch_up()
+    assert sched.paused_s == 7 * 3600
+    sched._check_breakers(clock.now())
+    assert sched.paused is None  # only 10m of active wall time elapsed, not 7h10m!
+
+    # Once active time actually exceeds 6h (another 5h51m of active execution), budget trips
+    clock.t = clock.t + timedelta(hours=5, minutes=51)
+    sched._check_breakers(clock.now())
+    assert sched.paused == "budget"
+    store.close()

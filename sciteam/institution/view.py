@@ -39,6 +39,7 @@ class Validation:
     output_blob: str | None = None
     tail: str = ""
     done_seq: int = 0
+    inputs: str | None = None          # digest of validator-visible files outside the commit
 
 
 @dataclass
@@ -176,6 +177,7 @@ class InstitutionView:
         v.status = "passed" if p["ok"] else "failed"
         v.exit_code, v.output_blob, v.tail = p.get("exit_code"), p.get("output_blob"), \
             p.get("tail", "")
+        v.inputs = p.get("inputs")
         v.done_seq = ev.seq
 
     def _on_approval_requested(self, ev: Event, p: dict) -> None:

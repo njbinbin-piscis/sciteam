@@ -73,22 +73,27 @@ def probe(info: ModelInfo, make: Callable[[ModelInfo], object] = make_provider) 
 
 
 def models_for_spec(configs_dir: Path, spec, ts) -> list[ModelInfo]:
-    """Every model an arm's agents use, resolved through the arm's overlay (not the task
-    overlay: task patches do not change harnesses in the current task sets)."""
+    """Every model an arm's agents use, resolved through the same overlays a run gets (arm
+    patches may override a harness model, as X-evid's `replicate-cross` does)."""
+    from tempfile import TemporaryDirectory
+
+    from sciteam.experiment.runner import overlays_for, task_overlay
     from sciteam.experiment.spec import render, task_vars
     from sciteam.harness.config import HarnessConfig
     from sciteam.runtime.config import TeamFile
 
     models = load_models(configs_dir / "models.yaml")
     names: set[str] = set()
-    tv = task_vars(ts, ts.tasks[0])
-    for arm in spec.arms:
-        overlays = [configs_dir / arm.overlay] if arm.overlay else []
-        cs = ConfigStore(configs_dir, overlays)
-        tf = cs.load(render(arm.team, tv), TeamFile)
-        for m in tf.members:
-            if m.kind == "agent" and m.harness:
-                names.add(cs.load(m.harness, HarnessConfig).model)
+    task = ts.tasks[0]
+    tv = task_vars(ts, task)
+    with TemporaryDirectory() as td:
+        for k, arm in enumerate(spec.arms):
+            tdir = task_overlay(configs_dir, arm, ts, task, Path(td) / str(k))
+            cs = ConfigStore(configs_dir, overlays_for(configs_dir, arm, tdir))
+            tf = cs.load(render(arm.team, tv), TeamFile)
+            for m in tf.members:
+                if m.kind == "agent" and m.harness:
+                    names.add(cs.load(m.harness, HarnessConfig).model)
     return [models[n] for n in sorted(names)]
 
 

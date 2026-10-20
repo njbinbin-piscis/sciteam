@@ -9,7 +9,7 @@ deliver_during_activation: true
 rate:
   activations_per_agent_per_hour: 30
   max_consecutive_handoffs: 10
-  max_timers_per_agent: 3
+  max_timers_per_agent: 0
   storm:
     window_s: 600
     max_messages: 150

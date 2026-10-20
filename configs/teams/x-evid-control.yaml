@@ -1,14 +1,15 @@
-# X-evid compute-control arm (docs/60 §6.6 v2): the same two independent implementers, with NO
-# comparison. Each goal is accepted once its own solution file exists, so the only difference
-# from the agreement arm is the check, not the compute.
+# X-evid compute-control arm (docs/60 §6.6, §6.8): the same two independent implementers and
+# auditor, with NO comparison. Each goal is accepted once both solution files exist (`present`),
+# so the only difference from the agreement arm is the check on `approve`, not the compute.
 name: x-evid-control
-comm_policy: comm/x-inst.yaml
-institution: institution/x-evid.yaml
+comm_policy: comm/x-evid.yaml
+institution: institution/x-evid-control.yaml
 runtime: runtime/x-evid.yaml
 workspace_seed: "{task.seed}"
 members:
 - {id: impl1, role: implementer, harness: harness/team-institution.yaml, profile_ref: profiles/xevid-impl1.md, attrs: {workspace_access: ro}}
 - {id: impl2, role: implementer, harness: harness/team-xevid-b.yaml, profile_ref: profiles/xevid-impl2.md, attrs: {workspace_access: ro}}
+- {id: auditor, role: auditor, harness: harness/team-institution.yaml, profile_ref: profiles/xevid-auditor.md, attrs: {workspace_access: ro, memory_activations: "0"}}
 - {id: owner, kind: human, role: owner}
 tasks:
 - key: goal-1
@@ -16,15 +17,13 @@ tasks:
   title: "Deliver your solution to the problem in PROBLEM.md"
   labels: [goal]
   assignee: impl1
-  reviewer: owner
-  acceptance: "test -s /private/impl1/solution.py"
+  reviewer: auditor
 - key: goal-2
   by: owner
   title: "Deliver your solution to the problem in PROBLEM.md"
   labels: [goal]
   assignee: impl2
-  reviewer: owner
-  acceptance: "test -s /private/impl2/solution.py"
+  reviewer: auditor
 kickoff:
 - by: owner
   to: '@impl1'

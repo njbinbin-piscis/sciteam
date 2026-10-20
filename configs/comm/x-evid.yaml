@@ -1,0 +1,23 @@
+name: x-evid
+description: >-
+  Double-blind independent replication (docs/60 §6.6, §6.8, D18). Implementers may not message
+  each other, create shared rooms, or post to tasks they are not party to; the auditor reviews
+  both goal tasks and may approve, reject, or abandon (cancel) them.
+rules:
+  - {name: owner-dm, act: post_message, via: dm, from: "kind:human", to: "*"}
+  - {name: to-owner, act: post_message, via: dm, from: "*", to: "kind:human"}
+  - {name: task-notes, act: post_message, via: task, from: "task.party"}
+  - {name: mention-owner, act: mention, from: "*", to: "kind:human | self"}
+  - {name: owner-mention, act: mention, from: "kind:human", to: "*"}
+  - {name: create-task, act: task_create, from: "kind:human"}
+  - {name: edit-task, act: task_update, from: "kind:human"}
+  - {name: assign, act: task_transition, transition: assign, from: "kind:human", to: "*"}
+  - {name: work, act: task_transition, transition: "start|block|unblock|submit|unassign", from: "task.assignee"}
+  - {name: review, act: task_transition, transition: "approve|reject|cancel", from: "task.reviewer"}
+  - {name: owner, act: task_transition, transition: "reopen|cancel|unassign", from: "task.creator | kind:human"}
+rooms: []
+wake_on: [dm, mention, thread_reply, task_assigned, task_ready, task_review, task_returned, timer]
+limits:
+  message_chars: 8000
+  messages_per_agent_per_min: 12
+  messages_per_pair_per_10min: 40

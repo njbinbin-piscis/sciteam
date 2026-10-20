@@ -1,0 +1,8 @@
+# X-evid compute-control (docs/60 §6.6 v2): the same two independent implementers, with no
+# comparison. A goal is accepted once both solution files exist.
+name: x-evid-control
+principles: |
+  1. A goal is settled when the institution establishes that both solution files exist.
+  2. The institution does not compare the two solutions; members decide what to hand in.
+  3. Members work in private and never see each other's solution or any released answer.
+rules: institution/x-evid-control-rules.yaml

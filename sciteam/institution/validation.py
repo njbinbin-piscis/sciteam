@@ -2,6 +2,7 @@
 directory, run the validator command in a fresh sandbox, record the result. Never calls a model."""
 
 import asyncio
+import hashlib
 import shutil
 import tempfile
 from collections.abc import Callable
@@ -32,11 +33,30 @@ async def export_commit(workspace: Path, sha: str, dest: Path) -> None:
         raise RuntimeError(f"tar failed: {err.decode()[-500:]}")
 
 
+_TOOL_CACHES = {"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache"}
+
+
+def digest_tree(root: Path) -> str:
+    """sha256 over the relative paths and contents of every file under `root`, ignoring tool
+    caches. Used to key cached verdicts on what the validator reads outside the commit."""
+    h = hashlib.sha256()
+    for f in sorted(root.rglob("*")):
+        rel = f.relative_to(root)
+        if _TOOL_CACHES & set(rel.parts) or not f.is_file() or f.is_symlink():
+            continue
+        h.update(str(rel).encode() + b"\0" + f.read_bytes() + b"\0")
+    return h.hexdigest()
+
+
 class ValidationWorker:
     def __init__(self, svc: InstitutionService, *, workspace: Path, blobs: BlobStore,
-                 sandbox: SandboxFactory, max_parallel: int = 2):
+                 sandbox: SandboxFactory, max_parallel: int = 2,
+                 inputs: Callable[[], str | None] | None = None):
         self.svc, self.workspace, self.blobs = svc, workspace, blobs
         self.sandbox, self.max_parallel = sandbox, max_parallel
+        # digest of what the validation sandbox can read beyond the exported commit (the members'
+        # private directories): a cached verdict is valid only for the same digest
+        self._inputs = inputs or (lambda: None)
         self._running: dict[str, asyncio.Task] = {}
         self._attempts: dict[str, int] = {}
 
@@ -48,12 +68,13 @@ class ValidationWorker:
         for v in list(self.svc.inst.validations.values()):
             if v.status != "requested" or v.id in self._running:
                 continue
-            hit = self._cached(v)
+            now = self._inputs()
+            hit = self._cached(v, now)
             if hit is not None:
                 self.svc.record_validation(v.id, ok=hit.status == "passed",
                                            exit_code=hit.exit_code, wall_s=0.0,
                                            output_blob=hit.output_blob, tail=hit.tail,
-                                           cached_from=hit.id)
+                                           cached_from=hit.id, inputs=now)
                 continue
             if len(self._running) >= self.max_parallel:
                 break
@@ -61,15 +82,17 @@ class ValidationWorker:
             self._running[v.id] = task
             task.add_done_callback(lambda _t, vid=v.id: self._running.pop(vid, None))
 
-    def _cached(self, v: Validation) -> Validation | None:
+    def _cached(self, v: Validation, inputs: str | None) -> Validation | None:
         return next((o for o in self.svc.inst.validations.values()
                      if o.id != v.id and o.status in ("passed", "failed") and
-                     (o.validator, o.commit, o.command) == (v.validator, v.commit, v.command)),
+                     (o.validator, o.commit, o.command, o.inputs) ==
+                     (v.validator, v.commit, v.command, inputs)),
                     None)
 
     async def _run(self, v: Validation) -> None:
         tmp = Path(tempfile.mkdtemp(prefix=f"sciteam-{v.id}-"))
         sb: Sandbox | None = None
+        inputs = self._inputs()
         try:
             await export_commit(self.workspace, v.commit, tmp)
             sb = self.sandbox(tmp)
@@ -95,7 +118,7 @@ class ValidationWorker:
         self.svc.record_validation(
             v.id, ok=res.exit_code == 0 and not res.timed_out, exit_code=res.exit_code,
             wall_s=res.duration_s, output_blob=ref.sha256 if ref else None,
-            tail=out[-TAIL_CHARS:])
+            tail=out[-TAIL_CHARS:], inputs=inputs)
 
     async def close(self) -> None:
         for t in list(self._running.values()):

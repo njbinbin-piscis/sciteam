@@ -1,0 +1,39 @@
+# SMOKE of x-evid (not registered): one problem, one repeat per arm, checks the pipeline only.
+# X-evid (docs/60 §6.6 v2): can two independent solutions, compared by a validator, produce evidence
+# that catches errors? DRAFT: not registered and not runnable until the seven-question review (§2)
+# is passed and the registration is written in docs/60 §6.6. Changing this file after registration
+# makes a new experiment.
+name: x-evid-smoke
+hypothesis: >-
+  Decision metric (docs/60 section 6.6 registration): precision = P(score >= 1 | closed); the two
+  replicate arms are predicted to exceed compute-control by >= 0.10 (SESOI). Net score (0 when not
+  closed) and closed rate are reported alongside; `primary: score` only feeds the runner report.
+primary: score
+success: 1.0
+tasks: tasksets/xevid-scicode.yaml
+only_tasks:
+- p13
+repeats: 1
+parallel: 3
+arms:
+- name: replicate-same
+  team: teams/x-evid.yaml
+  patches:
+    runtime/x-evid.yaml:
+      sandbox:
+        validator_mounts: ["bench/xevid/agree.py:/xevid/agree.py:ro", "bench/xevid/bundles/{task.pid}:/xevid/bundle:ro"]
+- name: replicate-cross
+  team: teams/x-evid.yaml
+  patches:
+    runtime/x-evid.yaml:
+      sandbox:
+        validator_mounts: ["bench/xevid/agree.py:/xevid/agree.py:ro", "bench/xevid/bundles/{task.pid}:/xevid/bundle:ro"]
+    harness/team-xevid-b.yaml: {model: mimo-v2.6-flash}
+- name: compute-control
+  team: teams/x-evid-control.yaml
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 2
+audit: .venv/bin/python bench/team/check.py {run} --json {out}

@@ -27,20 +27,86 @@ from pathlib import Path
 TIMEOUT_S = 1800                 # = bench/scicode/grade.py TIMEOUT_S; one solution takes minutes
 MARK = "@@AGREE@@"
 
+# SciCode bundles assume upstream's `scicode.compare.cmp` helper and SciPy <1.14 `simps`/`trapz`
+# aliases, neither of which is installed inside `sciteam-sci:v0` (docs/60 §11 D19).
+SHIM = """import sys as _sys, types as _types
+_np = _sci_sp = None
+try:
+    import numpy as _np, scipy.integrate as _sci_int, scipy.sparse as _sci_sp
+    if not hasattr(_sci_int, "simps") and hasattr(_sci_int, "simpson"):
+        _sci_int.simps = _sci_int.simpson
+    if not hasattr(_sci_int, "trapz") and hasattr(_sci_int, "trapezoid"):
+        _sci_int.trapz = _sci_int.trapezoid
+    if not hasattr(_sci_int, "cumtrapz") and hasattr(_sci_int, "cumulative_trapezoid"):
+        _sci_int.cumtrapz = _sci_int.cumulative_trapezoid
+except Exception:
+    pass
+if "scicode.compare.cmp" not in _sys.modules:
+    def _allclose(a, b, atol=1e-8, rtol=1e-5):
+        return bool(_np.allclose(a, b, atol=atol, rtol=rtol)) if _np is not None else a == b
+    def _are_dicts_close(d1, d2, atol=1e-5, rtol=1e-2):
+        if d1.keys() != d2.keys():
+            return False
+        for k in d1:
+            if not _allclose(d1[k], d2[k], atol=atol, rtol=rtol):
+                return False
+        return True
+    def _are_csc_matrix_close(m1, m2):
+        return _allclose(m1.toarray(), m2.toarray())
+    def _cmp_tuple_or_list(var1, var2):
+        if len(var1) != len(var2):
+            return False
+        for v1, v2 in zip(var1, var2):
+            if isinstance(v1, dict):
+                if not _are_dicts_close(v1, v2):
+                    return False
+            elif _sci_sp is not None and isinstance(v1, _sci_sp.csc_matrix):
+                if not _are_csc_matrix_close(v1, v2):
+                    return False
+            elif isinstance(v1, bool):
+                if not (v1 == v2):
+                    return False
+            else:
+                try:
+                    if not _allclose(v1, v2):
+                        return False
+                except ValueError as e:
+                    if "truth value of an array with more than one element is ambiguous" in str(e):
+                        import sympy as _sympy
+                        if len(v1) != len(v2):
+                            return False
+                        for s1, s2 in zip(v1, v2):
+                            if _sympy.simplify(s1 - s2) != 0:
+                                return False
+                    else:
+                        return False
+        return True
+    _m_scicode = _types.ModuleType("scicode")
+    _m_compare = _types.ModuleType("scicode.compare")
+    _m_cmp = _types.ModuleType("scicode.compare.cmp")
+    _m_cmp.are_dicts_close = _are_dicts_close
+    _m_cmp.are_csc_matrix_close = _are_csc_matrix_close
+    _m_cmp.cmp_tuple_or_list = _cmp_tuple_or_list
+    _sys.modules.setdefault("scicode", _m_scicode)
+    _sys.modules.setdefault("scicode.compare", _m_compare)
+    _sys.modules["scicode.compare.cmp"] = _m_cmp
+"""
+
 
 def _indent(s: str) -> str:
     return "\n".join("    " + ln for ln in s.splitlines()) or "    pass"
 
 
 def _program(head: str, code: str, tail: str, body: str) -> str:
-    return "\n\n".join([head, code, tail, "import pickle, json, sys", body,
+    return "\n\n".join([SHIM, head, code, tail, "import pickle, json, sys", body,
                         f"print('{MARK}' + json.dumps(_res))"])
 
 
 def _run(text: str, tmp: Path, python: str, timeout: float) -> list | None:
     f = tmp / "agree_run.py"
     f.write_text(text)
-    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "OMP_NUM_THREADS": "1",
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(tmp),
+           "MPLCONFIGDIR": str(tmp), "OMP_NUM_THREADS": "1",
            "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"}
     try:
         p = subprocess.run([python, str(f)], capture_output=True, text=True, timeout=timeout,

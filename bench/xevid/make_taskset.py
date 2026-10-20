@@ -22,7 +22,8 @@ BRIEF = (
     "implementer is solving the same problem independently and cannot see your work. Your goal "
     "is accepted only when an automatic validator finds that your solution and theirs agree on "
     "every checkable test input. Physical conventions, units and edge cases matter. Keep "
-    "solution.py importable: no top-level computation, no printing, no plotting. The environment "
+    "solution.py importable: no top-level computation, no printing, no plotting. When submitting "
+    "your task, pass commit='HEAD' (the read-only /workspace seed commit). The environment "
     "has numpy, scipy, sympy and matplotlib installed (no network, do not install packages). I am "
     "not available during the run; decide everything yourselves."
 )

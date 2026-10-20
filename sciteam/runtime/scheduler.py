@@ -85,6 +85,8 @@ class Scheduler:
         self.timers: dict[str, tuple[str, datetime, str]] = {}
         self.cost_usd = 0.0
         self.started_at: datetime | None = None
+        self.paused_s = 0.0
+        self._stopped_at: datetime | None = None
         self.stop_requested = False
         self.paused: str | None = None
         self.stopped: str | None = None
@@ -130,7 +132,11 @@ class Scheduler:
             self.paused, self._halt = None, None
         elif t == "run_stopped":
             self.stopped = p["reason"]
+            self._stopped_at = ev.ts
         elif t == "run_resumed":
+            if self._stopped_at is not None and ev.ts > self._stopped_at:
+                self.paused_s += (ev.ts - self._stopped_at).total_seconds()
+            self._stopped_at = None
             self.stopped, self.stop_requested = None, False
         elif t == "agent_reset":
             st = self.agents[p["agent"]]
@@ -232,7 +238,11 @@ class Scheduler:
             self._trip("provider", self._halt)
             return
         b = self.cfg.budget
-        elapsed = (now - self.started_at).total_seconds() if self.started_at else 0.0
+        elapsed = (
+            max(0.0, (now - self.started_at).total_seconds() - self.paused_s)
+            if self.started_at
+            else 0.0
+        )
         if self.cost_usd >= b.cost_usd or elapsed >= b.wall_clock_s:
             self._trip("budget", {"cost_usd": round(self.cost_usd, 4), "elapsed_s": elapsed})
             return

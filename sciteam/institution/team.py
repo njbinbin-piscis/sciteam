@@ -20,14 +20,14 @@ from sciteam.institution.tools import (
     render_record,
     render_waiting_mine,
 )
-from sciteam.institution.validation import ValidationWorker
+from sciteam.institution.validation import ValidationWorker, digest_tree
 from sciteam.institution.view import InstitutionView
 from sciteam.kernel.config_store import ConfigStore
 from sciteam.kernel.events import Event
 from sciteam.providers.sandbox import DockerSandbox, DockerSandboxConfig, LocalSandbox
 from sciteam.providers.sandbox.base import Sandbox
 from sciteam.runtime.attention import AttentionItem
-from sciteam.runtime.config import TeamFile, validator_private_mounts
+from sciteam.runtime.config import TeamFile, private_root, validator_private_mounts
 from sciteam.runtime.scheduler import Scheduler
 from sciteam.runtime.team import RUN_FILE, TeamRun
 
@@ -86,8 +86,11 @@ class InstitutionTeamRun(TeamRun):
 
     def extensions(self, sched: Scheduler) -> list:
         self.institution.version_listeners.append(lambda rs: sched.set_policy(rs.comm))
+        root = private_root(self.workspace)
         worker = ValidationWorker(self.institution, workspace=self.workspace, blobs=self.blobs,
-                                  sandbox=self._validation_sandbox)
+                                  sandbox=self._validation_sandbox,
+                                  inputs=(lambda: digest_tree(root))
+                                  if self.runtime.sandbox.private_mount else None)
         return [InstitutionExtension(self.institution, worker)]
 
     def _validation_sandbox(self, root: Path) -> Sandbox:

@@ -3,6 +3,7 @@
 The validator never sees released targets; these tests use a tiny inputs-only bundle, so they
 need no SciCode data. Each check runs three short subprocesses, so the file takes seconds."""
 
+import json
 import sys
 from pathlib import Path
 
@@ -49,10 +50,13 @@ def test_two_identical_wrong_solutions_pass_the_known_residual_risk():
     assert rep["agree"]
 
 
-@pytest.mark.parametrize("a,b,reason", [
-    (CRASH, GOOD, "no_value_a"),
-    (GOOD, CRASH, "no_value_b"),
-])
+@pytest.mark.parametrize(
+    "a,b,reason",
+    [
+        (CRASH, GOOD, "no_value_a"),
+        (GOOD, CRASH, "no_value_b"),
+    ],
+)
 def test_a_crash_counts_as_disagreement(a, b, reason):
     rep = _check(a, b)
     assert not rep["agree"]
@@ -87,10 +91,9 @@ def test_cli_exit_code_follows_the_verdict(tmp_path, capsys):
 def test_bundle_carries_no_released_targets():
     import json
 
-    import pytest as _pt
-
     import bundle
     import grade
+    import pytest as _pt
 
     if not grade.DATA.exists():
         _pt.skip("SciCode data not present")
@@ -105,5 +108,35 @@ def test_missing_solution_file_is_a_disagreement(tmp_path):
 
     bundle = tmp_path / "b.json"
     bundle.write_text(json.dumps(BUNDLE))
-    assert agree.main([str(bundle), str(tmp_path / "none.py"), str(tmp_path / "none.py"),
-                       "--python", sys.executable]) == 1
+    assert (
+        agree.main(
+            [str(bundle), str(tmp_path / "none.py"), str(tmp_path / "none.py"), "--python", sys.executable]
+        )
+        == 1
+    )
+
+
+def test_analysis_counts_precision_coverage_and_excludes_breaker_runs(tmp_path):
+    import evid_analyze as analyze
+
+    def put(arm, task, r, closed, score, impl1, breaker=False):
+        d = tmp_path / arm / task / f"r{r}"
+        d.mkdir(parents=True)
+        (d / "result.json").write_text(
+            json.dumps({"arm": arm, "task": task, "cost_usd": 0.1, "replay_ok": True, "breaker": breaker})
+        )
+        (d / "score.json").write_text(
+            json.dumps({"closed": closed, "score": score, "impl1": {"score": impl1}})
+        )
+
+    put("compute-control", "a", 1, True, 1.0, 1.0)
+    put("compute-control", "a", 2, True, 0.5, 0.5)
+    put("replicate-same", "a", 1, True, 1.0, 1.0)
+    put("replicate-same", "a", 2, False, 0.0, 1.0)  # not closed although impl1 was right
+    put("replicate-same", "a", 3, True, 0.2, 0.2, breaker=True)
+    res = analyze.analyze(tmp_path, boot=20)
+    ctl, rep = res["arms"]["compute-control"], res["arms"]["replicate-same"]
+    assert (ctl["precision"], ctl["false_closures"]) == (0.5, 1)
+    assert (rep["n"], rep["closed_rate"], rep["precision"], rep["coverage_loss"]) == (2, 0.5, 1.0, 1)
+    assert res["excluded"] == {"replicate-same": 1}
+    assert res["paired_vs_control"]["replicate-same"]["precision"]["diff"] == 0.5

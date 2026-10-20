@@ -33,3 +33,6 @@ bench/scicode/*.log
 bench/scicode/envs/
 bench/scicode/audit/
 bench/xevid/bundles/
+
+# Locally downloaded wheels (installed into sandboxes, not source)
+*.whl

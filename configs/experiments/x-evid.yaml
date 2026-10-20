@@ -1,12 +1,13 @@
-# X-evid (docs/60 §6.6 v2): can two independent solutions, compared by a validator, produce evidence
-# that catches errors? DRAFT: not registered and not runnable until the seven-question review (§2)
-# is passed and the registration is written in docs/60 §6.6. Changing this file after registration
-# makes a new experiment.
+# X-evid (docs/60 §6.6 v2, registered 2026-10-17, interpreter_digest: 3511c17957b56c214b9336b37eace773ae8f51ea9df43cfb59b5b40d35c8fbd3):
+# Can two double-blind independent implementations, compared by an institutional validator on auditor
+# approval (with at most 1 blind self-check round before honest cancellation), generate internal
+# evidence that catches errors beyond compute-control? Changing this file after registration makes a
+# new experiment.
 name: x-evid
 hypothesis: >-
-  Primary: the answer-level score (0 when the question is not closed). Predicted ordering
-  (pre-registered): replicate-cross >= replicate-same > compute-control, SESOI 0.05 on the paired
-  mean difference. Secondary: closed rate, and accuracy among closed runs (precision of the gate).
+  Decision metric (docs/60 section 6.6 registration): precision = P(score >= 1 | closed); the two
+  replicate arms are predicted to exceed compute-control by >= 0.10 (SESOI). Net score (0 when not
+  closed) and closed rate are reported alongside; `primary: score` only feeds the runner report.
 primary: score
 success: 1.0
 tasks: tasksets/xevid-scicode.yaml
@@ -35,8 +36,8 @@ only_tasks:
 - p76
 - p79
 - p80
-repeats: 8
-parallel: 4
+repeats: 6
+parallel: 10
 arms:
 - name: replicate-same
   team: teams/x-evid.yaml
@@ -57,5 +58,5 @@ owner:
   mode: auto-approve
   nudges: 0
   nudge_text: "-"
-  max_rounds: 8
+  max_rounds: 2
 audit: .venv/bin/python bench/team/check.py {run} --json {out}

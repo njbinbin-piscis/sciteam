@@ -32,9 +32,13 @@ def closed(run: Path) -> bool:
     finally:
         store.close()
     created = [e.payload.get("task", e.payload) for e in evs if e.type == "task_created"]
-    goals = {t["id"] for t in created if "goal" in (t.get("labels") or [])}
-    accepted = {e.payload["subject"] for e in evs
-                if e.type == "fact_established" and e.payload.get("fact") == "accepted"}
+    # only the owner's goal tasks count: a member cannot add or relabel one to change the verdict
+    goals = {t["id"] for t in created if "goal" in (t.get("labels") or []) and t.get("created_by") == "owner"}
+    accepted = {
+        e.payload["subject"]
+        for e in evs
+        if e.type == "fact_established" and e.payload.get("fact") == "accepted"
+    }
     return len(goals) == 2 and goals <= accepted
 
 
@@ -51,8 +55,8 @@ def grade_run(pid: str, workspace: Path) -> dict:
         "passed": answer["n_ok"] if is_closed else 0,
         "total": answer["total"],
         "problem_correct": bool(is_closed and answer["problem_correct"]),
-        "impl1": {k: per["impl1"][k] for k in ("score", "n_ok", "total", "problem_correct")},
-        "impl2": {k: per["impl2"][k] for k in ("score", "n_ok", "total", "problem_correct")},
+        "impl1": {k: per["impl1"][k] for k in ("score", "n_ok", "total", "problem_correct", "steps")},
+        "impl2": {k: per["impl2"][k] for k in ("score", "n_ok", "total", "problem_correct", "steps")},
     }
 
 

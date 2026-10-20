@@ -1,20 +1,34 @@
-# X-evid: one judgment, the agreement validator, which runs on submit. Acceptance = validated.
+# X-evid (docs/60 §6.6, §6.8, D18): two-stage institutional evidence separation.
+#
+# Stage 1 (`present`, on `submit`): fast non-empty file check (<1s) that moves a member's goal
+# task to `in_review`. Implementing and self-testing happen in complete double-blind isolation.
+# Stage 2 (`agree`, on `approve`): when both implementers have finished and submitted (`T1` and
+# `T2` are both `in_review`), the reviewer approves, triggering the pairwise output agreement
+# validator once on the two finished solutions. Because `ValidationWorker` caches by
+# `(validator, commit, command, inputs)`, the second task's approval reuses the first validation's
+# verdict in 0s.
 validators:
-  acceptance:
-    command: "{task.acceptance}"
+  present:
+    command: "test -s /private/impl1/solution.py || test -s /private/impl2/solution.py"
+    timeout_s: 60
+  agree:
+    command: "python /xevid/agree.py /xevid/bundle/bundle.json /private/impl1/solution.py /private/impl2/solution.py"
     timeout_s: 1800
 
 requirements:
-  - name: work-has-predicate
-    act: task_create
-    require: [{field: acceptance}]
-  - name: submit-validated
+  - name: goal-submit-present
     act: task_transition
     transition: submit
-    require: [{validate: [acceptance]}]
+    where: {task_label: goal}
+    require: [{validate: [present]}]
+  - name: goal-approve-agreed
+    act: task_transition
+    transition: approve
+    where: {task_label: goal}
+    require: [{distinct: [actor, task.assignee]}, {validate: [agree]}]
 
 facts:
   - name: accepted
     when: {event: task_status_changed, to: done}
-    require: [{validated: acceptance}]
+    require: [{validated: present}]
     revoke_when: {event: task_status_changed, transition: reopen}

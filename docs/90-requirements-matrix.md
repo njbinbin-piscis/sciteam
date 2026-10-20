@@ -56,6 +56,7 @@
 | X2 | 实验可声明、可续跑 | `configs/experiments/*.yaml`；`sciteam exp run`（60 §3.1–3.2） | 展开、交错、跳过已完成的 run | minipkg 冒烟 | 有真实证据：minipkg 冒烟、X-base 60 个 run、X-inst 五臂冒烟均无人工介入跑完 |
 | X3 | 外部客观判分 | `Grader`：minipkg-hidden、commit0、swebench（60 §3.3） | commit0：参考实现约满分、挖空仓库约零分 | X-base 校准 | 有真实证据：15 个库的参考实现 ≥ 0.998，minitorch 0.065 已排除；X-base 60 个 run 都完成判分。babel 待核查（60 §4.1） |
 | X4 | 指标只由事件与判分计算 | `closed`、`false_closure`、`stuck`、`recovered` 等（60 §5） | 合成事件流 | 各实验报告 | 单测 + 真实 run：X-inst 冒烟中 `false_closure`、`recovered` 按定义计出 |
-| X5 | v1 三个机制在真实 agent 下的消融（Q1） | X-inst 五臂覆盖层（60 §6） | 覆盖层各自只改一个机制 | 90 个 run | 进行中：`commit0-inst` 已登记（60 §4.1）；五臂冒烟通过；正式 90 个 run 未开跑 |
+| X5 | 审查、证据与内生验证机制在真实 agent 下的消融（Q1 / Q1a / Q1b） | X-inst 五臂覆盖层（60 §6.2）、X-inst-confirm + `x-abandon-pilot`（60 §6.7）、X-evid 双盲复算三臂（60 §6.6、§6.9） | 覆盖层各自只改一个机制；`evid_analyze.py` 重算与两层/按题聚类 bootstrap | X-inst 90 runs + X-inst-confirm 576 runs + `x-abandon-pilot` 10 runs + X-evid 432 runs | **有真实证据**：Q1（90/90 有效，无独立证据时审查无效）→ Q1a（576 runs + 10 runs，留出证据将已关闭均分从 0.562 提至 0.996，赋予角色取消权将死循环从 90% 降至 30%）→ Q1b（432/432 完成，431 有效 + 1 断路器，双盲复算显著削减 39%–47% 虚假关闭、首轮精确率 +10.7%，并锁定对称闸门 `(1,0)` 损耗与步骤名锚定定律） |
 | X6 | 五种模式对比 + 单 agent（Q2） | X-mode（60 §7） | — | 224 个 run | 设计 |
 | X7 | 修宪驱动的跨任务演化（Q3）与 co-scientist 干实验（Q4） | `exp carry`；X-sci v0.2（60 §8–9） | carry 只导出修宪产生的文件 | X-evo 两臂各 2 条链；X-sci 待登记 | 设计 |
+| X8 | 人机混合组织的注意力路由与裁决制度（Q6）及人类席位操作台 | `X-human` 四臂覆盖层（60 §14）+ `sciteam_web` 双平面操作台（`70-web.md` W1–W4） | 人类动作经同一 `CommService.submit` 入账且 `check.py` 重放一致；注意力遥测指标重算 | Track A（288 runs 受控代理 PI）+ Track B（36 runs 真人经 `70-web` 盲测） | 设计（60 §14、`70-web.md` v0.1） |
