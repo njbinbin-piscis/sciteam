@@ -169,12 +169,22 @@ def act(run_dir: Path, *, as_: str, kind: str, params: dict) -> bool:
         tr.close()
 
 
+def _repo_root() -> Path:
+    """The checkout that owns this code. A submodule sits inside a larger repo, so take the
+    outermost directory that still looks like the project."""
+    found = Path(__file__).resolve().parents[2]
+    for p in Path(__file__).resolve().parents:
+        if (p / "pyproject.toml").is_file() and (p / "sciteam").is_dir():
+            found = p
+    return found
+
+
 def _sh(cmd: str, log: Path) -> int:
     with log.open("a") as f:
         f.write(f"$ {cmd}\n")
         f.flush()
         return subprocess.call(cmd, shell=True, stdout=f, stderr=subprocess.STDOUT,
-                               cwd=Path(__file__).resolve().parents[2])
+                               cwd=_repo_root())
 
 
 IDENTITY = "identity.json"
