@@ -1,5 +1,5 @@
 ---
-summary: Waves: a coordinator plans work in waves (wave k+1 depends on all of wave k); workers talk only to the coordinator.
+summary: "Waves: a coordinator plans work in waves (wave k+1 depends on all of wave k); workers talk only to the coordinator."
 ---
 Waves: a coordinator plans work in waves (wave k+1 depends on all of wave k); workers talk only to the coordinator.
 

@@ -8,6 +8,8 @@ import yaml
 from sciteam.comm.service import CommClient
 from sciteam.comm.tools import _obj, _result
 from sciteam.harness.tools.base import ToolContext, ToolResult
+from sciteam.institution.amend import CHANGES_HELP
+from sciteam.institution.defects import render_defects
 from sciteam.institution.gate import act_task, summarize
 from sciteam.institution.model import VOCABULARY
 from sciteam.institution.service import InstitutionService
@@ -36,9 +38,16 @@ def render_procedure(svc: InstitutionService) -> str:
     return (f"Amendable files: {', '.join(spec.amendable)}. Proposers: {spec.proposers}; "
             f"voters: {spec.voters}. An amendment passes with {need} yes and at most "
             f"{p.no_at_most} no within {spec.voting_window_s / 60:.0f} minutes"
-            f"{_ratify_text(spec)}. Protected rules "
-            f"(must stay unchanged): {', '.join(spec.protected_rules) or 'none'}. Proposing "
-            f"counts as your yes vote if you are a voter.")
+            f"{_ratify_text(spec)}. Protected rules (must stay unchanged; rule:key keeps "
+            f"that rule's conditions with the key): {', '.join(spec.protected_rules) or 'none'}."
+            f" Proposing counts as your yes vote if you are a voter."
+            + (f" Admission of a change to the rules file: the proposal cites defect records and re-adjudicating the recorded "
+               f"Acts must fix >= {spec.admission.fixed_at_least} of the Acts they concern and "
+               f"regress at most max({spec.admission.regressed_at_most}, "
+               f"{spec.admission.regressed_fraction:.0%} of allowed Acts); a validator the new "
+               f"rules run is first run on the recorded commits it would have checked, and "
+               f"admission waits for those runs; a proposal that would allow Acts once denied "
+               f"needs human ratification." if spec.admission else ""))
 
 
 def _ratify_text(spec) -> str:
@@ -131,16 +140,55 @@ class ProposeAmendmentTool:
     readonly = False
     spec = ToolSpec(
         name="propose_amendment",
-        description=("Propose a change to an amendable rule-set file. content: the complete new "
-                     "text of the file (see rules(file=...) for the current text). rationale: "
-                     "why. Returns the amendment id and the diff; voters are notified."),
-        parameters=_obj({"path": _STR, "content": _STR, "rationale": _STR},
-                        ["path", "content", "rationale"]),
+        description=("Propose a change to the rules. Prefer changes=[...], structured edits of "
+                     "the rules file in force; or give path and content, the complete new text "
+                     "of an amendable file (see rules(file=...)). defects: the defect records "
+                     "(see `defects`) the change fixes. The institution re-decides every "
+                     "recorded Act of the project under the proposed rules and admits the "
+                     "proposal only if it fixes the cited defects without regressing accepted "
+                     "work. rationale: why.\n" + CHANGES_HELP),
+        parameters=_obj({"changes": {"type": "array", "items": {"type": "object"}},
+                         "defects": {"type": "array", "items": _STR},
+                         "path": _STR, "content": _STR, "rationale": _STR}, ["rationale"]),
     )
 
     async def run(self, args: dict[str, Any], ctx: ToolContext) -> ToolResult:
         r = _client(ctx).submit("propose_amendment", args)
-        return _result(r, f"proposed {r.data.get('amendment')}:\n{r.data.get('diff', '')}")
+        review = r.data.get("review") or ""
+        return _result(r, f"proposed {r.data.get('amendment')}:\n{review}\n"
+                          f"{r.data.get('diff', '')}".replace("\n\n", "\n"))
+
+
+class DefectsTool:
+    readonly = True
+    spec = ToolSpec(
+        name="defects",
+        description=("Defect records: accepted results later shown wrong (overturned by the "
+                     "owner, failed replication, contradicted by a later claim), each with the "
+                     "rules and endorsers of the original decision. Cite them in "
+                     "propose_amendment(defects=[...])."),
+        parameters=_obj({}, []),
+    )
+
+    async def run(self, args: dict[str, Any], ctx: ToolContext) -> ToolResult:
+        return ToolResult(content=render_defects(_svc(ctx).inst))
+
+
+class OverturnClaimTool:
+    readonly = False
+    spec = ToolSpec(
+        name="overturn_claim",
+        description=("Record that an accepted result is wrong because a later claim that "
+                     "replayed contradicts it. task: the accepted task; claim: its claim (name "
+                     "or id); by_claim: the id of the later replayed claim; reason: the "
+                     "contradiction. The task reopens and a defect record is written."),
+        parameters=_obj({"task": _STR, "claim": _STR, "by_claim": _STR, "reason": _STR},
+                        ["task", "by_claim", "reason"]),
+    )
+
+    async def run(self, args: dict[str, Any], ctx: ToolContext) -> ToolResult:
+        r = _client(ctx).submit("overturn_claim", args)
+        return _result(r, f"recorded {r.data.get('defect')}; {r.data.get('task')} reopened")
 
 
 class VoteTool:
@@ -191,7 +239,7 @@ class DecidePendingTool:
         r = _client(ctx).submit("decide_pending", args)
         if r.ok:
             _svc(ctx).settle()
-        return _result(r, f"{args['decision']}d {r.data.get('id')}")
+        return _result(r, f"{str(args['decision']).rstrip('e')}ed {r.data.get('id')}")
 
 
 class StandingTool:
@@ -237,7 +285,7 @@ class PendingTool:
         amendments = [f"- {a.id} by @{a.proposer} on {a.path}: {a.status}; votes "
                       f"{yaml.safe_dump(a.votes, default_flow_style=True).strip()}; "
                       f"{a.rationale[:200]}"
-                      for a in inst.amendments.values() if a.status in ("open", "ratifying")]
+                      for a in inst.amendments.values() if a.status in ("trial", "open", "ratifying")]
         parts = ["## Yours, waiting", "\n".join(mine) or "(none)",
                  "## Awaiting you", "\n".join(awaiting(svc, me)) or "(none)",
                  "## Open amendments", "\n".join(amendments) or "(none)"]
@@ -297,7 +345,155 @@ class RevokeEnvironmentTool:
         return _result(r, f"revoked {r.data.get('env')}")
 
 
+_SPEC_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reproduce": {"type": "string", "description": "shell command, run at the repository "
+                      "root of a clean export, that regenerates the output files from the code"},
+        "claims": {"type": "array", "items": {"type": "object", "properties": {
+            "name": _STR, "file": _STR, "pointer": _STR, "description": _STR,
+            "min": {"type": "number"}, "max": {"type": "number"}},
+            "required": ["name", "file", "pointer"]}},
+        "deliverables": {"type": "array", "items": _STR},
+        "rel_tol": {"type": "number"}, "abs_tol": {"type": "number"},
+        "timeout_s": {"type": "number"}, "notes": _STR},
+    "required": ["reproduce", "claims"],
+}
+
+
+def render_acceptance(svc: InstitutionService, task_id: str, viewer: str | None = None) -> str:
+    """The spec, the author's claims, and the viewer's own reviewer claims and attestations;
+    the author sees reviewers' work only as counterexamples routed to them."""
+    from sciteam.institution.claims import render_spec
+
+    inst = svc.inst
+    spec, cur = inst.spec(task_id), inst.specs.get(task_id)
+    if spec is None:
+        return f"{task_id} has no typed acceptance spec."
+    lines = [f"{task_id} acceptance spec {cur['spec_sha']} (by @{cur['by']}):", render_spec(spec)]
+    mine = [c for c in inst.claims.values() if c.task_id == task_id
+            and c.spec_sha == cur["spec_sha"] and (c.adhoc is None or c.actor == viewer)]
+    if mine:
+        lines.append("Claims:")
+        lines += [f"- {c.id} {c.name} = {c.value:g} on {c.commit[:10]} by @{c.actor}"
+                  f"{' (own reproduction: ' + c.adhoc['reproduce'] + ')' if c.adhoc else ''}: "
+                  f"{c.status}{' (' + c.code + ')' if c.code else ''}" for c in mine[-30:]]
+    atts = [a for a in inst.attestations.values() if a.task_id == task_id and a.by == viewer]
+    if atts:
+        lines.append("Your attestations:")
+        lines += [f"- {a.id} {a.name} ({a.claim_id}): {a.verdict}"
+                  f"{' → ' + a.routed if a.routed else ''}" for a in atts[-30:]]
+    return "\n".join(lines)
+
+
+class ProposeAcceptanceTool:
+    readonly = False
+    spec = ToolSpec(
+        name="propose_acceptance",
+        description=("Set the typed acceptance spec of a task you created or are assigned: the "
+                     "command that reproduces its outputs and the numbers (claims) it must "
+                     "report, each at file + JSON Pointer (e.g. results.json, /fit/Km), with an "
+                     "optional plausible range [min, max]. Where the rules ask for it, the spec "
+                     "waits for the owner's confirmation. Submitting the task then needs each "
+                     "claim recorded with record_claim and replayed from a clean export."),
+        parameters=_obj({"task": _STR, "spec": _SPEC_SCHEMA}, ["task", "spec"]),
+    )
+
+    async def run(self, args: dict[str, Any], ctx: ToolContext) -> ToolResult:
+        r = _client(ctx).submit("propose_acceptance", args)
+        res = _result(r, f"acceptance spec {r.data.get('spec_sha')} set on {r.data.get('task')}")
+        if res.is_error:
+            return res
+        preview = await _preview(args.get("spec"), ctx)
+        if preview:
+            res.content += ("\nThe workspace's current files, read at each claim's pointer:\n"
+                            + "\n".join(f"- {p}" for p in preview))
+        return res
+
+
+async def _preview(raw: Any, ctx: ToolContext) -> list[str]:
+    from sciteam.institution.claims import parse_spec, preview_spec
+
+    try:
+        spec = parse_spec(raw)
+    except Exception:
+        return []
+    texts: dict[str, str | None] = {}
+    for f in {c.file for c in spec.claims}:
+        try:
+            texts[f] = (await ctx.sandbox.read_file(f)).decode()
+        except Exception:
+            texts[f] = None
+    return preview_spec(spec, texts)
+
+
+class RecordClaimTool:
+    readonly = False
+    spec = ToolSpec(
+        name="record_claim",
+        description=("Record the value of one claim the task's acceptance spec names, as "
+                     "computed on commit. The spec's reproduce command reruns on a clean export "
+                     "of that commit without network; the claim replays when the value read at "
+                     "its file + pointer matches within tolerance (and lies in its range). You "
+                     "are notified of the outcome. A reviewer records their own reproduction "
+                     "the same way, with reproduce=<their command, e.g. python "
+                     "/private/<you>/check.py> and, for a quantity the spec does not name, "
+                     "file and pointer; such a claim is the basis or counterexample of attest."),
+        parameters=_obj({"task": _STR, "claim": _STR, "value": {"type": "number"},
+                         "commit": _STR, "reproduce": _STR, "file": _STR, "pointer": _STR},
+                        ["task", "claim", "value", "commit"]),
+    )
+
+    async def run(self, args: dict[str, Any], ctx: ToolContext) -> ToolResult:
+        r = _client(ctx).submit("record_claim", args)
+        return _result(r, f"recorded {r.data.get('claim')} on {r.data.get('task')}; its replay "
+                       f"runs now and you are notified of the outcome")
+
+
+class AttestTool:
+    readonly = False
+    spec = ToolSpec(
+        name="attest",
+        description=("Attest one claim of a task in review, after reproducing it yourself. "
+                     "verdict=pass with basis=<id of your claim on this task that replayed>; "
+                     "verdict=reject with counterexample=<id of a claim you recorded whose "
+                     "replay shows the defect> — the author then receives only that "
+                     "counterexample; verdict=abstain when you disagree without a "
+                     "counterexample — the claim goes to adjudication."),
+        parameters=_obj({"task": _STR, "claim": _STR,
+                         "verdict": {"type": "string", "enum": ["pass", "reject", "abstain"]},
+                         "basis": _STR, "counterexample": _STR},
+                        ["task", "claim", "verdict", "basis"]),
+    )
+
+    async def run(self, args: dict[str, Any], ctx: ToolContext) -> ToolResult:
+        r = _client(ctx).submit("attest", args)
+        routed = {"author": "; the task went back to its author with the counterexample",
+                  "adjudication": "; the claim went to adjudication"}.get(
+            r.data.get("routed", ""), "")
+        return _result(r, f"attested ({r.data.get('attestation')}) on {r.data.get('task')}"
+                       f"{routed}")
+
+
+class AcceptanceTool:
+    readonly = True
+    spec = ToolSpec(
+        name="acceptance",
+        description="Show a task's typed acceptance spec and the claims recorded against it.",
+        parameters=_obj({"task": _STR}, ["task"]),
+    )
+
+    async def run(self, args: dict[str, Any], ctx: ToolContext) -> ToolResult:
+        svc = _svc(ctx)
+        task = svc.comm.view.resolve_task(str(args.get("task", "")))
+        if task is None:
+            return ToolResult(content=f"error: unknown task '{args.get('task')}'", is_error=True)
+        return ToolResult(content=render_acceptance(svc, task.id, _client(ctx).actor))
+
+
 INSTITUTION_TOOLS = {t.spec.name: t for t in (
+    ProposeAcceptanceTool(), RecordClaimTool(), AttestTool(), AcceptanceTool(),
     CertifyEnvironmentTool(), RevokeEnvironmentTool(),
     RulesTool(), ProposeAmendmentTool(), VoteTool(), WithdrawAmendmentTool(),
-    DecidePendingTool(), StandingTool(), PendingTool(), ValidationOutputTool())}
+    DecidePendingTool(), StandingTool(), PendingTool(), ValidationOutputTool(),
+    DefectsTool(), OverturnClaimTool())}

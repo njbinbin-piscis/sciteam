@@ -1,5 +1,5 @@
 ---
-summary: Workflow (DAG): a planner defines tasks and dependencies up front; workers do not talk to each other, only through task notes.
+summary: "Workflow (DAG): a planner defines tasks and dependencies up front; workers do not talk to each other, only through task notes."
 ---
 Workflow (DAG): a planner defines tasks and dependencies up front; workers do not talk to each other, only through task notes.
 

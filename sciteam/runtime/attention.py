@@ -35,6 +35,15 @@ def agent_of_activation_stream(stream: str) -> str | None:
     return None
 
 
+def agent_of_stream(stream: str) -> str | None:
+    """The member whose activation, or a sub-agent under it, wrote this stream
+    (agent/<id>/act/<activation_id>[/sub/<sub_id>...]); its tokens are that member's."""
+    parts = stream.split("/")
+    if len(parts) >= 4 and parts[0] == "agent" and parts[2] == "act":
+        return parts[1]
+    return None
+
+
 def _claimers(view: CommView, gate: PolicyGate, task_id: str) -> list[str]:
     t = view.tasks[task_id]
     return [m.id for m in view.agents()
@@ -51,12 +60,12 @@ def _open_and_ready(view: CommView, task_id: str) -> bool:
 def attention_for(ev: Event, view: CommView, policy: CommPolicy, gate: PolicyGate
                   ) -> list[AttentionItem]:
     """Items caused by `ev`; `view` must already include `ev`."""
-    reasons: dict[str, tuple[set[str], str]] = {}
+    reasons: dict[str, dict[str, str]] = {}   # agent -> kind -> ref
 
     def add(agent: str | None, kind: str, ref: str = "") -> None:
         if not agent or agent == ev.actor or agent not in view.members:
             return
-        reasons.setdefault(agent, (set(), ref))[0].add(kind)
+        reasons.setdefault(agent, {}).setdefault(kind, ref)
 
     p = ev.payload
     if ev.type == "message_posted":
@@ -97,6 +106,8 @@ def attention_for(ev: Event, view: CommView, policy: CommPolicy, gate: PolicyGat
         if reopened and _open_and_ready(view, t.id):
             for c in _claimers(view, gate, t.id):
                 add(c, "task_open", t.id)
+        if p["to"] in TERMINAL and t.assignee:
+            _free_to_claim(t.assignee, view, gate, add)
         _readiness(ev, view, gate, add)
     elif ev.type == "task_created":
         t = view.tasks[p["task"]["id"]]
@@ -104,29 +115,41 @@ def attention_for(ev: Event, view: CommView, policy: CommPolicy, gate: PolicyGat
             for c in _claimers(view, gate, t.id):
                 add(c, "task_open", t.id)
     elif ev.type == "timer_fired":
-        reasons[p["agent"]] = ({"timer"}, p.get("timer_id", ""))
+        reasons[p["agent"]] = {"timer": p.get("timer_id", "")}
     elif ev.type == "activation_finished":
         agent = agent_of_activation_stream(ev.stream)
         if agent:
             if p["outcome"] in ("handoff", "budget_exhausted"):
-                reasons[agent] = ({"continue"}, "")
+                reasons[agent] = {"continue": ""}
             elif p["outcome"] == "error" and p.get("reason") != "cancelled":
-                reasons[agent] = ({"retry"}, "")
+                reasons[agent] = {"retry": ""}
 
     out = []
-    for agent, (kinds, ref) in reasons.items():
+    for agent, kinds in reasons.items():
         kind = next(k for k in PRIORITY if k in kinds)
         wakes = kind in ALWAYS_WAKE or any(k in policy.wake_on for k in kinds)
         if wakes:
             kind = next(k for k in PRIORITY if k in kinds and
                         (k in policy.wake_on or k in ALWAYS_WAKE))
-        if kind == "task_assigned" and kinds == {"task_assigned"}:
+        ref = kinds[kind]
+        if kind == "task_assigned" and kinds.keys() == {"task_assigned"}:
             t = view.tasks.get(ref)
             if t is not None and unmet(t, view.tasks, "start"):
                 wakes = False  # task_ready wakes the assignee once it can start
         out.append(AttentionItem(agent=agent, kind=kind, seq=ev.seq, ts=ev.ts, wakes=wakes,
                                  ref=ref))
     return out
+
+
+def _free_to_claim(agent: str, view: CommView, gate: PolicyGate, add) -> None:
+    """An agent whose task just closed hears of an open task it may claim: tasks posted while
+    everyone was busy raised their one `task_open` then, and nobody claimed them."""
+    if any(t.assignee == agent and t.status not in TERMINAL for t in view.tasks.values()):
+        return
+    for t in view.tasks.values():
+        if _open_and_ready(view, t.id) and agent in _claimers(view, gate, t.id):
+            add(agent, "task_open", t.id)
+            return
 
 
 def _readiness(ev: Event, view: CommView, gate: PolicyGate, add) -> None:

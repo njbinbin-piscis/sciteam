@@ -268,6 +268,51 @@ async def test_dependency_readiness_wakes_assignee(tmp_path):
     assert "was assigned to you" in b and "unblocked" in b
 
 
+async def test_finish_is_sent_back_while_workable_tasks_are_held(tmp_path):
+    tasks = [{"key": "a", "by": "owner", "title": "A", "assignee": "dev1"},
+             {"key": "c", "by": "owner", "title": "C", "assignee": "dev1", "deps": ["a"]}]
+    run = setup(tmp_path, tasks=tasks, runtime={"finish_checks_held_tasks": True})
+    llms = {"dev1": FnLlm([fin(), tc("task_transition", task="T1", transition="start"),
+                           fin("blocked"), fin("blocked")], loop=fin("blocked"))}
+    assert await go(run, llms) == "quiescent"
+    tr = TeamRun(run, models={"scripted": TEST_MODEL})
+    try:
+        fins = [e.payload for e in tr.store.read_global(stream_prefix="agent/dev1/")
+                if e.type == "tool_finished" and e.payload["name"] == "finish"]
+        first = tr.blobs.get_text(fins[0]["content_ref"])
+    finally:
+        tr.close()
+    # completed with T1 startable is sent back; T2 waits on T1 and is not workable yet;
+    # the first blocked while T1 is in progress is sent back once, the second is accepted
+    assert [f["is_error"] for f in fins[:3]] == [True, True, False]
+    assert "T1 [assigned]" in first and "T2" not in first
+    outcomes = [e.payload["outcome"] for e in activations_finished(run, "dev1")]
+    assert outcomes[0] == "blocked"
+
+
+async def test_reviewer_finish_is_sent_back_while_a_review_waits(tmp_path):
+    tasks = [{"key": "a", "by": "owner", "title": "A", "assignee": "dev1", "reviewer": "dev2"}]
+    run = setup(tmp_path, tasks=tasks, runtime={"finish_checks_held_tasks": True})
+    llms = {"dev1": FnLlm([tc("task_transition", task="T1", transition="start"),
+                           tc("task_transition", task="T1", transition="submit"), fin()]),
+            "dev2": FnLlm([fin("need_input"),
+                           tc("task_transition", task="T1", transition="approve"), fin()])}
+    assert await go(run, llms) == "quiescent"
+    fins = [e.payload for e in events(run, "tool_finished", "agent/dev2/")
+            if e.payload["name"] == "finish"]
+    assert [f["is_error"] for f in fins] == [True, False]
+    tr = TeamRun(run, models={"scripted": TEST_MODEL})
+    try:
+        assert "T1 [in_review]" in tr.blobs.get_text(fins[0]["content_ref"])
+        assert tr.comm.view.tasks["T1"].status == "done"
+    finally:
+        tr.close()
+
+
+def activations_finished(run: Path, agent: str):
+    return events(run, "activation_finished", f"agent/{agent}/")
+
+
 async def test_workflow_policy_denies_peer_messages(tmp_path):
     tasks = [{"key": "a", "by": "owner", "title": "A", "assignee": "dev1"}]
     run = setup(tmp_path, policy="workflow", tasks=tasks)
@@ -298,6 +343,18 @@ async def test_handoff_continues_and_error_faults(tmp_path):
     outcomes = [e.payload["reason"] for e in events(run, "activation_finished", "agent/dev2/")]
     assert outcomes == ["no_finish", "no_finish"]  # one retry, then faulted
     assert events(run, "run_quiescent")[-1].payload["faulted"] == ["dev2"]
+
+
+async def test_rate_limits_retry_without_faulting(tmp_path):
+    from sciteam.providers.llm.types import Transient
+    run = setup(tmp_path)
+    human_says(run, "@dev1", "job")
+    llms = {"dev1": FnLlm([Transient("TPM limit reached")] * 3 + [fin()])}
+    assert await go(run, llms) == "quiescent"
+    outcomes = [(e.payload["outcome"], e.payload.get("reason"))
+                for e in events(run, "activation_finished", "agent/dev1/")]
+    assert outcomes == [("error", "provider_unavailable")] * 3 + [("completed", None)]
+    assert events(run, "run_quiescent")[-1].payload["faulted"] == []
 
 
 async def test_timer_keeps_run_alive_and_wakes(tmp_path):

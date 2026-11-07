@@ -9,14 +9,19 @@ from sciteam.kernel.events import Event
 GOAL_REASONS = ("goal_met",)
 
 
-def replay_ok(check: dict[str, Any]) -> bool:
+def replay_ok(check: dict[str, Any]) -> bool | None:
+    """None when the audit produced no check data (audit step failed): the run is
+    then reported unaudited instead of crashing the driver (observed 2026-10-25)."""
     inst = check.get("I", {}).get("I1")
     if inst is not None:
         r = inst["replay"]
         equal = all(v for k, v in r.items() if k.endswith("_equal"))
         return r["decision_mismatches"] == 0 and equal and \
             inst["domain_events_without_allowed_act"] == 0
-    r = check["C5"]["replay"]
+    c5 = check.get("C5")
+    if not c5:
+        return None
+    r = c5["replay"]
     return r["decision_or_event_mismatches"] == 0 and r["domain_events_without_allowed_act"] == 0
 
 

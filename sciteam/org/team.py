@@ -89,10 +89,11 @@ class OrgExtension:
             notes.append((m["id"], f"You were hired by @{p['hired_by']} as {p['seat']}. Your "
                           f"briefing has the mission and your seat's charter; see `org` for "
                           f"the organization and start on your responsibilities."))
-        elif ev.type in ("goal_met", "goal_reopened"):
-            what = "met: the run stops" if ev.type == "goal_met" else "no longer met"
+        elif ev.type in ("goal_met", "goal_reopened", "goal_delivered"):
+            what = {"goal_met": "met: the run stops", "goal_reopened": "no longer met",
+                    "goal_delivered": "delivered by the team and awaiting your acceptance"}
             for h in view.humans():
-                notes.append((h.id, f"Goal(s) {', '.join(p['goals'])} {what}."))
+                notes.append((h.id, f"Goal(s) {', '.join(p['goals'])} {what[ev.type]}."))
         return [AttentionItem(agent=m, kind="institution", seq=ev.seq, ts=ev.ts, wakes=True,
                               ref=f"org:{ev.seq}", note=note)
                 for m, note in notes if m in view.members]

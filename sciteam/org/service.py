@@ -15,7 +15,8 @@ from sciteam.kernel.config_store import ConfigStore, split_front_matter
 from sciteam.org.model import Manifest, Seat, sha
 
 ORG_STREAM = "org"
-ORG_EVENT_TYPES = {"org_enacted", "goal_met", "goal_reopened", "member_registered"}
+ORG_EVENT_TYPES = {"org_enacted", "goal_met", "goal_reopened", "goal_delivered",
+                   "goal_returned", "member_registered"}
 TEMPLATE_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 UNASSIGN_FROM = ("assigned", "in_progress", "blocked")
 
@@ -27,6 +28,7 @@ class OrgService:
         self.configs, self.path, self.templates_dir = configs, manifest_path, templates_dir
         self.enacted_sha: str | None = None
         self.goal_met = False
+        self.goal_delivered = False
         self.ever: set[str] = set()                 # every member id ever registered
         self.hires: dict[str, dict[str, Any]] = {}  # member -> hiring record
         self._cursor = 0
@@ -45,6 +47,8 @@ class OrgService:
                 self.enacted_sha = p["manifest_sha"]
             elif ev.type in ("goal_met", "goal_reopened"):
                 self.goal_met = ev.type == "goal_met"
+            elif ev.type in ("goal_delivered", "goal_returned"):
+                self.goal_delivered = ev.type == "goal_delivered"
             elif ev.type == "member_registered":
                 self.ever.add(p["member"]["id"])
                 if p.get("seat"):
@@ -70,6 +74,8 @@ class OrgService:
     def stop_reason(self) -> str | None:
         if self.goal_met:
             return "goal_met"
+        if self.goal_delivered:
+            return "goal_delivered"
         if self.goals(include_cancelled=True) and not self.goals():
             return "goals_cancelled"
         return None
@@ -93,7 +99,7 @@ class OrgService:
             return {"attrs": {k: v for k, v in m.attrs.items() if k != "groups"}}
         boss = next((b for b in self.seated(seat.reports_to) if b != m.id), None) \
             if seat.reports_to else None
-        attrs = {k: v for k, v in m.attrs.items() if k != "groups"}
+        attrs = {**{k: v for k, v in m.attrs.items() if k != "groups"}, **seat.attrs}
         if seat.groups:
             attrs["groups"] = ",".join(seat.groups)
         return {"attrs": attrs, "team": seat.team, "manager": boss}
@@ -154,14 +160,21 @@ class OrgService:
         spec = self.manifest.goals
         if spec is None:
             return 0
-        goals = self.goals()
+        goals, n = self.goals(), 0
+        ids = sorted(t.id for t in goals)
+        if spec.delivered:
+            done = bool(goals) and all(self.inst.has_fact(spec.delivered, t.id) for t in goals)
+            if done != self.goal_delivered:
+                self.comm.record(ORG_STREAM, "goal_delivered" if done else "goal_returned",
+                                 {"goals": ids, "fact": spec.delivered},
+                                 causation=self.inst.cursor)
+                n += 1
         met = bool(goals) and all(self.inst.has_fact(spec.fact, t.id) for t in goals)
-        if met == self.goal_met:
-            return 0
-        self.comm.record(ORG_STREAM, "goal_met" if met else "goal_reopened",
-                         {"goals": sorted(t.id for t in goals), "fact": spec.fact},
-                         causation=self.inst.cursor)
-        return 1
+        if met != self.goal_met:
+            self.comm.record(ORG_STREAM, "goal_met" if met else "goal_reopened",
+                             {"goals": ids, "fact": spec.fact}, causation=self.inst.cursor)
+            n += 1
+        return n
 
     # ---- amendments must fit the people in post -----------------------------------------
     def _check_change(self, path: str, new) -> str | None:
@@ -224,7 +237,8 @@ class OrgService:
         boss = next(iter(self.seated(seat.reports_to)), None) if seat.reports_to else None
         member = Member(id=mid, kind="agent", role=seat.name, team=seat.team, manager=boss,
                         harness=harness, profile=profile,
-                        attrs={"groups": ",".join(seat.groups)} if seat.groups else {})
+                        attrs={**seat.attrs,
+                               **({"groups": ",".join(seat.groups)} if seat.groups else {})})
         diff = "".join(difflib.unified_diff(body.strip().splitlines(True),
                                             profile.splitlines(True),
                                             f"template {tname}", f"profile of {mid}"))

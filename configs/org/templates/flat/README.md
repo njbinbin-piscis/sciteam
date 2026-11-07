@@ -1,5 +1,5 @@
 ---
-summary: Flat: everyone may talk to everyone, create, assign and claim tasks; one shared room.
+summary: "Flat: everyone may talk to everyone, create, assign and claim tasks; one shared room."
 ---
 Flat: everyone may talk to everyone, create, assign and claim tasks; one shared room.
 

@@ -1,6 +1,7 @@
 """CommService: every communication Act passes one path — record, check, decide, apply (30 §6)."""
 
 import threading
+import weakref
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
@@ -31,6 +32,20 @@ from sciteam.kernel.events import Event, EventStore
 from sciteam.kernel.ids import new_id
 
 SYSTEM = "system"
+
+_RUN_LOCKS: "weakref.WeakValueDictionary[str, threading.RLock]" = weakref.WeakValueDictionary()
+_RUN_LOCKS_GUARD = threading.Lock()
+
+
+def _run_lock(store: EventStore) -> threading.RLock:
+    """One lock per event log in this process: a host opens a run beside the scheduler's,
+    and what one instance derives (a review, a ratify request) must not be written twice."""
+    key = str(store.path.resolve())
+    with _RUN_LOCKS_GUARD:
+        lock = _RUN_LOCKS.get(key)
+        if lock is None:
+            lock = _RUN_LOCKS[key] = threading.RLock()
+        return lock
 
 
 class Gate(Protocol):
@@ -99,7 +114,7 @@ class CommService:
         self.gated_kinds: set[str] = set()
         self.view = CommView()
         self.followers: list[Callable[[], None]] = []   # folds of higher layers
-        self._lock = threading.RLock()
+        self._lock = _run_lock(store)
         self._cursor = 0
         self.catch_up()
 
@@ -140,6 +155,14 @@ class CommService:
     def _version(self) -> str | None:
         return self.extra_gate.rule_version() if self.extra_gate is not None else None
 
+    def _pin(self, params: dict[str, Any]) -> dict[str, Any]:
+        """A symbolic commit ref (HEAD, a branch) as the sha it names now: the recorded Act is
+        re-decided later on the commit it was decided on."""
+        ref = params.get("commit")
+        resolve = getattr(self.extra_gate, "resolve_commit", None)
+        sha = resolve(ref.strip()) if isinstance(ref, str) and ref.strip() and resolve else None
+        return {**params, "commit": sha} if sha else params
+
     def _decide(self, act: Act) -> tuple[Plan, Decision]:
         try:
             plan = self._plan(act)
@@ -165,7 +188,7 @@ class CommService:
         with self._lock:
             self.catch_up()
             version = self._version()
-            act = act.model_copy(update={"rule_version": version})
+            act = act.model_copy(update={"rule_version": version, "params": self._pin(act.params)})
             self._append("gate", "act_submitted", {"act": act.model_dump(mode="json")},
                          act.actor, rule_version=version)
             plan, decision = self._decide(act)
@@ -202,6 +225,10 @@ class CommService:
         return d.rule
 
     policy_check = _policy   # for planners of higher layers
+
+    def act_kinds(self) -> set[str]:
+        return {k[len("_plan_"):] for k in dir(self) if k.startswith("_plan_")} | \
+            set(self.extra_kinds)
 
     def _plan(self, act: Act) -> Plan:
         need(act.actor in self.view.members, f"unknown actor '{act.actor}'")
@@ -428,6 +455,11 @@ class CommService:
         for k in ("title", "description", "estimate_h", "labels"):
             if p.get(k) is not None:
                 fields[k] = p[k]
+        if "labels" in fields:
+            dropped = sorted(set(task.labels) - set(fields["labels"]))
+            need(not dropped or act.actor == task.created_by,
+                 f"only the task's creator (@{task.created_by}) may remove its labels "
+                 f"{', '.join(dropped)}")
         if p.get("deps") is not None:
             deps = self._deps(p["deps"])
             need(all(d.task != task.id for d in deps), "a task cannot depend on itself")
@@ -437,7 +469,20 @@ class CommService:
             need(act.actor == task.created_by,
                  f"only the task's creator (@{task.created_by}) may change its acceptance command")
             fields["acceptance"] = str(p["acceptance"]).strip() or None
+        if p.get("parent") is not None:
+            need(act.actor == task.created_by,
+                 f"only the task's creator (@{task.created_by}) may move it under another parent")
+            parent = None
+            if str(p["parent"]).strip():
+                pt = v.resolve_task(str(p["parent"]))
+                need(pt is not None, f"unknown parent task '{p['parent']}'")
+                need(pt.id != task.id and pt.id not in {d.id for d in descendants(v.tasks, task.id)},
+                     f"{pt.id} is {task.id} itself or one of its subtasks")
+                parent = pt.id
+            fields["parent"] = parent
         if p.get("reviewer") is not None:
+            need(act.actor == task.created_by,
+                 f"only the task's creator (@{task.created_by}) may change its reviewer")
             fields["reviewer"] = self._member_arg(p["reviewer"], "reviewer")
         if p.get("watchers") is not None:
             fields["watchers"] = sorted({w for w in (self._member_arg(x, "watcher")
@@ -457,6 +502,13 @@ class CommService:
                 raise ValueError(f"invalid member id '{m.id}'")
             self._append("roster", "member_registered", {"member": m.model_dump(mode="json")},
                          SYSTEM)
+
+    def set_profile(self, member: str, profile: str) -> None:
+        with self._lock:
+            if member not in self.view.members:
+                raise ValueError(f"unknown member '{member}'")
+            self._append("roster", "member_updated",
+                         {"id": member, "fields": {"profile": profile}}, SYSTEM)
 
     def system_room(self, name: str, members: set[str], topic: str = "") -> None:
         with self._lock:

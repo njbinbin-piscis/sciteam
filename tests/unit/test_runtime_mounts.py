@@ -25,7 +25,9 @@ def test_each_member_sees_only_its_own_private_dir(tmp_path: Path):
     assert a[1] == f"{(private_root(ws) / 'a').resolve()}:/private/a"
     assert b[1] == f"{(private_root(ws) / 'b').resolve()}:/private/b"
     assert not any("/b:" in m for m in a) and not any("/a:" in m for m in b)
-    assert validator_private_mounts(sc, ws) == [f"{private_root(ws).resolve()}:/private:ro"]
+    assert validator_private_mounts(sc, ws) == []
+    assert validator_private_mounts(sc, ws, "b") == [
+        f"{(private_root(ws) / 'b').resolve()}:/private/b:ro"]
 
 
 def test_memory_limit_member_override():

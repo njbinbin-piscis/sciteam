@@ -1,0 +1,24 @@
+# X-evo smoke experiment: frozen vs evolving organization on 2 SciCode tasks
+name: x-evo-smoke
+hypothesis: >-
+  Smoke test for Channel A (G2) constitutional and organizational evolution across tasks with
+  protected_rules enforcement and CARRIED.json carry-over.
+primary: score
+success: 1.0
+tasks: tasksets/scicode-verified.yaml
+only_tasks:
+- p8
+- p12
+repeats: 1
+parallel: 2
+arms:
+- name: frozen
+  team: teams/x-inst.yaml
+- name: evolving
+  team: teams/x-evo.yaml
+owner:
+  mode: auto-approve
+  nudges: 0
+  nudge_text: "-"
+  max_rounds: 5
+audit: python bench/team/check.py {run} --json {out}

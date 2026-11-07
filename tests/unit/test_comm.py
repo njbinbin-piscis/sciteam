@@ -228,6 +228,35 @@ def test_dependency_cycle_rejected(tmp_path):
     assert not r.ok and "cycle" in r.decision.reason
 
 
+def test_creator_moves_a_task_under_a_parent(tmp_path):
+    svc = make(tmp_path)
+    goal = _t(svc)
+    sub = _t(svc)
+    leaf = _t(svc, parent=sub)
+    assert act(svc, "lead", "task_update", task=sub, parent=goal).ok
+    assert svc.view.tasks[sub].parent == goal
+    r = act(svc, "lead", "task_update", task=sub, parent=leaf)
+    assert not r.ok and "subtasks" in r.decision.reason
+    others = [m.id for m in MEMBERS if m.id != "lead"]
+    r = act(svc, others[0], "task_update", task=sub, parent="")
+    assert not r.ok and "creator" in r.decision.reason
+    assert act(svc, "lead", "task_update", task=sub, parent="").ok
+    assert svc.view.tasks[sub].parent is None
+
+
+def test_only_the_creator_drops_labels_or_changes_the_reviewer(tmp_path):
+    svc = make(tmp_path)
+    t = _t(svc, labels=["goal"], reviewer="rev", assignee="dev1")
+    r = act(svc, "dev1", "task_update", task=t, labels=[])
+    assert not r.ok and "only the task's creator (@lead) may remove its labels goal" in \
+        r.decision.reason
+    assert act(svc, "dev1", "task_update", task=t, labels=["goal", "ml"]).ok
+    r = act(svc, "dev1", "task_update", task=t, reviewer="dev2")
+    assert not r.ok and "may change its reviewer" in r.decision.reason
+    assert act(svc, "lead", "task_update", task=t, reviewer="dev2", labels=["ml"]).ok
+    assert svc.view.tasks[t].reviewer == "dev2" and svc.view.tasks[t].labels == ["ml"]
+
+
 def test_cancel_cascades_to_subtasks(tmp_path):
     svc = make(tmp_path)
     p = _t(svc)
@@ -252,6 +281,19 @@ def test_concurrent_claim_single_winner(tmp_path):
     for th in threads:
         th.join()
     assert sorted(results) == [False, False, True]
+
+
+def test_closing_a_task_points_its_free_assignee_at_an_open_task(tmp_path):
+    from sciteam.runtime.attention import attention_for
+    svc = make(tmp_path, "market")
+    a, b = _t(svc, title="a"), _t(svc, title="b")
+    assert tr(svc, "dev1", a, "claim").ok and tr(svc, "dev2", b, "claim").ok
+    late = _t(svc, title="posted while everyone was busy")
+    assert tr(svc, "lead", a, "cancel", note="scope cut").ok
+    ev = [e for e in svc.store.read_global() if e.type == "task_status_changed"][-1]
+    items = {i.agent: i for i in attention_for(ev, svc.view, svc.policy, svc.gate)}
+    assert items["dev1"].kind == "task_open" and items["dev1"].ref == late
+    assert "dev2" not in items
 
 
 def test_cpm_textbook():
@@ -291,6 +333,21 @@ def test_view_refold_matches_incremental(tmp_path):
     for attr in ("members", "convs", "tasks", "msg_index"):
         assert {k: v.model_dump() for k, v in getattr(fresh, attr).items()} == \
             {k: v.model_dump() for k, v in getattr(svc.view, attr).items()}
+
+
+def test_instances_on_one_log_share_the_lock(tmp_path):
+    svc = make(tmp_path)
+    other = CommService(EventStore(tmp_path / "flat.db"), svc.policy, FakeClock())
+    elsewhere = CommService(EventStore(tmp_path / "other.db"), svc.policy, FakeClock())
+    assert other.lock is svc.lock and elsewhere.lock is not svc.lock
+    held = threading.Event()
+    with svc.lock:
+        t = threading.Thread(target=lambda: (other.lock.acquire(), held.set(),
+                                             other.lock.release()))
+        t.start()
+        assert not held.wait(0.2)
+    t.join(2)
+    assert held.is_set()
 
 
 def test_cpm_skips_summary_tasks():

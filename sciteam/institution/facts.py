@@ -57,7 +57,20 @@ def fact_holds(c: Condition, task: Task, actor: str | None, inst: "InstitutionVi
     if k == "distinct":
         a, b = (member_of(r, task, actor) for r in c.distinct)
         return a is not None and b is not None and a != b
+    if k == "claims_attested":
+        return not inst.unattested(task.id, attester(c.claims_attested, task, inst.comm))
     return False
+
+
+def attester(selector: str, task: Task, view: CommView):
+    sel = compile_selector(selector)
+    return lambda m: sel(m, SelCtx(view=view, actor=m, task=task))
+
+
+def reads_private_of(view: CommView, member: str) -> set[str]:
+    m = view.members.get(member)
+    raw = (m.attrs.get("reads_private", "") if m is not None else "") or ""
+    return {x.strip() for x in raw.split(",") if x.strip()}
 
 
 def _task_of_event(type: str, p: dict, inst: "InstitutionView") -> tuple[Task | None, str | None]:
@@ -72,6 +85,8 @@ def _task_of_event(type: str, p: dict, inst: "InstitutionView") -> tuple[Task | 
         return inst.comm.resolve_task(str(act.params.get("task", ""))), act.actor
     if type == "fact_established":
         return inst.comm.tasks.get(p["subject"]), p.get("by")
+    if type == "goal_verdict":
+        return inst.comm.tasks.get(p["task_id"]), p.get("by")
     return None, None
 
 
@@ -81,7 +96,7 @@ def derive(ev: Any, rs: RuleSet, inst: "InstitutionView") -> list[tuple[tuple, O
     task, actor = _task_of_event(ev.type, p, inst)
     if ev.type == "task_status_changed":
         actor = ev.actor
-    if task is not None and ev.type == "task_status_changed":
+    if task is not None and ev.type in ("task_status_changed", "goal_verdict"):
         for f in rules.facts:
             if event_matches(f.when, ev.type, p) and not inst.has_fact(f.name, task.id) and \
                     all(fact_holds(c, task, actor, inst) for c in f.require):

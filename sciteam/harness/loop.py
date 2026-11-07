@@ -8,11 +8,12 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from sciteam.harness.budget import budget_status
+from sciteam.harness.budget import LIMIT_FIELDS, budget_status
 from sciteam.harness.compaction import Compactor
 from sciteam.harness.config import HarnessConfig
 from sciteam.harness.context import assemble, fixed_tokens, harness_contract
 from sciteam.harness.dispatch import dispatch
+from sciteam.harness.plugins import HarnessPluginChain
 from sciteam.harness.state import ActivationState, Totals, apply
 from sciteam.harness.tools import BUILTIN_TOOLS, FINISH_SPEC, Tool, ToolContext, cap_output
 from sciteam.harness.tools.base import ToolArgError, validate_args
@@ -39,6 +40,12 @@ from sciteam.providers.sandbox.base import Sandbox
 FinishCheck = Callable[[dict[str, Any], ToolContext], Awaitable[str | None]]
 # Returns (text, meta) pairs to append as incoming entries before the next model call.
 PollIncoming = Callable[[], Awaitable[list[tuple[str, dict[str, Any]]]]]
+# Given a budget_paused payload, wait for a decision: a grant {"actor", "add"?: {dim: amount}}
+# or None (declined). Only used with budget.on_exhausted == "pause".
+AwaitBudgetGrant = Callable[[dict[str, Any]], Awaitable[dict[str, Any] | None]]
+# Called before every model call; blocks while the run as a whole is paused and returns the
+# seconds it waited.
+Checkpoint = Callable[[], Awaitable[float]]
 
 HARNESS_OUTCOMES = ("budget_exhausted", "error")
 
@@ -84,7 +91,10 @@ class Harness:
                  extra_tools: dict[str, Tool] | None = None, finish_check: FinishCheck | None = None,
                  on_event: Callable[[str, dict], None] | None = None,
                  tool_extras: dict[str, Any] | None = None,
-                 poll_incoming: PollIncoming | None = None):
+                 poll_incoming: PollIncoming | None = None,
+                 plugins: list[Any] | None = None,
+                 await_budget_grant: AwaitBudgetGrant | None = None,
+                 checkpoint: Checkpoint | None = None):
         self.cfg = cfg
         self.model_info = model_info
         self.llm = llm
@@ -96,8 +106,15 @@ class Harness:
         self.on_event = on_event
         self.tool_extras = tool_extras or {}
         self.poll_incoming = poll_incoming
+        self.await_budget_grant = await_budget_grant
+        self.checkpoint = checkpoint
+        self.plugin_chain = HarnessPluginChain(plugins)
+        self.base_prompt = system_prompt
         self.system_prompt = system_prompt + harness_contract(cfg)
+        self.extra_tools = dict(extra_tools or {})
+        self.delegations = 0
         all_tools = {**BUILTIN_TOOLS, **(extra_tools or {})}
+        self.available_tools = all_tools
         self.tools: dict[str, Tool] = {n: all_tools[n] for n in cfg.tools if n != "finish"}
         self.tool_specs: list[ToolSpec] = [t.spec for t in self.tools.values()] + [FINISH_SPEC]
         self.fixed_tokens = fixed_tokens(self.system_prompt, self.tool_specs)
@@ -110,6 +127,9 @@ class Harness:
         self._recent: deque[str] = deque(maxlen=cfg.recovery.loop_window)
         self._loop_warnings = 0
         self._skip_compaction_until = 0
+        self._last_prefix_fingerprints: list[str] = []
+        self._last_compaction_count: int = 0
+        self.prefix_cache_violations: int = 0
 
     # ---- events -------------------------------------------------------------------------
     def _emit(self, type: str, payload: dict[str, Any]) -> None:
@@ -122,13 +142,44 @@ class Harness:
         self._emit("notice_added", {"text": text, "key": key})
 
     def _wall(self) -> float:
-        return self.state.wall_elapsed_before_resume + (self.clock.monotonic() - self._t0)
+        return max(0.0, self.state.wall_elapsed_before_resume
+                   + (self.clock.monotonic() - self._t0) - self.state.paused_s)
+
+    def _pausing(self) -> bool:
+        return self.cfg.budget.on_exhausted == "pause" and self.await_budget_grant is not None
 
     def _ctx(self) -> ToolContext:
         remaining = self.cfg.budget.wall_clock_s - self._wall()
         return ToolContext(sandbox=self.sandbox, blobs=self.blobs, state=self.state,
                            config=self.cfg, clock=self.clock, remaining_wall_s=max(remaining, 1),
-                           extras=self.tool_extras)
+                           extras={**self.tool_extras, "harness": self})
+
+    # ---- sub-agents ---------------------------------------------------------------------
+    async def delegate(self, task: str, *, tools: list[str], tokens: int, max_steps: int,
+                       wall_clock_s: float) -> "ActivationResult":
+        """Run a sub-agent on `task` in a context of its own: the same model and sandbox, the
+        given tools, its own budget; its events go to a sub-stream of this activation."""
+        sid = new_id("sub")
+        d = self.cfg.delegate
+        cfg = self.cfg.model_copy(deep=True, update={
+            "name": f"{self.cfg.name}/sub", "tools": [*tools, "finish"], "finish_reviews": 0,
+            "budget": self.cfg.budget.model_copy(update={
+                "tokens": tokens, "max_steps": max_steps, "wall_clock_s": wall_clock_s,
+                "cost_usd": 0.0, "on_exhausted": "handoff"}),
+            "delegate": d.model_copy(update={"tools": []})})
+        prompt = (self.base_prompt + "\n\n## You are a sub-agent\nAnother agent handed you the "
+                  "task below. Work on it alone with the tools you have; you cannot message "
+                  "anyone. When done, finish with a summary that stands on its own: what you "
+                  "did, what you found (numbers, file paths), and anything left open.")
+        child = Harness(cfg, model_info=self.model_info, llm=self.llm, sandbox=self.sandbox,
+                        store=self.store, blobs=self.blobs, system_prompt=prompt,
+                        clock=self.clock, extra_tools=self.extra_tools,
+                        tool_extras={k: v for k, v in self.tool_extras.items()
+                                     if k == "memory"},
+                        checkpoint=self.checkpoint)
+        self.delegations += 1
+        return await child.run(task, stream=f"{self.stream}/sub/{sid}", activation_id=sid,
+                               meta={"parent": self.state.activation_id})
 
     # ---- model calls --------------------------------------------------------------------
     def _params(self) -> CallParams:
@@ -199,6 +250,13 @@ class Harness:
         b = self.cfg.budget
         st = budget_status(b, self.state, self._wall())
         sent = self.state.notices_sent
+        if self._pausing():
+            # limits are checkpoints the owner extends; asking the model to wrap up would cut
+            # long work short
+            if self.state.steps and self.state.steps % b.status_every_steps == 0 \
+                    and f"status_{self.state.steps}" not in sent:
+                self._notice(f"[Harness] {st.line(b)}.", key=f"status_{self.state.steps}")
+            return
         if st.fraction >= b.decide_at and "budget_decide" not in sent:
             self._notice(f"[Harness] {int(b.decide_at * 100)}% of the {st.binding} limit is used "
                          f"({st.line(b)}). Decide now: either state the concrete remaining steps "
@@ -211,6 +269,33 @@ class Harness:
         elif self.state.steps and self.state.steps % b.status_every_steps == 0 \
                 and f"status_{self.state.steps}" not in sent:
             self._notice(f"[Harness] {st.line(b)}.", key=f"status_{self.state.steps}")
+
+    async def _pause_for_budget(self, st) -> bool:
+        """Wait for the owner (or the auto policy) at a reached limit. True = granted, continue."""
+        b = self.cfg.budget
+        pause = self.state.pending_pause
+        if pause is None:
+            self._emit("budget_paused", {
+                "pause_id": new_id("bp"), "binding": st.binding, "exhausted": st.exhausted,
+                "used": {"tokens": st.tokens, "steps": st.steps, "wall_clock": round(st.wall_s, 1),
+                         "cost": st.cost_usd},
+                "limits": st.limits, "activation_id": self.state.activation_id})
+            pause = self.state.pending_pause
+        t0 = self.clock.monotonic()
+        decision = await self.await_budget_grant(dict(pause))
+        waited = round(self.clock.monotonic() - t0, 3)
+        if decision is None:
+            self._emit("budget_declined", {"pause_id": pause["pause_id"], "waited_s": waited})
+            return False
+        add: dict[str, float] = {}
+        for dim in pause.get("exhausted") or [pause["binding"]]:
+            base = float(getattr(b, LIMIT_FIELDS[dim]) or 0)
+            if base > 0:
+                add[dim] = base
+        add.update({k: float(v) for k, v in (decision.get("add") or {}).items() if v})
+        self._emit("budget_granted", {"pause_id": pause["pause_id"], "add": add,
+                                      "actor": decision.get("actor", "owner"), "waited_s": waited})
+        return True
 
     async def _closing_call(self, binding: str) -> None:
         self._notice(f"[Harness] The {binding} limit is exhausted. Do not start new work. Call "
@@ -252,15 +337,33 @@ class Harness:
         others = [c for c in calls if c.name != "finish"]
         to = self.cfg.tool_output
         ctx = self._ctx()
+        policy = self.cfg.runtime_policy
+
+        allowed_others: list[ToolCall] = []
+        denied_results: list[tuple[ToolCall, str, dict[str, Any]]] = []
+        for c in others:
+            pre_dec = self.plugin_chain.run_pre_tool_use(c, self.state, policy)
+            if not pre_dec.allow:
+                denied_results.append((c, pre_dec.denial_reason, pre_dec.meta))
+            else:
+                allowed_others.append(c)
+
         results = await dispatch(
-            others, self.tools, ctx, parallel_readonly=to.parallel_readonly,
+            allowed_others, self.tools, ctx, parallel_readonly=to.parallel_readonly,
             on_start=lambda c: self._emit("tool_started", {"call_id": c.id, "name": c.name}))
+
+        for c, reason, dmeta in denied_results:
+            self._emit("tool_started", {"call_id": c.id, "name": c.name})
+            self._tool_finished(c, reason, None, True, dmeta, 0.0)
+            self._recent.append(_sig(c, reason))
+
         for r in results:
-            content, ref = cap_output(r.result.content, max_chars=to.max_chars,
+            post_res = self.plugin_chain.run_post_tool_use(r.call, r.result, self.state, policy)
+            content, ref = cap_output(post_res.content, max_chars=to.max_chars,
                                       head_fraction=to.head_fraction, blobs=self.blobs)
-            self._tool_finished(r.call, content, ref, r.result.is_error, r.result.meta,
+            self._tool_finished(r.call, content, ref, post_res.is_error, post_res.meta,
                                 r.duration_s)
-            self._recent.append(_sig(r.call, r.result.content))
+            self._recent.append(_sig(r.call, post_res.content))
         if not finish_calls:
             self._check_loop()
             return
@@ -269,9 +372,11 @@ class Harness:
             self._tool_finished(d, "error: only one finish call is allowed per turn", None, True,
                                 {}, 0)
         err = self._validate_finish(fin)
-        if err is None and any(r.result.is_error for r in results):
+        if err is None and (any(r.result.is_error for r in results) or bool(denied_results)):
             err = ("other tool calls in the same turn failed; review their results before "
                    "finishing")
+        if err is None:
+            err = self.plugin_chain.run_pre_finish(fin.arguments or {}, self.state, policy)
         if err is None and self.finish_check:
             err = await self.finish_check(fin.arguments or {}, self._ctx())
         if err is not None:
@@ -382,8 +487,14 @@ class Harness:
         overflow_retries = 0
         try:
             while self.state.finished is None:
+                if self.checkpoint is not None:
+                    waited = await self.checkpoint()
+                    if waited > 0:
+                        self._emit("run_pause_waited", {"waited_s": round(waited, 3)})
                 st = budget_status(self.cfg.budget, self.state, self._wall())
                 if st.fraction >= 1.0:
+                    if self._pausing() and await self._pause_for_budget(st):
+                        continue
                     await self._closing_call(st.binding)
                     break
                 self._budget_notices()
@@ -394,6 +505,27 @@ class Harness:
                         and len(self.state.entries) >= self._skip_compaction_until:
                     await self._compact("threshold")
                 msgs = assemble(self.system_prompt, self.state)
+                cur_compactions = len(self.state.compactions)
+                cur_fps = [
+                    hashlib.sha256(f"{m.role}:{m.content}".encode("utf-8", errors="replace")).hexdigest()[:16]
+                    for m in msgs
+                ]
+                if (
+                    cur_compactions == self._last_compaction_count
+                    and self._last_prefix_fingerprints
+                    and len(cur_fps) >= len(self._last_prefix_fingerprints)
+                    and cur_fps[: len(self._last_prefix_fingerprints)] != self._last_prefix_fingerprints
+                ):
+                    self.prefix_cache_violations += 1
+                    self._emit(
+                        "prefix_cache_violation",
+                        {
+                            "step": self.state.steps,
+                            "violations": self.prefix_cache_violations,
+                        },
+                    )
+                self._last_prefix_fingerprints = cur_fps
+                self._last_compaction_count = cur_compactions
                 self._emit("model_called", {
                     "n_messages": len(msgs), "first_kept": self.state.first_kept,
                     "compaction": len(self.state.compactions),

@@ -25,6 +25,8 @@ class Seat(_Strict):
     groups: list[str] = Field(default_factory=list)
     harness: list[str] = Field(default_factory=list)   # allowed harness configs; [] = default
     templates: list[str] = Field(default_factory=list)  # suggested profile templates
+    # member attributes every holder of the seat carries, e.g. workspace_access: ro
+    attrs: dict[str, str] = Field(default_factory=dict)
     charter: str = ""
 
     @model_validator(mode="after")
@@ -39,7 +41,8 @@ class Seat(_Strict):
 
 class GoalSpec(_Strict):
     label: str = "goal"
-    fact: str = "accepted"
+    fact: str = "accepted"          # the goals are met when every goal holds it
+    delivered: str | None = None    # the team's own completion, before the fact holds
 
 
 class Manifest(_Strict):

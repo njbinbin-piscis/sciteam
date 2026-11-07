@@ -1,5 +1,5 @@
 ---
-summary: Hierarchy: lead plans and assigns to direct reports; members talk to their manager, their reports and their team.
+summary: "Hierarchy: lead plans and assigns to direct reports; members talk to their manager, their reports and their team."
 ---
 Hierarchy: lead plans and assigns to direct reports; members talk to their manager, their reports and their team.
 

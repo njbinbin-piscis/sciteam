@@ -6,7 +6,7 @@ tools: [bash, read_file, write_file, edit_file, recall, read_output,
         send_message, read_conversation, list_conversations, directory,
         create_room, add_member, remove_member,
         task_create, task_transition, task_update, task_board, task_show,
-        schedule_wakeup, finish]
+        schedule_wakeup, remember, forget, finish]
 call_timeout_s: 3600
 tool_output:
   max_chars: 30000

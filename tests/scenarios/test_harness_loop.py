@@ -65,6 +65,18 @@ async def test_basic_completion(env):
     _check_transcript_valid(h.llm.requests)
 
 
+async def test_missing_module_points_at_installed_ones(env):
+    from pathlib import Path
+
+    from sciteam.harness.memory import MemoryBook, MemoryView
+    book = MemoryBook(None, Path(__file__).resolve().parents[2] / "configs" / "memory")
+    h = make(env, [tc("bash", command="python3 -c 'import no_such_mod_xyz'"), fin()],
+             tool_extras={"memory": MemoryView(book, "a", "a")})
+    await h.run("task")
+    [out] = [e.msg.content for e in h.state.entries if e.kind == "tool"][:1]
+    assert "[memory] Notes about bash" in out and "`pip list` shows them" in out
+
+
 async def test_no_finish_is_error_not_silent(env):
     h = make(env, [text("I think it's done"), text("really done"), text("done!")])
     r = await h.run("task")

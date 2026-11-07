@@ -1,5 +1,5 @@
 ---
-summary: Claim market: tasks are posted open and workers claim them; nobody assigns.
+summary: "Claim market: tasks are posted open and workers claim them; nobody assigns."
 ---
 Claim market: tasks are posted open and workers claim them; nobody assigns.
 

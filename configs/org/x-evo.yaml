@@ -1,0 +1,40 @@
+# X-evo self-evolving organization manifest (Channel A / G2 genome).
+mission: |
+  Deliver the owner's scientific computing goal (the root task labelled `goal`) so that it passes
+  both internal verification suites and the owner's hidden acceptance evaluation. Continuously
+  refine seat charters, harness selection, and non-protected institutional rules across runs.
+default_harness: harness/team-org.yaml
+staffing: "role:lead | kind:human"
+seats:
+  - name: lead
+    count: 1
+    groups: [legislature]
+    harness:
+      - harness/team-org.yaml
+      - harness/exp-compact-128k.yaml
+    charter: |
+      Coordinate the delivery of the goal task, diagnose recurring implementation or verification
+      failures, and propose constitutional amendments to `org/x-evo.yaml` or
+      `institution/x-evo-rules.yaml` when role charters or workflow rules need improvement.
+  - name: implementer
+    count: 1
+    reports_to: lead
+    harness:
+      - harness/team-org.yaml
+      - harness/exp-compact-128k.yaml
+      - harness/exp-compact-64k.yaml
+    charter: |
+      Implement the goal task in `/workspace/solution.py` and write comprehensive unit and
+      invariant tests under `/workspace/team_tests`. Submit for review only when all tests pass.
+  - name: auditor
+    count: 1
+    reports_to: lead
+    groups: [legislature]
+    harness:
+      - harness/team-org.yaml
+      - harness/exp-compact-128k.yaml
+    charter: |
+      Review the goal task independently of the implementer. Verify physical conventions, boundary
+      conditions, and numerical accuracy with independent test cases in `/workspace/team_tests`
+      before approving. Co-author or vote on amendments to strengthen quality gates.
+goals: {label: goal, fact: accepted}

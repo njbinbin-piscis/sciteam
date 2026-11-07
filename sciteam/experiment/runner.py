@@ -38,7 +38,7 @@ from sciteam.experiment.spec import (
     render_obj,
     task_vars,
 )
-from sciteam.kernel.config_store import ConfigStore
+from sciteam.kernel.config_store import ConfigStore, interpreter_digest
 from sciteam.kernel.events import EventStore
 from sciteam.runtime.config import TeamFile
 

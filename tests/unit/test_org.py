@@ -276,3 +276,11 @@ def test_modes_differ_in_who_may_talk_to_whom(tmp_path):
         r = o.act("w1", "post_message", to="@w2", text="hi")
         allowed[mode] = r.ok
     assert allowed == {"hierarchical": False, "workflow": False, "flat": True}
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_each_template_readme_has_a_summary(mode):
+    from sciteam.kernel.config_store import split_front_matter
+
+    head, _ = split_front_matter(ConfigStore(CONFIGS).load_text(f"org/templates/{mode}/README.md"))
+    assert head["summary"].strip()

@@ -1,0 +1,43 @@
+# X-evo team configuration (Channel A / G2 self-evolving organization).
+name: x-evo
+comm_policy: comm/x-inst.yaml
+institution: institution/x-evo.yaml
+org: org/x-evo.yaml
+runtime: runtime/default.yaml
+workspace_seed: "{task.seed}"
+members:
+- id: lead
+  role: lead
+  groups: [legislature]
+  harness: harness/team-org.yaml
+  profile_ref: profiles/lead.md
+- id: implementer
+  role: implementer
+  harness: harness/team-org.yaml
+  profile_ref: profiles/implementer.md
+- id: auditor
+  role: auditor
+  groups: [legislature]
+  harness: harness/team-org.yaml
+  profile_ref: profiles/auditor.md
+- id: owner
+  kind: human
+  role: owner
+tasks:
+- key: goal
+  by: owner
+  title: "Deliver the goal described in the kickoff"
+  labels: [goal]
+  assignee: implementer
+  reviewer: auditor
+  acceptance: "python -m pytest -q -p no:cacheprovider team_tests && python -c 'import solution'"
+kickoff:
+- by: owner
+  to: '@lead'
+  text: "{task.brief}"
+- by: owner
+  to: '@implementer'
+  text: "{task.brief}"
+- by: owner
+  to: '@auditor'
+  text: "{task.brief}"

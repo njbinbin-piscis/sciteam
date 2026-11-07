@@ -1,0 +1,27 @@
+# X-evo constitution (Channel A / G2 genome): allows amendments to non-protected rules, comm
+# policy, and org manifest while locking core verification predicates in `protected_rules`.
+name: x-evo
+principles: |
+  1. The organization exists to deliver the owner's goal, the root task labelled `goal`. Only the
+     institution establishes that the goal is met; the run ends when it is.
+  2. Every output is audited before it counts, and nobody signs off their own work. Core validation
+     and four-eyes rules are protected and cannot be weakened or hollowed out.
+  3. The legislature (`lead` and `auditor`) may amend non-protected rules, communication policy,
+     and the organization manifest (`org/x-evo.yaml`) to improve team effectiveness across tasks.
+  4. Gaming a check is a failure of the same kind as breaking the build.
+rules: institution/x-evo-rules.yaml
+amendment:
+  amendable:
+    - institution/x-evo-rules.yaml
+    - comm/x-inst.yaml
+    - org/x-evo.yaml
+  protected_rules:
+    - work-has-predicate
+    - work-validated
+    - four-eyes
+    - accepted
+  proposers: "role:lead | role:auditor | group:legislature"
+  voters: "role:lead | role:auditor | group:legislature"
+  pass: {yes_at_least: 1, no_at_most: 0}
+  human_ratify: false
+  voting_window_s: 3600

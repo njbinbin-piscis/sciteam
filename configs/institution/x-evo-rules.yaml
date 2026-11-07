@@ -1,0 +1,32 @@
+# X-evo rules: protected core validation predicates + mutable operational rules.
+validators:
+  acceptance:
+    command: "python -m pytest -q -p no:cacheprovider team_tests && python -c 'import solution'"
+    timeout_s: 1800
+
+requirements:
+  - name: work-has-predicate
+    act: task_create
+    where: {task_label: goal}
+    require: [{field: acceptance}]
+  - name: work-validated
+    act: task_transition
+    transition: submit
+    where: {task_label: goal}
+    require: [{validate: [acceptance]}]
+  - name: four-eyes
+    act: task_transition
+    transition: approve
+    where: {task_label: goal}
+    require: [{distinct: [actor, task.assignee]}]
+  - name: subtask-has-reviewer
+    act: task_create
+    where: {task_is_root: false}
+    require: [{field: reviewer}]
+
+facts:
+  - name: accepted
+    subject: task
+    when: {event: task_status_changed, to: done}
+    require: [{validated: acceptance}, {distinct: [actor, task.assignee]}]
+    revoke_when: {event: task_status_changed, transition: reopen}

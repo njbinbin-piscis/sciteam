@@ -1,19 +1,24 @@
 """Validation worker (docs/40-institution.md §7): export the evidence commit to a clean
 directory, run the validator command in a fresh sandbox, record the result. Never calls a model."""
 
+from __future__ import annotations
+
 import asyncio
 import hashlib
 import shutil
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from sciteam.institution.service import InstitutionService
 from sciteam.institution.view import Validation
 from sciteam.kernel.blobs import BlobStore
 from sciteam.providers.sandbox.base import Sandbox
 
-SandboxFactory = Callable[[Path], Sandbox]     # clean directory -> sandbox mounting it
+if TYPE_CHECKING:
+    from sciteam.institution.service import InstitutionService
+
+SandboxFactory = Callable[..., Sandbox]   # (clean directory[, member]) -> sandbox mounting it
 TAIL_CHARS = 3000
 INFRA_ATTEMPTS = 3
 
@@ -31,6 +36,35 @@ async def export_commit(workspace: Path, sha: str, dest: Path) -> None:
     _, err = await tar.communicate(data)
     if tar.returncode != 0:
         raise RuntimeError(f"tar failed: {err.decode()[-500:]}")
+    from sciteam.runtime.incoming import restore_sidecars
+    restore_sidecars(workspace, dest)
+
+
+async def uncommitted(workspace: Path, commit: str, limit: int = 8) -> list[str]:
+    """Workspace files that differ from `commit` or are untracked: what a clean export of that
+    commit cannot see."""
+    out: list[str] = []
+    for args in (("diff", "--name-only", commit), ("ls-files", "--others", "--exclude-standard")):
+        p = await asyncio.create_subprocess_exec(
+            "git", "-C", str(workspace), *args,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+        data, _ = await p.communicate()
+        if p.returncode == 0:
+            out += [n for n in data.decode().splitlines() if n and n not in out]
+    return out[:limit] + ([f"{len(out) - limit} more"] if len(out) > limit else [])
+
+
+async def absent_named(workspace: Path, commit: str, command: str) -> list[str]:
+    """Files of the workspace that `command` names and `commit` does not hold."""
+    async def names(*args: str) -> set[str]:
+        p = await asyncio.create_subprocess_exec(
+            "git", "-C", str(workspace), *args,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+        data, _ = await p.communicate()
+        return set(data.decode().splitlines()) if p.returncode == 0 else set()
+    now = await names("ls-files", "--cached", "--others", "--exclude-standard")
+    held = await names("ls-tree", "-r", "--name-only", commit)
+    return sorted(f for f in now - held if f in command)
 
 
 _TOOL_CACHES = {"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache"}
@@ -114,6 +148,16 @@ class ValidationWorker:
         out = res.output
         if res.timed_out:
             out += f"\n[timed out after {v.timeout_s:.0f}s]"
+        if (res.exit_code != 0 or res.timed_out) and v.act_id.startswith("amend:"):
+            if named := await absent_named(self.workspace, v.commit, v.command):
+                out += (f"\n[the command runs {', '.join(named)}, which recorded commit "
+                        f"{v.commit[:10]} does not hold: an amendment's validator is tried on "
+                        "the commits as they were, so write the check into the command itself "
+                        "(e.g. python3 -c '...')]")
+        elif res.exit_code != 0 or res.timed_out:
+            if missing := await uncommitted(self.workspace, v.commit):
+                out += (f"\n[commit {v.commit[:10]} lacks {', '.join(missing)} from the "
+                        "workspace; commit them and submit the new commit]")
         ref = self.blobs.put_text(out) if out else None
         self.svc.record_validation(
             v.id, ok=res.exit_code == 0 and not res.timed_out, exit_code=res.exit_code,

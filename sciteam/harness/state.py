@@ -51,6 +51,10 @@ class Totals(BaseModel):
     model_calls: int = 0
     summary_calls: int = 0
 
+    @property
+    def total_tokens(self) -> int:
+        return self.prompt_tokens + self.completion_tokens
+
     def add(self, u: Usage, cost: float, *, summary: bool = False) -> None:
         self.prompt_tokens += u.prompt_tokens
         self.completion_tokens += u.completion_tokens
@@ -79,6 +83,9 @@ class ActivationState(BaseModel):
     finish_reviews: int = 0
     finished: dict[str, Any] | None = None
     pending_tool_calls: list[ToolCall] = Field(default_factory=list)
+    budget_extra: dict[str, float] = Field(default_factory=dict)  # granted on top of the limits
+    paused_s: float = 0.0             # time spent waiting for grants; not counted as wall clock
+    pending_pause: dict[str, Any] | None = None
 
     @property
     def first_kept(self) -> int:
@@ -144,6 +151,18 @@ def apply(state: ActivationState, ev: Event, blobs: BlobStore) -> ActivationStat
         state.compactions.append(rec)
         state.anchor_tokens = None
         state.anchor_idx = -1
+    elif t == "budget_paused":
+        state.pending_pause = p
+    elif t == "budget_granted":
+        for dim, amount in (p.get("add") or {}).items():
+            state.budget_extra[dim] = state.budget_extra.get(dim, 0.0) + float(amount)
+        state.paused_s += float(p.get("waited_s") or 0.0)
+        state.pending_pause = None
+    elif t == "budget_declined":
+        state.paused_s += float(p.get("waited_s") or 0.0)
+        state.pending_pause = None
+    elif t == "run_pause_waited":
+        state.paused_s += float(p.get("waited_s") or 0.0)
     elif t == "activation_finished":
         state.finished = p
     return state

@@ -5,12 +5,13 @@ from collections.abc import Callable
 
 from sciteam.comm.model import Act, Decision, Task, deny
 from sciteam.comm.view import CommView
-from sciteam.institution.facts import children_lacking, member_of
+from sciteam.institution.facts import attester, children_lacking, member_of, reads_private_of
 from sciteam.institution.model import ActMatch, Condition
 from sciteam.institution.view import INST_STREAM, InstitutionView
 
 ResolveCommit = Callable[[str], str | None]   # git revision -> full sha, None if unknown
 ACCEPTANCE = "{task.acceptance}"
+HELD = ("assigned", "in_progress", "blocked")
 
 
 def _alt(pattern: str | None, value: str | None) -> bool:
@@ -18,7 +19,8 @@ def _alt(pattern: str | None, value: str | None) -> bool:
 
 
 def act_task(act: Act, view: CommView) -> Task | None:
-    if act.kind in ("task_transition", "task_update"):
+    if act.kind in ("task_transition", "task_update", "propose_acceptance", "record_claim",
+                    "attest", "overturn", "overturn_claim", "goal_verdict"):
         return view.resolve_task(str(act.params.get("task", "")))
     return None
 
@@ -39,9 +41,16 @@ def matches(m: ActMatch, act: Act, view: CommView) -> bool:
 
 
 class InstitutionGate:
-    def __init__(self, inst: InstitutionView, resolve_commit: ResolveCommit):
+    def __init__(self, inst: InstitutionView, resolve_commit: ResolveCommit,
+                 uncommitted_named: Callable[[str, str], list[str]] | None = None,
+                 committed_named: Callable[[str, str], list[str]] | None = None,
+                 private_base: str | None = None):
         self.inst = inst
+        self.private_base = private_base   # where members' private directories are mounted
         self.resolve_commit = resolve_commit
+        # (commit, command) -> workspace files the command names that the commit lacks / holds
+        self.uncommitted_named = uncommitted_named or (lambda sha, command: [])
+        self.committed_named = committed_named or (lambda sha, command: [])
 
     def rule_version(self) -> str | None:
         return self.inst.rules.version if self.inst.rules else None
@@ -69,9 +78,13 @@ class InstitutionGate:
                 if d is not None:
                     return deny(d, req.name)
         if waiting:
-            names = ", ".join(w.split(":", 1)[1] for w in waiting)
+            vals = [w.split(":", 1)[1] for w in waiting if w.startswith("validate:")]
+            reps = [w.split(":", 1)[1] for w in waiting if w.startswith("claim:")]
+            what = "; ".join(filter(None, [
+                f"validators {', '.join(vals)}" if vals else "",
+                f"claim replays {', '.join(reps)}" if reps else ""]))
             return self._pending(act, task, view, Decision(
-                decision="pending", reason=f"waiting for validators {names}", waiting=waiting))
+                decision="pending", reason=f"waiting for {what}", waiting=waiting))
         for ap in rs.rules.approvals:
             if not matches(ap, act, view):
                 continue
@@ -126,9 +139,23 @@ class InstitutionGate:
                 elif rec.status == "failed":
                     full = f"; full output: validation_output(id='{rec.id}')" \
                         if rec.output_blob else ""
+                    owner = ""
+                    if spec.command == ACCEPTANCE and task:
+                        owner = (f"; it runs {task.id}'s acceptance command, written by "
+                                 f"@{task.created_by}. When the command itself is wrong, tell "
+                                 f"@{task.created_by}, who can change it with task_update; a "
+                                 f"resubmit of the same commit gives the same result")
                     return (f"validator {v} ({rec.id}) failed on commit {(rec.commit or '?')[:10]} "
-                            f"(exit {rec.exit_code}){full}; output ends with:\n{rec.tail}")
+                            f"(exit {rec.exit_code}){full}{owner}; output ends with:\n{rec.tail}")
             return None
+        if k == "holds_at_most":
+            held = [t.id for t in view.tasks.values() if t.assignee == act.actor and
+                    t.status in HELD and (task is None or t.id != task.id)]
+            return None if len(held) <= c.holds_at_most else (
+                f"@{act.actor} already holds {', '.join(held)}; submit or hand back "
+                f"{'one' if c.holds_at_most else 'it'} before taking another "
+                f"(at most {c.holds_at_most} other unfinished task"
+                f"{'' if c.holds_at_most == 1 else 's'})")
         if k == "distinct":
             a, b = (member_of(r, task, act.actor) for r in c.distinct)
             return None if a is None or b is None or a != b else \
@@ -140,7 +167,74 @@ class InstitutionGate:
         if k == "certificate":
             ok, why = self.inst.certificate(c.certificate)
             return None if ok else why
+        if k in ("spec_typed", "claims_cover", "claims_replayed"):
+            return self._claims(k, act, task, waiting)
+        if k == "claims_attested":
+            if task is None:
+                return "claims_attested applies to Acts on a task"
+            lacking = self.inst.unattested(task.id, attester(c.claims_attested, task, view))
+            return None if not lacking else (
+                f"claims of {task.id} not attested by {c.claims_attested}: "
+                f"{', '.join(lacking)}; each needs a pass from attest(task, claim, verdict=pass, "
+                f"basis=...)")
+        if k == "independent_of":
+            author = task.assignee if task else None
+            if author is None:
+                return "independent_of applies to Acts on an assigned task"
+            if act.actor == author:
+                return f"@{act.actor} is the author of {task.id} and cannot attest its claims"
+            if author in reads_private_of(view, act.actor):
+                return (f"@{act.actor} can read @{author}'s private directory, so cannot "
+                        f"attest {task.id} independently")
+            return None
         return f"condition '{k}' only applies to facts"
+
+    def _claims(self, k: str, act: Act, task: Task | None, waiting: list[str]) -> str | None:
+        if task is None:
+            return f"{k} applies to Acts on a task"
+        spec = self.inst.spec(task.id)
+        if spec is None:
+            return (f"{task.id} has no typed acceptance spec; @{task.created_by} or "
+                    f"@{task.assignee} proposes one with propose_acceptance")
+        if k == "spec_typed":
+            return None
+        missing = self._evidence(act)
+        if missing is not None:
+            return missing
+        sha = self.resolve_commit(str(act.params.get("commit")))
+        on = self.inst.claims_on(task.id, sha)
+        absent = [c.name for c in spec.claims if c.name not in on]
+        if absent:
+            return (f"claims not recorded for {task.id} on commit {sha[:10]}: "
+                    f"{', '.join(absent)} — record each with record_claim(task, claim, value, "
+                    f"commit)" + self._elsewhere(task, sha))
+        if k == "claims_cover":
+            return None
+        for c in spec.claims:
+            rec = on[c.name]
+            if rec.status == "requested":
+                waiting.append(f"claim:{rec.id}")
+            elif rec.status == "failed":
+                seen = f", reproduction gave {rec.observed!r}" if rec.observed is not None else ""
+                return (f"claim {c.name} ({rec.id}) = {rec.value!r} did not replay on commit "
+                        f"{sha[:10]}: {rec.code}{seen}; output ends with:\n{rec.tail[-1500:]}"
+                        + self._elsewhere(task, sha))
+        return None
+
+    def _elsewhere(self, task: Task, sha: str) -> str:
+        """Where the author's claims stand on their newest other commit, and where HEAD is."""
+        head = self.resolve_commit("HEAD")
+        s = self.inst.specs.get(task.id) or {}
+        mine = [c for c in self.inst.claims.values() if c.task_id == task.id and
+                c.adhoc is None and c.commit != sha and c.spec_sha == s.get("spec_sha")]
+        out = f"\n[HEAD is {head[:10]}]" if head and head != sha else ""
+        if mine:
+            other = max(mine, key=lambda c: c.seq).commit
+            on = self.inst.claims_on(task.id, other)
+            states = ", ".join(f"{n} {x.status}" + (f" ({x.code})" if x.code and x.code != "ok"
+                                                    else "") for n, x in sorted(on.items()))
+            out += f"\n[your newest claims are on commit {other[:10]}: {states}]"
+        return out
 
     def _evidence(self, act: Act) -> str | None:
         ref = str(act.params.get("commit") or "").strip()
@@ -182,4 +276,12 @@ def summarize(act: Act) -> str:
     if act.kind == "task_transition":
         return f"@{act.actor} wants to {p.get('transition')} {p.get('task')}" + \
             (f": {p['note']}" if p.get("note") else "")
+    if act.kind == "propose_acceptance":
+        from sciteam.institution.claims import parse_spec, render_spec
+
+        try:
+            body = render_spec(parse_spec(p.get("spec")))
+        except Exception:
+            body = str(p.get("spec"))[:1500]
+        return f"@{act.actor} proposes the acceptance spec of {p.get('task')}:\n{body}"
     return f"@{act.actor} {act.kind} {p}"

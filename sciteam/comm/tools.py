@@ -215,8 +215,10 @@ class TaskUpdateTool:
     spec = ToolSpec(
         name="task_update",
         description="Edit a task's title, description, deps, reviewer, watchers, estimate_h, "
-                    "labels or acceptance (creator only).",
+                    "labels, or (creator only) acceptance and parent; parent '' makes it "
+                    "top-level.",
         parameters=_obj({"task": _STR, "title": _STR, "description": _STR, "deps": _DEPS,
+                         "parent": _STR,
                          "reviewer": _STR, "watchers": _STRS, "estimate_h": {"type": "number"},
                          "labels": _STRS, "acceptance": _STR}, ["task"]),
     )

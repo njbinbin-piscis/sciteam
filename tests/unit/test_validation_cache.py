@@ -56,3 +56,41 @@ def test_without_private_mounts_the_cache_behaves_as_before():
     done = _v("V1", inputs=None, status="passed")
     worker = _worker(done, _v("V2"))
     assert worker._cached(worker.svc.inst.validations["V2"], None) is done
+
+
+def test_failed_validation_names_files_the_commit_lacks(tmp_path):
+    import asyncio
+    import dataclasses
+    import subprocess
+
+    from sciteam.providers.sandbox import LocalSandbox
+
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    (ws / "seed").write_text("x\n")
+    subprocess.run("git init -q && git add -A && git -c user.email=t@t -c user.name=t "
+                   "commit -qm seed", shell=True, cwd=ws, check=True)
+    sha = subprocess.run(["git", "-C", str(ws), "rev-parse", "HEAD"], capture_output=True,
+                         text=True, check=True).stdout.strip()
+    (ws / "REPORT.md").write_text("done\n")
+    recorded = {}
+    v = Validation(id="V1", validator="acceptance", commit=sha, command="test -s REPORT.md",
+                   act_id="a", timeout_s=60, status="requested", inputs=None)
+    svc = SimpleNamespace(inst=SimpleNamespace(validations={"V1": v}),
+                          record_validation=lambda vid, **kw: recorded.update(kw))
+    blobs = SimpleNamespace(put_text=lambda t: SimpleNamespace(sha256="b"))
+    worker = ValidationWorker(svc, workspace=ws, blobs=blobs, sandbox=LocalSandbox)
+    asyncio.run(worker._run(v))
+    assert recorded["ok"] is False
+    assert f"commit {sha[:10]} lacks REPORT.md" in recorded["tail"]
+
+    # an amendment's trial names the script it runs that the recorded commit never held
+    (ws / "seed").write_text("y\n")
+    (ws / "check.py").write_text("import sys; sys.exit(1)\n")
+    trial = dataclasses.replace(v, id="V2", act_id="amend:A1", status="requested",
+                                command="python3 check.py && cat seed")
+    svc.inst.validations["V2"] = trial
+    asyncio.run(worker._run(trial))
+    assert "the command runs check.py, which recorded commit" in recorded["tail"]
+    assert "seed" not in recorded["tail"].split("[the command runs")[1].split(",")[0]
+    assert "submit the new commit" not in recorded["tail"]

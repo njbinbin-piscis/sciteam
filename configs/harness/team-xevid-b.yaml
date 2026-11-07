@@ -22,6 +22,8 @@ tools:
 - task_board
 - task_show
 - schedule_wakeup
+- remember
+- forget
 - rules
 - pending
 - standing

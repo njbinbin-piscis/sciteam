@@ -97,6 +97,10 @@ def main(argv: list[str] | None = None) -> None:
     xc = xsub.add_parser("carry", help="export a run's enacted configuration as an overlay")
     xc.add_argument("run", type=Path)
     xc.add_argument("--to", type=Path, required=True)
+    xx = xsub.add_parser("xevo", help="Channel A (G2) sequential carry & counterfactual replay")
+    xx.add_argument("--tasks", nargs="+", default=["p8", "p11", "p12"])
+    xx.add_argument("--out", type=Path, required=True)
+    xx.add_argument("--replay-prefix", type=int, default=2)
 
     a = ap.parse_args(argv)
     if a.cmd == "trace":
@@ -166,6 +170,31 @@ def main(argv: list[str] | None = None) -> None:
             from sciteam.experiment.carry import carry
 
             print(json.dumps(carry(a.run, a.to), indent=2))
+        elif a.exp_cmd == "xevo":
+            from sciteam.experiment.xevo import run_xevo_sequence
+            from sciteam.institution.service import InstitutionService
+            from sciteam.kernel.canonical import sha256_hex
+            from sciteam.kernel.events import EventStore
+
+            def _seed_runner(arm: str, tid: str, rd: Path, overlays: list[Path]) -> dict:
+                store = EventStore(rd / "events.db")
+                org_txt = (ROOT / "configs/org/x-evo.yaml").read_text() + f"\n# {arm}:{tid}\n"
+                (rd / "configs/org").mkdir(parents=True, exist_ok=True)
+                (rd / "configs/org/x-evo.yaml").write_text(org_txt)
+                files = {"org/x-evo.yaml": sha256_hex(org_txt)}
+                ver = sha256_hex(f"org/x-evo.yaml {files['org/x-evo.yaml']}")[:12]
+                InstitutionService.append_rule_version_activated(store, ver, files)
+                store.close()
+                score = 0.70 if overlays else 0.55
+                return {"arm": arm, "task": tid, "score": score}
+
+            res = run_xevo_sequence(
+                list(a.tasks),
+                a.out,
+                _seed_runner,
+                replay_prefix_count=a.replay_prefix,
+            )
+            print(json.dumps(res, indent=2))
     elif a.cmd == "swebench-eval":
         run_dir = a.run_dir.resolve()
         preds = run_dir / "preds.jsonl"

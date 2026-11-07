@@ -252,5 +252,11 @@ FINISH_SPEC = ToolSpec(
     }, ["outcome", "summary"]),
 )
 
-BUILTIN_TOOLS = {t.spec.name: t for t in (BashTool(), ReadFileTool(), WriteFileTool(),
-                                          EditFileTool(), RecallTool(), ReadOutputTool())}
+from sciteam.harness.tools.delegate import DelegateTool
+from sciteam.harness.tools.scientific import SCIENTIFIC_BUILTIN_TOOLS
+
+BUILTIN_TOOLS = {
+    **{t.spec.name: t for t in (BashTool(), ReadFileTool(), WriteFileTool(),
+                                EditFileTool(), RecallTool(), ReadOutputTool(), DelegateTool())},
+    **SCIENTIFIC_BUILTIN_TOOLS,
+}

@@ -11,6 +11,7 @@ from typing import Any
 from sciteam.comm import Act, CommPolicy, CommService, Member
 from sciteam.comm.render import render_board
 from sciteam.harness import HarnessConfig
+from sciteam.harness.memory import MemoryBook, render_memory
 from sciteam.kernel.blobs import BlobStore
 from sciteam.kernel.clock import Clock, SystemClock
 from sciteam.kernel.config_store import ConfigStore, split_front_matter
@@ -20,14 +21,42 @@ from sciteam.providers.llm import load_models, make_provider
 from sciteam.providers.llm.types import ModelInfo
 from sciteam.runtime.agent import AgentRunner, LlmFactory
 from sciteam.runtime.attention import still_relevant
-from sciteam.runtime.config import RuntimeConfig, TeamFile
+from sciteam.runtime.config import OfflineConfig, RuntimeConfig, TeamFile
 from sciteam.runtime.scheduler import RUN, Scheduler, SchedulerExtension
 
 RUN_FILE = "run.json"
+FROZEN_CONFIGS = "configs"
+MEMORY_DIR = "memory"
 
 
 def _default_llm_factory(agent: str, info) -> Any:
     return make_provider(info)
+
+
+class MemoryBriefing:
+    """Every activation starts with the notes that apply to its member."""
+
+    def __init__(self, book: MemoryBook, comm: CommService):
+        self.book, self.comm = book, comm
+
+    def attention(self, ev, view) -> list:
+        return []
+
+    def busy(self) -> bool:
+        return False
+
+    def step(self) -> None:
+        pass
+
+    def briefing(self, member: str) -> list[tuple[str, str]]:
+        m = self.comm.view.members.get(member)
+        role = m.role if m else ""
+        notes = [n for n in self.book.notes()
+                 if n.applies_to(member, role) or n.scope.startswith("tool:")]
+        return [("Memory: notes", render_memory(notes, self.book.cfg))]
+
+    async def close(self) -> None:
+        pass
 
 
 class TeamRun:
@@ -47,6 +76,8 @@ class TeamRun:
         self.store = EventStore(run_dir / "events.db", clock=self.clock)
         self.blobs = BlobStore(run_dir / "blobs")
         self.workspace = run_dir / "workspace"
+        self.memory = MemoryBook(run_dir / MEMORY_DIR, self.configs.base / MEMORY_DIR,
+                                 self.runtime.memory)
         self.comm = self._make_comm()
         self.llm_factory = llm_factory or _default_llm_factory
         self.models = models
@@ -87,9 +118,14 @@ class TeamRun:
                              llm_factory=self.llm_factory, runtime=self.runtime,
                              workspace=self.workspace, clock=self.clock,
                              active_timers=active_timers, run_name=self.run_dir.name,
-                             extra_tools=self.extra_tools(), tool_extras=self.tool_extras())
+                             extra_tools=self.extra_tools(), tool_extras=self.tool_extras(),
+                             memory=self.memory)
         sched = Scheduler(store=self.store, policy=self.comm.policy, runtime=self.runtime,
                           runner=runner, clock=self.clock, goal=self.goal)
+        from sciteam.runtime.incoming import IncomingBriefing
+
+        sched.extensions.append(MemoryBriefing(self.memory, self.comm))
+        sched.extensions.append(IncomingBriefing(self.workspace))
         sched.extensions.extend(self.extensions(sched))
         return sched
 
@@ -102,23 +138,34 @@ Opener = Callable[..., TeamRun]
 
 def create_run(run_dir: Path, *, team: str, configs_dir: Path, goal: str | None = None,
                clock: Clock | None = None, overlays: list[Path] = (),
-               opener: Opener = TeamRun) -> None:
-    """Write run.json, seed the workspace and the genesis events (roster, rooms, tasks)."""
+               opener: Opener = TeamRun, meta: dict[str, Any] | None = None) -> None:
+    """Write run.json, seed the workspace and the genesis events (roster, rooms, tasks). The
+    configs and overlays are copied into the run, which reads only that copy from then on."""
     if (run_dir / RUN_FILE).exists():
         raise FileExistsError(f"{run_dir} already holds a run; use resume")
     run_dir.mkdir(parents=True, exist_ok=True)
-    overlays = [str(Path(o).resolve()) for o in overlays]
-    configs = ConfigStore(configs_dir, overlays)
+    source = {"configs_dir": str(Path(configs_dir).resolve()),
+              "overlays": [str(Path(o).resolve()) for o in overlays],
+              "commit": _git_head(Path(configs_dir))}
+    configs_dir = freeze_configs(Path(configs_dir), [Path(o) for o in overlays],
+                                 run_dir / FROZEN_CONFIGS)
+    configs = ConfigStore(configs_dir)
     tf = configs.load(team, TeamFile)
     if goal is None:
         goal = configs.load_text(tf.goal_ref) if tf.goal_ref else ""
     (run_dir / RUN_FILE).write_text(json.dumps(
-        {"team": team, "configs_dir": str(Path(configs_dir).resolve()), "overlays": overlays,
-         "goal": goal}, indent=2))
+        {"team": team, "configs_dir": str(configs_dir.resolve()), "overlays": [],
+         "goal": goal, "source": source, **(meta or {})}, indent=2))
     ws = run_dir / "workspace"
     if tf.workspace_seed:
         shutil.copytree(Path(configs_dir) / tf.workspace_seed, ws, dirs_exist_ok=True)
     ws.mkdir(exist_ok=True)
+    incoming = ws / "data" / "incoming"
+    incoming.mkdir(parents=True, exist_ok=True)
+    readme = incoming / "README.txt"
+    if not readme.exists():
+        from sciteam.runtime.incoming import README_TEXT
+        readme.write_text(README_TEXT, encoding="utf-8")
     _git_init(ws)
 
     tr = opener(run_dir, clock=clock)
@@ -127,7 +174,7 @@ def create_run(run_dir: Path, *, team: str, configs_dir: Path, goal: str | None 
         members = []
         for tm in tf.members:
             profile = split_front_matter(configs.load_text(tm.profile_ref))[1] \
-                if tm.profile_ref else ""
+                .replace("{member_id}", tm.id) if tm.profile_ref else ""
             m = Member(id=tm.id, kind=tm.kind, role=tm.role, team=tm.team, manager=tm.manager,
                        harness=tm.harness, profile=profile, attrs=tm.attrs)
             members.append(m)
@@ -175,6 +222,22 @@ def create_run(run_dir: Path, *, team: str, configs_dir: Path, goal: str | None 
                         actor="system")
     finally:
         tr.close()
+
+
+def freeze_configs(base: Path, overlays: list[Path], dest: Path) -> Path:
+    """The base configs with every overlay layered over them, as one directory."""
+    ignore = shutil.ignore_patterns(".git", "__pycache__", "*.pyc")
+    shutil.copytree(base, dest, ignore=ignore, dirs_exist_ok=True)
+    for o in overlays:
+        if Path(o).is_dir():
+            shutil.copytree(o, dest, ignore=ignore, dirs_exist_ok=True)
+    return dest
+
+
+def _git_head(path: Path) -> str | None:
+    out = subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD"], capture_output=True,
+                         text=True)
+    return out.stdout.strip() or None if out.returncode == 0 else None
 
 
 def _policy_room(comm: CommService, spec) -> None:
@@ -249,13 +312,86 @@ def reset(run_dir: Path, *, breaker: bool = False, agent: str | None = None) -> 
         tr.close()
 
 
+def decide_budget(run_dir: Path, pause_id: str, decision: str, *, as_: str = "owner",
+                  add: dict[str, float] | None = None) -> None:
+    """The owner's answer to a budget approval request: grant (optionally with explicit amounts
+    per dimension, e.g. {"tokens": 5e6}) or decline. Read by the scheduler like any event."""
+    if decision not in ("grant", "decline"):
+        raise ValueError("decision must be grant or decline")
+    tr = TeamRun(run_dir)
+    try:
+        tr.store.append(RUN, "budget_decided", {"pause_id": pause_id, "decision": decision,
+                                                "actor": as_, "add": add or {}}, actor=as_)
+    finally:
+        tr.close()
+
+
+def set_budget(run_dir: Path, *, as_: str = "owner", **settings: Any) -> None:
+    """Change the run budget while it runs: tokens, wall_clock_s, auto_continue,
+    auto_continue_max."""
+    allowed = {"tokens", "wall_clock_s", "cost_usd", "auto_continue", "auto_continue_max"}
+    bad = set(settings) - allowed
+    if bad:
+        raise ValueError(f"unknown budget settings {sorted(bad)}")
+    tr = TeamRun(run_dir)
+    try:
+        tr.store.append(RUN, "budget_settings_changed", settings, actor=as_)
+    finally:
+        tr.close()
+
+
+def set_offline(run_dir: Path, *, as_: str = "owner", **settings: Any) -> None:
+    """Change what the team does while a decision waits for the owner."""
+    OfflineConfig.model_validate(settings)
+    bad = set(settings) - set(OfflineConfig.model_fields)
+    if bad:
+        raise ValueError(f"unknown offline settings {sorted(bad)}")
+    tr = TeamRun(run_dir)
+    try:
+        tr.store.append(RUN, "offline_settings_changed", settings, actor=as_)
+    finally:
+        tr.close()
+
+
+def budget_view(store: EventStore) -> dict[str, Any]:
+    """Tokens used, run budget settings in force, and approval requests still open."""
+    requests: dict[str, dict] = {}
+    decided: set[str] = set()
+    settings: dict[str, Any] = {}
+    run_granted: dict[str, float] = {}
+    tokens = auto_grants = 0
+    for ev in store.read_global():
+        p = ev.payload
+        if ev.type in ("model_returned", "summary_usage") and ev.stream.startswith("agent/"):
+            u = p.get("usage") or {}
+            tokens += int(u.get("prompt_tokens") or 0) + int(u.get("completion_tokens") or 0)
+        elif ev.type == "budget_approval_requested":
+            requests[p["pause_id"]] = {**p, "ts": ev.ts.isoformat()}
+        elif ev.type == "budget_decided":
+            decided.add(p["pause_id"])
+            auto_grants += p.get("actor") == "auto_policy"
+            req = requests.get(p["pause_id"]) or {}
+            if req.get("scope") == "run" and p.get("decision") == "grant":
+                for dim, amount in (p.get("add") or req.get("default_add") or {}).items():
+                    run_granted[dim] = run_granted.get(dim, 0.0) + float(amount)
+        elif ev.type == "budget_settings_changed":
+            settings.update(p)
+    return {"tokens_used": tokens, "settings": settings, "run_granted": run_granted,
+            "auto_grants": auto_grants,
+            "pending": [r for pid, r in requests.items() if pid not in decided]}
+
+
 def status(run_dir: Path, opener: Opener = TeamRun) -> str:
     tr = opener(run_dir)
     try:
         s = tr.scheduler()
         s.catch_up()
-        lines = [f"run {run_dir.name}: cost ${s.cost_usd:.4f}; paused={s.paused}; "
+        lines = [f"run {run_dir.name}: tokens {s.tokens_used / 1e6:.3f}M; paused={s.paused}; "
                  f"stopped={s.stopped}"]
+        open_requests = [r for pid, r in s.requests.items() if pid not in s.decisions]
+        for r in open_requests:
+            lines.append(f"- budget approval {r['pause_id']} ({r['scope']}"
+                         f"{', @' + r['agent'] if r.get('agent') else ''}): waiting for owner")
         for name, st in sorted(s.agents.items()):
             if name not in s.view.members:
                 continue

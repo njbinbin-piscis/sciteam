@@ -72,7 +72,7 @@ class World:
         self.store = EventStore(tmp / f"{name}.db", clock=self.clock)
         self.rs = RuleSet(CONST_PATH, COMM_PATH, texts(**over))
         self.inst = InstitutionView(CONST_PATH, COMM_PATH)
-        gate = InstitutionGate(self.inst, lambda ref: COMMITS.get(ref))
+        gate = InstitutionGate(self.inst, lambda ref: COMMITS.get(ref) or (ref if ref in COMMITS.values() else None))
         self.comm = CommService(self.store, self.rs.comm, self.clock, extra_gate=gate)
         self.svc = InstitutionService(self.comm, self.inst)
         for m in MEMBERS:
@@ -426,3 +426,45 @@ def test_validate_without_commit_is_denied_not_requested(tmp_path):
     r = w.act("rev", "task_transition", task=tid, transition="approve")
     assert not r.ok and "commit=" in r.decision.reason
     assert len(w.inst.validations) == before
+
+
+def test_holds_at_most_keeps_claims_one_at_a_time(tmp_path):
+    w = World(tmp_path, **{RULES_PATH: RULES.replace("approvals:", (
+        "  - {name: one-at-a-time, act: task_transition, transition: claim,\n"
+        "     require: [{holds_at_most: 0}]}\napprovals:"))})
+    root = w.act("lead", "task_create", title="root").data["task"]
+    a, b = (w.act("lead", "task_create", title=t, parent=root, acceptance="true").data["task"]
+            for t in ("a", "b"))
+    assert w.act("dev", "task_transition", task=a, transition="claim").ok
+    r = w.act("dev", "task_transition", task=b, transition="claim")
+    assert r.decision.rule == "one-at-a-time" and f"already holds {a}" in r.decision.reason
+    assert w.act("rev", "task_transition", task=b, transition="claim").ok
+
+
+async def test_claims_on_one_private_command_share_one_replay(tmp_path):
+    import asyncio
+    from types import SimpleNamespace as NS
+
+    from sciteam.institution.claims import ClaimWorker
+
+    def claim(cid, name, actor="rev", cmd="python3 /private/rev/r.py", adhoc=True):
+        return NS(id=cid, name=name, status="requested", commit="abc", spec_sha="s1",
+                  actor=actor,
+                  adhoc={"reproduce": cmd, "file": "r.json", "pointer": f"/{name}"} if adhoc
+                  else None)
+
+    claims = [claim("C1", "km"), claim("C2", "vmax"), claim("C3", "km"),
+              claim("C4", "km", cmd="python3 /private/rev/other.py"),
+              claim("C5", "km", actor="adj"), claim("C6", "km", adhoc=False),
+              claim("C7", "vmax", adhoc=False)]
+    svc = NS(inst=NS(claims={c.id: c for c in claims}))
+    worker = ClaimWorker(svc, workspace=tmp_path, sandbox=None, max_parallel=10)
+    runs = []
+
+    async def fake_run(key, cs):
+        runs.append(sorted(c.id for c in cs))
+
+    worker._run = fake_run
+    worker.step()
+    await asyncio.sleep(0)
+    assert sorted(runs) == [["C1", "C2"], ["C3"], ["C4"], ["C5"], ["C6", "C7"]]

@@ -19,6 +19,7 @@ from sciteam.runtime.agent import AgentRunner, activation_stream
 from sciteam.runtime.attention import (
     AttentionItem,
     agent_of_activation_stream,
+    agent_of_stream,
     attention_for,
     still_relevant,
 )
@@ -27,6 +28,17 @@ from sciteam.runtime.config import RuntimeConfig
 
 RUN = "run"
 MAX_WAIT_S = 1.0
+APPROVAL_POLL_S = 0.5
+# Errors the provider recovers from by itself (rate limits, outages): the agent retries at
+# the longest backoff for as long as they last and is never faulted for them.
+TRANSIENT_REASONS = frozenset({"provider_unavailable"})
+
+
+def faults(errors: int, reason: str | None, retries: int) -> tuple[int, bool]:
+    """Consecutive error count and faulted flag after an activation ends in error."""
+    if reason in TRANSIENT_REASONS:
+        return errors + 1, False
+    return errors + 1, errors + 1 > retries
 
 
 def memory_limit(member: Member | None, default: int) -> int:
@@ -79,6 +91,8 @@ class Scheduler:
         self.runner, self.clock, self.goal = runner, clock, goal
         self.set_policy(policy)
         self.extensions = list(extensions or [])
+        # the agents allowed to act; None = all (a replay fork restricts it to the seat tried)
+        self.only: set[str] | None = None
         self.view = CommView()
         self.agents: dict[str, AgentState] = defaultdict(AgentState)
         self.human_inbox: dict[str, list[AttentionItem]] = defaultdict(list)
@@ -97,6 +111,19 @@ class Scheduler:
         self._cursor = 0
         self._tasks: dict[str, asyncio.Task] = {}
         self._wake = asyncio.Event()
+        # budget: tokens are counted as model calls return, not when activations finish
+        self.tokens_used = 0
+        self.run_extra: dict[str, float] = defaultdict(float)   # run limits granted on top
+        self.requests: dict[str, dict[str, Any]] = {}          # pause_id -> approval request
+        self.decisions: dict[str, dict[str, Any]] = {}         # pause_id -> owner/auto decision
+        self.auto_grants = 0
+        self.handoff_requests: dict[str, str] = {}             # agent -> pending pause_id
+        self.handoff_declined: set[str] = set()
+        self.request_ts: dict[str, float] = {}
+        self.offline = runtime.offline.model_copy()
+        self.resumed_ts = 0.0
+        self.stop_reason: str | None = None
+        self._waiting_logged = False
 
     def set_policy(self, policy: CommPolicy) -> None:
         self.policy = policy
@@ -111,6 +138,10 @@ class Scheduler:
     def _ingest(self, ev: Event) -> None:
         self.view.apply(ev)
         p, t = ev.payload, ev.type
+        if t in ("model_returned", "summary_usage") and agent_of_stream(ev.stream):
+            u = p.get("usage") or {}
+            self.tokens_used += int(u.get("prompt_tokens") or 0) + \
+                int(u.get("completion_tokens") or 0)
         agent = agent_of_activation_stream(ev.stream)
         if agent:
             st = self.agents[agent]
@@ -130,6 +161,16 @@ class Scheduler:
             self.paused, self._halt = p["kind"], None
         elif t == "breaker_reset":
             self.paused, self._halt = None, None
+        elif t == "budget_approval_requested":
+            self.requests[p["pause_id"]] = p
+            self.request_ts[p["pause_id"]] = ev.ts.timestamp()
+            if p.get("scope") == "handoffs":
+                self.handoff_requests[p["agent"]] = p["pause_id"]
+        elif t == "budget_decided":
+            self._fold_decision(p)
+        elif t == "budget_settings_changed":
+            self.cfg = self.cfg.model_copy(update={"budget": self.cfg.budget.model_copy(
+                update={k: v for k, v in p.items() if k in type(self.cfg.budget).model_fields})})
         elif t == "run_stopped":
             self.stopped = p["reason"]
             self._stopped_at = ev.ts
@@ -138,6 +179,9 @@ class Scheduler:
                 self.paused_s += (ev.ts - self._stopped_at).total_seconds()
             self._stopped_at = None
             self.stopped, self.stop_requested = None, False
+            self.resumed_ts, self.stop_reason = ev.ts.timestamp(), None
+        elif t == "offline_settings_changed":
+            self.offline = self.offline.model_copy(update=p)
         elif t == "agent_reset":
             st = self.agents[p["agent"]]
             st.faulted, st.errors, st.handoffs = False, 0, 0
@@ -186,17 +230,101 @@ class Scheduler:
         if outcome == "error" and p.get("reason") in HALT_REASONS and not self.paused:
             self._halt = {"agent": agent, "reason": p["reason"]}
         if outcome == "error" and p.get("reason") != "cancelled":
-            st.errors += 1
-            if st.errors > self.cfg.error_retries:
-                st.faulted = True
+            st.errors, faulted = faults(st.errors, p.get("reason"), self.cfg.error_retries)
+            st.faulted = st.faulted or faulted
         else:
             st.errors = 0
         st.handoffs = st.handoffs + 1 if outcome in ("handoff", "budget_exhausted") else 0
+        if st.handoffs == 0:
+            self.handoff_declined.discard(agent)
+
+    def _fold_decision(self, p: dict[str, Any]) -> None:
+        pid = p["pause_id"]
+        self.decisions[pid] = p
+        if p.get("actor") == "auto_policy":
+            self.auto_grants += 1
+        req = self.requests.get(pid) or {}
+        granted = p.get("decision") == "grant"
+        scope = req.get("scope")
+        if scope == "run":
+            if granted:
+                for dim, amount in (p.get("add") or req.get("default_add") or {}).items():
+                    self.run_extra[dim] += float(amount)
+                if self.paused == "budget":
+                    self.paused = None
+            else:
+                self.stop_requested = True
+        elif scope == "handoffs":
+            agent = req["agent"]
+            self.handoff_requests.pop(agent, None)
+            if granted:
+                self.agents[agent].handoffs = 0
+            else:
+                self.handoff_declined.add(agent)
+
+    # ---- budget approvals ---------------------------------------------------------------
+    def _auto_allows(self) -> bool:
+        b = self.cfg.budget
+        if b.auto_continue == "always":
+            return True
+        return b.auto_continue == "up_to" and self.auto_grants < b.auto_continue_max
+
+    def _request(self, scope: str, detail: dict[str, Any]) -> str:
+        """Ask the owner for more budget; the auto policy answers at once when it allows."""
+        pid = detail.get("pause_id") or new_id("bp")
+        self.store.append(RUN, "budget_approval_requested",
+                          {**detail, "pause_id": pid, "scope": scope}, actor="system")
+        self.catch_up()
+        if self._auto_allows():
+            self.decide(pid, "grant", actor="auto_policy")
+        return pid
+
+    def decide(self, pause_id: str, decision: str, *, actor: str = "owner",
+               add: dict[str, float] | None = None) -> None:
+        if pause_id in self.decisions:
+            return
+        self.store.append(RUN, "budget_decided", {"pause_id": pause_id, "decision": decision,
+                                                  "actor": actor, "add": add or {}},
+                          actor=actor)
+        self.catch_up()
+        self._wake.set()
+
+    def _grant_for(self, name: str):
+        async def grant(pause: dict[str, Any]) -> dict[str, Any] | None:
+            pid = pause["pause_id"]
+            self.catch_up()
+            if pid not in self.requests and pid not in self.decisions:
+                if self.cfg.on_quiescent == "stop" and not self._auto_allows():
+                    return None          # a batch run has nobody to ask
+                self._request("activation", {
+                    "pause_id": pid, "agent": name, "binding": pause.get("binding"),
+                    "exhausted": pause.get("exhausted"), "used": pause.get("used"),
+                    "limits": pause.get("limits"),
+                    "activation_id": pause.get("activation_id")})
+            while pid not in self.decisions:
+                await asyncio.sleep(APPROVAL_POLL_S)
+                self.catch_up()
+            d = self.decisions[pid]
+            if d.get("decision") != "grant":
+                return None
+            return {"actor": d.get("actor", "owner"), "add": d.get("add") or {}}
+        return grant
+
+    async def _checkpoint(self) -> float:
+        """Activations wait here while the whole run is paused for budget."""
+        self.catch_up()
+        if self.paused != "budget":
+            return 0.0
+        t0 = self.clock.monotonic()
+        while self.paused == "budget" and not self.stop_requested:
+            await asyncio.sleep(APPROVAL_POLL_S)
+            self.catch_up()
+        return max(0.0, self.clock.monotonic() - t0)
 
     # ---- decisions ----------------------------------------------------------------------
     def _eligible_at(self, name: str, st: AgentState, waking: list[AttentionItem]) -> datetime:
         at = min(i.ts for i in waking) + timedelta(seconds=self.cfg.debounce_s)
-        if any(i.kind == "retry" for i in waking) and st.last_finish:
+        if any(i.kind == "retry" for i in waking) and st.last_finish and st.errors:
             back = self.cfg.error_backoff_s
             at = max(at, st.last_finish + timedelta(seconds=back[min(st.errors, len(back)) - 1]))
         now = self.clock.now()
@@ -210,7 +338,15 @@ class Scheduler:
         waking = [i for i in st.pending if i.wakes]
         if st.handoffs >= self.cfg.rate.max_consecutive_handoffs:
             dropped = [i for i in waking if i.kind == "continue"]
-            if dropped:
+            interactive = self.cfg.on_quiescent == "wait" or self._auto_allows()
+            if dropped and interactive and name not in self.handoff_declined:
+                # ask before continuing further instead of silently dropping the work
+                if name not in self.handoff_requests:
+                    self._request("handoffs", {"agent": name, "handoffs": st.handoffs,
+                                               "limit": self.cfg.rate.max_consecutive_handoffs})
+                if st.handoffs >= self.cfg.rate.max_consecutive_handoffs:
+                    waking = [i for i in waking if i.kind != "continue"]
+            elif dropped:
                 st.pending = [i for i in st.pending if i.kind != "continue"]
                 self.store.append(RUN, "handoff_limit", {"agent": name, "handoffs": st.handoffs},
                                   actor="system")
@@ -225,7 +361,7 @@ class Scheduler:
         if self.timers and any(t.status not in TERMINAL for t in self.view.tasks.values()):
             return False
         for name, st in self.agents.items():
-            if st.faulted or name not in self.view.members:
+            if st.faulted or name not in self.view.members or not self._may_act(name):
                 continue
             if any(i.wakes for i in st.pending if still_relevant(i, self.view)):
                 return False
@@ -243,8 +379,19 @@ class Scheduler:
             if self.started_at
             else 0.0
         )
-        if self.cost_usd >= b.cost_usd or elapsed >= b.wall_clock_s:
-            self._trip("budget", {"cost_usd": round(self.cost_usd, 4), "elapsed_s": elapsed})
+        lim = {"tokens": float(b.tokens), "cost": b.cost_usd, "wall_clock": b.wall_clock_s}
+        used = {"tokens": float(self.tokens_used), "cost": self.cost_usd, "wall_clock": elapsed}
+        over = [d for d in lim if lim[d] > 0 and used[d] >= lim[d] + self.run_extra[d]]
+        if over:
+            pid = new_id("bp")
+            self._trip("budget", {"cost_usd": round(self.cost_usd, 4), "elapsed_s": elapsed,
+                                  "tokens": self.tokens_used, "exhausted": over,
+                                  "pause_id": pid})
+            if self.cfg.on_quiescent == "wait":
+                self._request("run", {
+                    "pause_id": pid, "binding": over[0], "exhausted": over,
+                    "used": used, "limits": {d: lim[d] + self.run_extra[d] for d in lim},
+                    "default_add": {d: lim[d] for d in over}})
             return
         s = self.cfg.rate.storm
         edge = now - timedelta(seconds=s.window_s)
@@ -259,8 +406,9 @@ class Scheduler:
     def _trip(self, kind: str, detail: dict[str, Any]) -> None:
         self.store.append(RUN, "breaker_tripped", {"kind": kind, **detail}, actor="system")
         self.paused = kind
-        # Batch runs have nobody to press resume, so any breaker ends them.
-        if kind in ("budget", "provider") or self.cfg.on_quiescent == "stop":
+        # Batch runs have nobody to press resume, so any breaker ends them. An interactive run
+        # pauses at its budget and asks the owner (see _request).
+        if kind == "provider" or self.cfg.on_quiescent == "stop":
             self.stop_requested = True
 
     # ---- activations --------------------------------------------------------------------
@@ -289,7 +437,8 @@ class Scheduler:
             sections=[s for ext in self.extensions for s in ext.briefing(name)])
         st.running = aid
         self._deliver(st, seqs)
-        coro = self.runner.run(name, aid, briefing, seqs, self._poll_for(name))
+        coro = self.runner.run(name, aid, briefing, seqs, self._poll_for(name),
+                               budget_grant=self._grant_for(name), checkpoint=self._checkpoint)
         self._spawn(name, aid, coro)
 
     def _spawn(self, name: str, aid: str, coro) -> None:
@@ -314,11 +463,16 @@ class Scheduler:
 
         task.add_done_callback(done)
 
+    def _may_act(self, name: str) -> bool:
+        return self.only is None or name in self.only
+
     def _resume_unfinished(self) -> None:
         for name, st in self.agents.items():
-            if st.running and st.running not in self._tasks:
+            if st.running and st.running not in self._tasks and self._may_act(name):
                 aid = st.running
-                self._spawn(name, aid, self.runner.resume(name, aid, self._poll_for(name)))
+                self._spawn(name, aid, self.runner.resume(
+                    name, aid, self._poll_for(name), budget_grant=self._grant_for(name),
+                    checkpoint=self._checkpoint))
 
     def _fire_timers(self, now: datetime) -> None:
         for tid, (agent, due, note) in list(self.timers.items()):
@@ -332,16 +486,60 @@ class Scheduler:
         waits += [(due - now).total_seconds() for _, due, _ in self.timers.values()]
         return max(0.01, min(waits))
 
+    def _release_open_requests(self) -> None:
+        """Requests asked under a stricter policy are granted once the policy allows them."""
+        for pid in list(self.requests):
+            if pid in self.decisions or not self._auto_allows():
+                continue
+            self.decide(pid, "grant", actor="auto_policy")
+
+    def owner_waits(self) -> list[tuple[str, float]]:
+        """Decisions waiting for the owner, with when each was asked."""
+        out = [(f"budget:{pid}", self.request_ts.get(pid, 0.0)) for pid in self.requests
+               if pid not in self.decisions]
+        for ext in self.extensions:
+            fn = getattr(ext, "owner_waits", None)
+            if fn is not None:
+                out += fn()
+        return out
+
+    def _offline(self, now: datetime) -> bool:
+        """Apply the offline policy; True = start nothing this tick."""
+        waits = self.owner_waits()
+        if not waits:
+            self._waiting_logged = False
+            return False
+        off = self.offline
+        since = max(min(ts for _, ts in waits), self.resumed_ts)
+        waited = now.timestamp() - since
+        if off.timeout_s and waited >= off.timeout_s and off.on_timeout == "stop":
+            self.store.append(RUN, "owner_wait_timed_out", {
+                "waits": sorted(k for k, _ in waits), "waited_s": round(waited, 1)},
+                actor="system")
+            self.stop_requested, self.stop_reason = True, "owner_offline"
+            return True
+        if off.while_waiting == "pause":
+            if not self._waiting_logged:
+                self.store.append(RUN, "team_waiting_for_owner",
+                                  {"waits": sorted(k for k, _ in waits)}, actor="system")
+                self._waiting_logged = True
+            return True
+        return False
+
     def tick(self) -> None:
         now = self.clock.now()
+        self._release_open_requests()
         self._fire_timers(now)
         self._check_breakers(now)
         if self.stop_requested or self.paused:
             return
+        if self._offline(now):
+            return
         candidates = []
         for name, st in list(self.agents.items()):
             member = self.view.members.get(name)
-            if member is None or member.kind != "agent" or st.faulted or st.running:
+            if member is None or member.kind != "agent" or st.faulted or st.running \
+                    or not self._may_act(name):
                 continue
             waking = self._waking(name, st)
             if waking:
@@ -383,7 +581,8 @@ class Scheduler:
                     self.tick()
                 self.catch_up()
                 if self.stop_requested and not self._tasks:
-                    return self._stop("breaker:" + self.paused if self.paused else "human")
+                    return self._stop(self.stop_reason or (
+                        "breaker:" + self.paused if self.paused else "human"))
                 if self.stop_requested:
                     for t in list(self._tasks.values()):
                         t.cancel()

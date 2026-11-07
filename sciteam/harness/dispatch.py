@@ -21,7 +21,24 @@ async def _run_one(tool: Tool, call: ToolCall, ctx: ToolContext) -> CallResult:
     except Exception as e:  # a tool bug must not kill the activation
         res = ToolResult(content=f"error: tool {call.name} raised {type(e).__name__}: {e}",
                          is_error=True, meta={"exception": type(e).__name__})
-    return CallResult(call=call, result=res, duration_s=time.monotonic() - t0)
+    return CallResult(call=call, result=with_memory(call.name, res, ctx),
+                      duration_s=time.monotonic() - t0)
+
+
+def failed(res: ToolResult) -> bool:
+    return res.is_error or res.meta.get("exit_code") not in (None, 0)
+
+
+def with_memory(tool: str, res: ToolResult, ctx: ToolContext) -> ToolResult:
+    """A failed call carries the notes kept about that tool."""
+    memory = ctx.extras.get("memory")
+    if memory is None or not failed(res):
+        return res
+    notes = memory.on_tool_error(tool, res.content)
+    if not notes:
+        return res
+    return res.model_copy(update={"content": res.content + notes,
+                                  "meta": {**res.meta, "memory_notes": True}})
 
 
 def precheck(call: ToolCall, tools: dict[str, Tool]) -> ToolResult | None:
@@ -62,7 +79,8 @@ async def dispatch(calls: list[ToolCall], tools: dict[str, Tool], ctx: ToolConte
     for i, call in enumerate(calls):
         bad = precheck(call, tools)
         if bad is not None:
-            results[i] = CallResult(call=call, result=bad, duration_s=0.0)
+            results[i] = CallResult(call=call, result=with_memory(call.name, bad, ctx),
+                                    duration_s=0.0)
             continue
         if on_start:
             on_start(call)

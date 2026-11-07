@@ -81,3 +81,21 @@ async def test_concurrent_sandboxes_do_not_share_command_scripts(tmp_path):
     finally:
         for b in boxes:
             await b.close()
+
+
+def test_preflight_probe_snapshot_and_disk_threshold(tmp_path):
+    from sciteam.harness.preflight import SandboxPreflightProbe
+
+    probe = SandboxPreflightProbe(min_free_gb=0.01)
+    snap = probe.probe(tmp_path)
+    assert snap.disk_healthy is True
+    assert snap.free_disk_gb > 0
+    block = snap.render_prompt_block()
+    assert "[Environment Snapshot]" in block
+    assert "Free Disk:" in block
+
+    # Unreachable disk requirement triggers warning / block
+    strict_probe = SandboxPreflightProbe(min_free_gb=999_999.0, block_on_low_disk=True)
+    with pytest.raises(RuntimeError, match="Low disk space"):
+        strict_probe.probe(tmp_path)
+
