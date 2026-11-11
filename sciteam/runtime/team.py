@@ -21,7 +21,7 @@ from sciteam.providers.llm import load_models, make_provider
 from sciteam.providers.llm.types import ModelInfo
 from sciteam.runtime.agent import AgentRunner, LlmFactory
 from sciteam.runtime.attention import still_relevant
-from sciteam.runtime.config import OfflineConfig, RuntimeConfig, TeamFile
+from sciteam.runtime.config import OfflineConfig, RuntimeConfig, TeamFile, benchmark_problems
 from sciteam.runtime.scheduler import RUN, Scheduler, SchedulerExtension
 
 RUN_FILE = "run.json"
@@ -215,9 +215,13 @@ def create_run(run_dir: Path, *, team: str, configs_dir: Path, goal: str | None 
             configs.load_text(tf.institution)
         if tf.org:
             configs.load_text(tf.org)
-        configs.load(tf.runtime, RuntimeConfig)
+        rt = configs.load(tf.runtime, RuntimeConfig)
+        bad = benchmark_problems(rt)
+        if bad:
+            raise ValueError("benchmark run refused: " + "; ".join(bad))
         snap = configs.snapshot()
-        tr.store.append(RUN, "run_started", {"team": team, "goal": goal,
+        tr.store.append(RUN, "run_started", {"team": team, "goal": goal, "mode": rt.mode,
+                                             "image": rt.sandbox.image,
                                              "config": snap.model_dump(mode="json")},
                         actor="system")
     finally:
@@ -288,6 +292,8 @@ def post(run_dir: Path, *, as_: str, to: str, text: str, opener: Opener = TeamRu
     try:
         r = tr.comm.submit(Act(act_id=new_id("act"), actor=as_, kind="post_message",
                                params={"to": to, "text": text}))
+        if r.ok and getattr(tr.runtime, "mode", "") == "benchmark":
+            tr.store.append(RUN, "run_interjected", {"actor": as_, "to": to}, actor="human")
         return f"sent {r.data['msg_id']}" if r.ok else f"denied: {r.decision.reason}"
     finally:
         tr.close()

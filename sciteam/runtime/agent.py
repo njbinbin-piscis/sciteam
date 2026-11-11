@@ -23,6 +23,9 @@ from sciteam.kernel.ids import new_id
 from sciteam.providers.llm.types import LlmProvider, ModelInfo, ToolSpec
 from sciteam.providers.sandbox import DockerSandbox, DockerSandboxConfig, LocalSandbox
 from sciteam.providers.sandbox.base import Sandbox
+from sciteam.harness.tools.literature import REALWORLD_TOOLS
+from sciteam.runtime.egress import EgressProxy, proxy_env
+from sciteam.runtime.realworld import declared_env
 from sciteam.runtime.config import RuntimeConfig, library_mounts, member_mounts
 
 LlmFactory = Callable[[str, ModelInfo], LlmProvider]   # (member id, model) -> provider
@@ -100,13 +103,16 @@ class AgentRunner:
                  memory: MemoryBook | None = None):
         self.store, self.blobs, self.comm = store, blobs, comm
         self.memory = memory
-        self.tools = {**TEAM_TOOLS, **MEMORY_TOOLS, **(extra_tools or {})}
+        self.tools = {**TEAM_TOOLS, **MEMORY_TOOLS,
+                      **(REALWORLD_TOOLS if runtime.mode == "realworld" else {}),
+                      **(extra_tools or {})}
         self.tool_extras = dict(tool_extras or {})
         self.configs, self.models, self.llm_factory = configs, models, llm_factory
         self.runtime, self.workspace, self.clock = runtime, workspace, clock
         self.active_timers = active_timers
         self.run_name = run_name
         self._sandboxes: dict[str, Sandbox] = {}
+        self._egress: EgressProxy | None = None
         self._llms: dict[tuple[str, str], LlmProvider] = {}
         self._sb_lock = asyncio.Lock()
         self._reaped = False
@@ -137,6 +143,17 @@ class AgentRunner:
                 if not self._reaped:
                     await _remove_containers(f"sciteam.workspace={ws_label}")
                     self._reaped = True
+                env, hosts = {"HOME": "/tmp"}, []
+                if self.runtime.mode == "realworld":
+                    env.update(declared_env(sc.secrets))
+                if (sc.egress_allow and self.runtime.mode == "realworld"
+                        and sc.network != "none"):
+                    if self._egress is None:
+                        self._egress = EgressProxy(sc.egress_allow,
+                                                   self.workspace.parent / "egress.jsonl")
+                        await self._egress.start()
+                    env.update(proxy_env("host.docker.internal", self._egress.port))
+                    hosts.append("host.docker.internal:host-gateway")
                 sb = DockerSandbox(DockerSandboxConfig(
                     image=sc.image, workdir=sc.workspace_mount, network=sc.network,
                     memory=sc.memory, cpus=sc.cpus, init_commands=sc.init_commands,
@@ -146,7 +163,7 @@ class AgentRunner:
                     labels={"sciteam.run": self.run_name, "sciteam.agent": agent,
                             "sciteam.workspace": ws_label},
                     user=f"{os.getuid()}:{os.getgid()}" if sc.user == "auto" else sc.user,
-                    env={"HOME": "/tmp"}, platform=None))
+                    env=env, add_hosts=hosts, platform=None))
             await sb.start()
             self._sandboxes[agent] = sb
             return sb
@@ -257,3 +274,6 @@ class AgentRunner:
                 await close()
         self._sandboxes.clear()
         self._llms.clear()
+        if self._egress is not None:
+            await self._egress.close()
+            self._egress = None

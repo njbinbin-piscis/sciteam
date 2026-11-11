@@ -32,6 +32,7 @@ from sciteam.providers.sandbox import DockerSandbox, DockerSandboxConfig, LocalS
 from sciteam.providers.sandbox.base import Sandbox
 from sciteam.runtime.attention import AttentionItem
 from sciteam.runtime.config import TeamFile, private_root, validator_private_mounts
+from sciteam.runtime.realworld import PIP_LOCK, restore_commands
 from sciteam.runtime.scheduler import Scheduler
 from sciteam.runtime.team import RUN_FILE, TeamRun
 
@@ -141,6 +142,9 @@ class InstitutionTeamRun(TeamRun):
         return await replicate(self.institution, self.institution.accepted_claims(),
                                workspace=self.workspace, sandbox=self._validation_sandbox)
 
+    def _rebuild_commands(self, root: Path) -> list[str]:
+        return _rebuild_commands_for(self.runtime.mode, root)
+
     def _validation_sandbox(self, root: Path, member: str | None = None) -> Sandbox:
         sc = self.runtime.sandbox
         if sc.kind == "local":
@@ -149,7 +153,7 @@ class InstitutionTeamRun(TeamRun):
             return LocalSandbox(root, init_commands=sc.init_commands)
         return DockerSandbox(DockerSandboxConfig(
             image=sc.image, workdir=sc.workspace_mount, network="none", memory=sc.memory,
-            cpus=sc.cpus, init_commands=sc.init_commands,
+            cpus=sc.cpus, init_commands=[*sc.init_commands, *self._rebuild_commands(root)],
             mounts=[f"{root.resolve()}:{sc.workspace_mount}",
                     *([f"{(root / 'data' / 'incoming').resolve()}:{sc.workspace_mount.rstrip('/')}/data/incoming:ro"]
                       if (root / "data" / "incoming").is_dir() else []),
@@ -158,6 +162,14 @@ class InstitutionTeamRun(TeamRun):
             labels={"sciteam.run": self.run_dir.name, "sciteam.role": "validator"},
             user=f"{os.getuid()}:{os.getgid()}" if sc.user == "auto" else sc.user,
             env={"HOME": "/tmp"}, platform=None))
+
+
+def _rebuild_commands_for(mode: str, root: Path) -> list[str]:
+    """Realworld: the offline validator rebuilds what the members installed from the lockfile."""
+    lock = root / PIP_LOCK
+    if mode != "realworld" or not lock.is_file():
+        return []
+    return restore_commands(lock.read_text())
 
 
 def _abs_mount(spec: str) -> str:
@@ -251,6 +263,12 @@ class InstitutionExtension:
                 notes.append((a.proposer, f"The trial validations of your amendment {a.id} "
                               f"finished and it meets admission; voting is open.\n"
                               f"{render_review(p['review'])}"[:NOTE_CHARS], a.id))
+        elif ev.type == "amendment_voted":
+            a = inst.amendments.get(p["amendment_id"])
+            if a is not None and p["voter"] != a.proposer:
+                why = f": {p['note']}" if p.get("note") else ""
+                notes.append((a.proposer, f"@{p['voter']} voted {p['choice']} on your amendment "
+                              f"{a.id}{why}"[:NOTE_CHARS], a.id))
         elif ev.type == "claim_replayed":
             c = inst.claims.get(p["claim_id"])
             if c is not None:

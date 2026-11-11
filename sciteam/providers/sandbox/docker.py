@@ -35,6 +35,7 @@ class DockerSandboxConfig(BaseModel):
     attach_container: str | None = None
     user: str | None = None
     mounts: list[str] = Field(default_factory=list)  # docker -v host:container[:ro]
+    add_hosts: list[str] = Field(default_factory=list)  # docker --add-host name:ip
 
 
 # Kills descendants of the recorded shell that share its session and started at/after the
@@ -144,6 +145,8 @@ class DockerSandbox(ShellSandboxBase):
                 args += ["-e", f"{k}={v}"]
             for m in self.cfg.mounts:
                 args += ["-v", m]
+            for h in self.cfg.add_hosts:
+                args += ["--add-host", h]
             if self.cfg.memory:
                 args += ["--memory", self.cfg.memory]
             if self.cfg.cpus:

@@ -4,10 +4,14 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIGS = ROOT / "configs"
+# The bundles and task data live in the product repository, not in the substrate checkout.
+pytestmark = pytest.mark.skipif(not (ROOT / "bench/xevid/bundles").exists(),
+                                reason="needs the product repo's bench/xevid data")
 sys.path.insert(0, str(ROOT / "bench" / "xevid"))
 
 from sciteam.experiment.runner import overlays_for, task_overlay  # noqa: E402

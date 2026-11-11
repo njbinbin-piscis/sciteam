@@ -51,6 +51,9 @@ def run_metrics(evs: list[Event], check: dict[str, Any], score: dict[str, Any] |
     transitions = check.get("C4", {}).get("transitions", {})
     has_goals = "O" in check
     return {
+        "mode": started.payload.get("mode", "realworld") if started else None,
+        # a benchmark run that took owner input is outside the paper table
+        "excluded_from_table": any(e.type == "run_interjected" for e in evs),
         "score": score["score"] if score else None,
         "passed": score.get("passed") if score else None,
         "total": score.get("total") if score else None,

@@ -1,9 +1,10 @@
 """Runtime configuration and team files (docs/31-runtime.md §1, docs/30 §8)."""
 
+import re
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from sciteam.harness.memory import MemoryConfig
 
@@ -36,6 +37,11 @@ class TeamSandboxConfig(BaseModel):
     kind: Literal["local", "docker"]
     image: str | None = None
     network: str = "bridge"
+    # realworld: domains the members' sandboxes may reach through the host egress proxy
+    # (empty = no proxy; the network setting alone applies). Ignored in benchmark mode.
+    egress_allow: list[str] = Field(default_factory=list)
+    # names of host environment variables the project declares; only these reach the sandbox
+    secrets: list[str] = Field(default_factory=list)
     memory: str | None = "8g"
     cpus: float | None = 4
     init_commands: list[str] = Field(default_factory=list)
@@ -134,6 +140,40 @@ class RuntimeConfig(BaseModel):
     sandbox: TeamSandboxConfig
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     offline: OfflineConfig = Field(default_factory=OfflineConfig)
+    # benchmark: offline, pinned image, no installs, owner input taints the run (paper tables);
+    # realworld: the complete working environment. Frozen into run_started at run start.
+    mode: Literal["benchmark", "realworld"] = "realworld"
+
+    @model_validator(mode="after")
+    def _benchmark_is_offline(self) -> "RuntimeConfig":
+        # no setting (product settings included) can open the network of a benchmark run
+        if self.mode == "benchmark" and self.sandbox.network != "none":
+            self.sandbox = self.sandbox.model_copy(update={"network": "none",
+                                                            "egress_allow": [],
+                                                            "secrets": []})
+        return self
+
+
+_INSTALL_WORDS = ("pip install", "pip3 install", "apt-get install", "apt install", "conda install",
+                  "npm install", "curl ", "wget ", "git clone")
+
+
+def benchmark_problems(rt: RuntimeConfig) -> list[str]:
+    """Why a benchmark run may not start; empty when the configuration is admissible."""
+    if rt.mode != "benchmark":
+        return []
+    sc, out = rt.sandbox, []
+    if sc.kind != "docker":
+        out.append("benchmark needs a docker sandbox")
+    elif not sc.image or not (re.fullmatch(r"sha256:[0-9a-f]{64}", sc.image)
+                              or "@sha256:" in sc.image):
+        out.append("benchmark needs an image pinned by digest (name@sha256:... or an image id "
+                   "sha256:...)")
+    if sc.network != "none":
+        out.append("benchmark sandbox network must be none")
+    if any(w in c for c in sc.init_commands for w in _INSTALL_WORDS):
+        out.append("benchmark forbids runtime installs in init_commands")
+    return out
 
 
 class TeamMember(BaseModel):
