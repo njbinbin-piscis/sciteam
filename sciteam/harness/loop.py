@@ -17,6 +17,10 @@ from sciteam.harness.plugins import HarnessPluginChain
 from sciteam.harness.state import ActivationState, Totals, apply
 from sciteam.harness.tools import BUILTIN_TOOLS, FINISH_SPEC, Tool, ToolContext, cap_output
 from sciteam.harness.tools.base import ToolArgError, validate_args
+from sciteam.harness.tools.compute import COMPUTE_TOOLS
+from sciteam.harness.tools.network import NETWORK_TOOLS
+
+OPTIONAL_TOOLS = frozenset({*COMPUTE_TOOLS, *NETWORK_TOOLS})
 from sciteam.kernel.blobs import BlobStore
 from sciteam.kernel.clock import Clock, SystemClock
 from sciteam.kernel.events import EventStore
@@ -115,7 +119,10 @@ class Harness:
         self.delegations = 0
         all_tools = {**BUILTIN_TOOLS, **(extra_tools or {})}
         self.available_tools = all_tools
-        self.tools: dict[str, Tool] = {n: all_tools[n] for n in cfg.tools if n != "finish"}
+        # tools only some projects have (a compute node, a network proxy) may be listed in a
+        # config and are left out when absent; any other missing name is a config error
+        self.tools: dict[str, Tool] = {n: all_tools[n] for n in cfg.tools if n != "finish"
+                                       and (n in all_tools or n not in OPTIONAL_TOOLS)}
         self.tool_specs: list[ToolSpec] = [t.spec for t in self.tools.values()] + [FINISH_SPEC]
         self.fixed_tokens = fixed_tokens(self.system_prompt, self.tool_specs)
         self.compactor = Compactor(

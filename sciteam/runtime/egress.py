@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -24,8 +25,10 @@ def allowed(host: str, allow: list[str]) -> bool:
 
 
 class EgressProxy:
-    def __init__(self, allow: list[str], log: Path, bind: str = "0.0.0.0"):
+    def __init__(self, allow: list[str], log: Path, bind: str = "0.0.0.0",
+                 extra_allow: "Callable[[], list[str]] | None" = None):
         self.allow, self.log, self.bind = list(allow), Path(log), bind
+        self.extra_allow = extra_allow  # domains the owner approved after the run started
         self.port = 0
         self._server: asyncio.AbstractServer | None = None
 
@@ -57,7 +60,7 @@ class EgressProxy:
                 from urllib.parse import urlsplit
                 u = urlsplit(target)
                 host, port = u.hostname or "", str(u.port or 80)
-            ok = bool(host) and allowed(host, self.allow)
+            ok = bool(host) and allowed(host, self.allow + (self.extra_allow() if self.extra_allow else []))
             self._record(host, ok, method)
             if not ok:
                 w.write(b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n")

@@ -24,6 +24,7 @@ from sciteam.providers.llm.types import LlmProvider, ModelInfo, ToolSpec
 from sciteam.providers.sandbox import DockerSandbox, DockerSandboxConfig, LocalSandbox
 from sciteam.providers.sandbox.base import Sandbox
 from sciteam.harness.tools.literature import REALWORLD_TOOLS
+from sciteam.harness.tools.network import NETWORK_TOOLS, approved_domains
 from sciteam.runtime.egress import EgressProxy, proxy_env
 from sciteam.runtime.realworld import declared_env
 from sciteam.runtime.config import RuntimeConfig, library_mounts, member_mounts
@@ -105,6 +106,7 @@ class AgentRunner:
         self.memory = memory
         self.tools = {**TEAM_TOOLS, **MEMORY_TOOLS,
                       **(REALWORLD_TOOLS if runtime.mode == "realworld" else {}),
+                      **(NETWORK_TOOLS if runtime.mode == "realworld" else {}),
                       **(extra_tools or {})}
         self.tool_extras = dict(tool_extras or {})
         self.configs, self.models, self.llm_factory = configs, models, llm_factory
@@ -151,8 +153,9 @@ class AgentRunner:
                 if (sc.egress_allow and self.runtime.mode == "realworld"
                         and sc.network != "none"):
                     if self._egress is None:
-                        self._egress = EgressProxy(sc.egress_allow,
-                                                   self.workspace.parent / "egress.jsonl")
+                        run_dir = self.workspace.parent
+                        self._egress = EgressProxy(sc.egress_allow, run_dir / "egress.jsonl",
+                                                   extra_allow=lambda: approved_domains(run_dir))
                         await self._egress.start()
                     env.update(proxy_env("host.docker.internal", self._egress.port))
                     hosts.append("host.docker.internal:host-gateway")
@@ -190,7 +193,9 @@ class AgentRunner:
         prompt += skill_index(self.configs, root=sc.library_mount if sc.kind == "docker"
                               else str(self.configs.base.resolve()))
         tools = {n: t for n, t in self.tools.items() if n in cfg.tools}
-        extras = {**self.tool_extras, "comm": CommClient(self.comm, agent, activation_id),
+        extras = {**self.tool_extras, "run_dir": self.workspace.parent, "agent": agent,
+                  "egress": lambda: self._egress is not None,
+                  "comm": CommClient(self.comm, agent, activation_id),
                   "timers": TimerClient(self.store, agent, self.clock,
                                         self.runtime.rate.max_timers_per_agent,
                                         self.active_timers)}
