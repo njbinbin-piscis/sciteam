@@ -44,6 +44,13 @@ class TeamSandboxConfig(BaseModel):
     secrets: list[str] = Field(default_factory=list)
     memory: str | None = "8g"
     cpus: float | None = 4
+    # docker --gpus value ("all", a count, or "device=0,1"); None gives the container no GPU
+    gpus: str | None = None
+    shm_size: str | None = None
+    # a directory <run>/tools shared by the team at this path: read-write for members whose
+    # `tools_access` is rw (the environment engineer), read-only for everyone else and for the
+    # validation sandbox, so software one member installs is there for all
+    tools_mount: str | None = None
     init_commands: list[str] = Field(default_factory=list)
     workspace_mount: str = "/workspace"
     user: str | None = None               # "auto" = the host uid:gid (files stay user-owned)
@@ -61,6 +68,10 @@ class TeamSandboxConfig(BaseModel):
 
 def private_root(workspace: Path) -> Path:
     return workspace.parent / "private"
+
+
+def tools_root(workspace: Path) -> Path:
+    return workspace.parent / "tools"
 
 
 def member_mounts(sc: TeamSandboxConfig, workspace: Path, agent: str,
@@ -91,7 +102,24 @@ def member_mounts(sc: TeamSandboxConfig, workspace: Path, agent: str,
             d = root / peer
             d.mkdir(parents=True, exist_ok=True)
             mounts.append(f"{d.resolve()}:{base}/{peer}:ro")
+    access = attrs.get("tools_access", "ro")
+    if access not in ("rw", "ro"):
+        raise ValueError(f"tools_access must be rw or ro, got {access!r}")
+    if sc.tools_mount:
+        tools = tools_root(workspace)
+        tools.mkdir(parents=True, exist_ok=True)
+        mounts.append(f"{tools.resolve()}:{sc.tools_mount}" + (":ro" if access == "ro" else ""))
     return mounts
+
+
+def validator_tools_mounts(sc: TeamSandboxConfig, workspace: Path) -> list[str]:
+    """The validation sandbox sees the shared tools read-only, so a replay runs what the
+    members installed without a network."""
+    if not sc.tools_mount:
+        return []
+    tools = tools_root(workspace)
+    tools.mkdir(parents=True, exist_ok=True)
+    return [f"{tools.resolve()}:{sc.tools_mount}:ro"]
 
 
 LIBRARY_DIRS = ("skills", "scripts", "memory")

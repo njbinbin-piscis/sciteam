@@ -31,7 +31,12 @@ from sciteam.kernel.events import Event
 from sciteam.providers.sandbox import DockerSandbox, DockerSandboxConfig, LocalSandbox
 from sciteam.providers.sandbox.base import Sandbox
 from sciteam.runtime.attention import AttentionItem
-from sciteam.runtime.config import TeamFile, private_root, validator_private_mounts
+from sciteam.runtime.config import (
+    TeamFile,
+    private_root,
+    validator_private_mounts,
+    validator_tools_mounts,
+)
 from sciteam.runtime.realworld import PIP_LOCK, restore_commands
 from sciteam.runtime.scheduler import Scheduler
 from sciteam.runtime.team import RUN_FILE, TeamRun
@@ -158,7 +163,8 @@ class InstitutionTeamRun(TeamRun):
                     *([f"{(root / 'data' / 'incoming').resolve()}:{sc.workspace_mount.rstrip('/')}/data/incoming:ro"]
                       if (root / "data" / "incoming").is_dir() else []),
                     *(_abs_mount(m) for m in sc.validator_mounts),
-                    *validator_private_mounts(sc, self.workspace, member)],
+                    *validator_private_mounts(sc, self.workspace, member),
+                    *validator_tools_mounts(sc, self.workspace)],
             labels={"sciteam.run": self.run_dir.name, "sciteam.role": "validator"},
             user=f"{os.getuid()}:{os.getgid()}" if sc.user == "auto" else sc.user,
             env={"HOME": "/tmp"}, platform=None))

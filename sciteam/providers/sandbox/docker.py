@@ -24,6 +24,8 @@ class DockerSandboxConfig(BaseModel):
     network: str = "none"
     memory: str | None = "16g"
     cpus: float | None = 4
+    gpus: str | None = None        # docker --gpus value: "all", a count, or "device=0,1"
+    shm_size: str | None = None
     init_commands: list[str] = Field(default_factory=list)
     env: dict[str, str] = Field(default_factory=dict)
     pull_timeout_s: float = 3600
@@ -151,6 +153,10 @@ class DockerSandbox(ShellSandboxBase):
                 args += ["--memory", self.cfg.memory]
             if self.cfg.cpus:
                 args += ["--cpus", str(self.cfg.cpus)]
+            if self.cfg.gpus:
+                args += ["--gpus", self.cfg.gpus]
+            if self.cfg.shm_size:
+                args += ["--shm-size", self.cfg.shm_size]
             if self.cfg.platform:
                 args += ["--platform", self.cfg.platform]
             args += [self.cfg.image, "sleep", "infinity"]

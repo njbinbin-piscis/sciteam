@@ -144,6 +144,8 @@ class AgentRunner:
                     await _remove_containers(f"sciteam.workspace={ws_label}")
                     self._reaped = True
                 env, hosts = {"HOME": "/tmp"}, []
+                if sc.tools_mount:
+                    env["SCITEAM_TOOLS"] = sc.tools_mount
                 if self.runtime.mode == "realworld":
                     env.update(declared_env(sc.secrets))
                 if (sc.egress_allow and self.runtime.mode == "realworld"
@@ -156,7 +158,8 @@ class AgentRunner:
                     hosts.append("host.docker.internal:host-gateway")
                 sb = DockerSandbox(DockerSandboxConfig(
                     image=sc.image, workdir=sc.workspace_mount, network=sc.network,
-                    memory=sc.memory, cpus=sc.cpus, init_commands=sc.init_commands,
+                    memory=sc.memory, cpus=sc.cpus, gpus=sc.gpus, shm_size=sc.shm_size,
+                    init_commands=sc.init_commands,
                     mounts=[*member_mounts(sc, self.workspace, agent,
                                            self.comm.view.members[agent].attrs),
                             *library_mounts(sc, self.configs.base)],

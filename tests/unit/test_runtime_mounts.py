@@ -64,3 +64,51 @@ def test_mount_attribute_errors(tmp_path: Path):
     priv = TeamSandboxConfig(kind="docker", image="x", private_mount="/private")
     with pytest.raises(ValueError):
         member_mounts(priv, ws, "v", {"reads_private": "v"})
+
+
+def test_shared_tools_are_writable_for_the_engineer_only(tmp_path: Path):
+    import pytest
+
+    from sciteam.runtime.config import tools_root, validator_tools_mounts
+
+    ws = tmp_path / "workspace"
+    sc = TeamSandboxConfig(kind="docker", image="x", tools_mount="/opt/tools")
+    tools = f"{tools_root(ws).resolve()}:/opt/tools"
+    assert member_mounts(sc, ws, "r")[-1] == tools + ":ro"
+    assert member_mounts(sc, ws, "eng", {"tools_access": "rw"})[-1] == tools
+    assert validator_tools_mounts(sc, ws) == [tools + ":ro"]
+    with pytest.raises(ValueError):
+        member_mounts(sc, ws, "r", {"tools_access": "rwx"})
+    plain = TeamSandboxConfig(kind="docker", image="x")
+    assert member_mounts(plain, ws, "r") == [f"{ws.resolve()}:/workspace"]
+    assert validator_tools_mounts(plain, ws) == []
+
+
+def test_docker_run_gets_gpus_and_shm(monkeypatch):
+    import asyncio
+
+    from sciteam.providers.sandbox import docker as d
+
+    calls = []
+
+    async def fake(*args, **kw):
+        calls.append(args)
+        return 0, b"cid\n"
+
+    monkeypatch.setattr(d, "_docker", fake)
+
+    async def go(**kw):
+        sb = d.DockerSandbox(d.DockerSandboxConfig(image="img", **kw))
+
+        async def noop(*a, **k):
+            return None
+        sb._spawn_shell = noop
+        await sb.start()
+
+    asyncio.run(go(gpus="device=0,1", shm_size="16g"))
+    run = next(c for c in calls if c[0] == "run")
+    assert run[run.index("--gpus") + 1] == "device=0,1"
+    assert run[run.index("--shm-size") + 1] == "16g"
+    calls.clear()
+    asyncio.run(go())
+    assert "--gpus" not in next(c for c in calls if c[0] == "run")
