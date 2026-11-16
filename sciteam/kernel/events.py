@@ -1,4 +1,5 @@
 import asyncio
+import bisect
 import json
 import sqlite3
 import threading
@@ -110,6 +111,16 @@ def _row_to_event(row: tuple) -> Event:
         prev_hash=row[9],
         hash=row[10],
     )
+
+
+class _ParsedLog:
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+        self.events: list[Event] = []
+        self.last = 0
+
+
+_PARSED: dict[str, _ParsedLog] = {}
 
 
 class EventStore:
@@ -238,21 +249,28 @@ class EventStore:
         stream_prefix: str | None = None,
         limit: int | None = None,
     ) -> list[Event]:
-        sql = f"SELECT {_COLUMNS} FROM events WHERE seq>?"
-        args: list[Any] = [after_seq]
+        # The log is append-only and every reader (team view, inbox, budget, progress ...) used to
+        # re-read and re-parse all of it per request. Keep the parsed events once per log file
+        # for the whole process and fetch only what was appended since.
+        cache = _PARSED.setdefault(str(self.path.resolve()), _ParsedLog())
+        with cache.lock:
+            with self._lock:
+                rows = self._conn.execute(
+                    f"SELECT {_COLUMNS} FROM events WHERE seq>? ORDER BY seq", (cache.last,)
+                ).fetchall()
+            for r in rows:
+                cache.events.append(_row_to_event(r))
+            if rows:
+                cache.last = cache.events[-1].seq
+            start = bisect.bisect_right(cache.events, after_seq, key=lambda e: e.seq)
+            out = cache.events[start:]
         if types:
-            sql += f" AND type IN ({','.join('?' * len(types))})"
-            args.extend(sorted(types))
+            out = [e for e in out if e.type in types]
         if stream_prefix:
-            sql += " AND substr(stream, 1, ?) = ?"
-            args.extend([len(stream_prefix), stream_prefix])
-        sql += " ORDER BY seq"
+            out = [e for e in out if e.stream.startswith(stream_prefix)]
         if limit is not None:
-            sql += " LIMIT ?"
-            args.append(limit)
-        with self._lock:
-            rows = self._conn.execute(sql, args).fetchall()
-        return [_row_to_event(r) for r in rows]
+            out = out[:limit]
+        return list(out)
 
     async def subscribe(
         self,
